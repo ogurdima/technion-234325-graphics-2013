@@ -5,7 +5,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glew", "glew\glew.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "freeglut", "freeglut\freeglut.vcxproj", "{7FFB8BD3-9807-4B3B-867F-CDBD36BC48A1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CG_skel_w_MFC", "CG_skel_w_MFC\CG_skel_w_MFC.vcxproj", "{849F10CE-4916-4A83-A3CB-A19AF397A995}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hw1_w_MFC", "hw1_w_MFC\CG_skel_w_MFC.vcxproj", "{849F10CE-4916-4A83-A3CB-A19AF397A995}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
