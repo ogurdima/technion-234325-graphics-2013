@@ -36,7 +36,6 @@ public:
 };
 
 class Scene {
-
 	vector<Model*> models;
 	vector<Light*> lights;
 	vector<Camera*> cameras;

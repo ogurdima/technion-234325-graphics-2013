@@ -37,4 +37,8 @@ public:
 	void ClearColorBuffer();
 	void ClearDepthBuffer();
 	void SetDemoBuffer();
+
+	// HW 1
+	void DrawLine(vec2 p1, vec2 p2);
+	void plotPixel(int x, int y);
 };
