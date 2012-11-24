@@ -8,43 +8,10 @@
 
 using namespace std;
 
-struct FaceIdcs
+vec4 hmgFromVec3(const vec3& v)
 {
-	int v[4];
-	int vn[4];
-	int vt[4];
-
-	FaceIdcs()
-	{
-		for (int i=0; i<4; i++)
-			v[i] = vn[i] = vt[i] = 0;
-	}
-
-	FaceIdcs(std::istream & aStream)
-	{
-		for (int i=0; i<4; i++)
-			v[i] = vn[i] = vt[i] = 0;
-
-		char c;
-		for(int i = 0; i < 4; i++)
-		{
-			aStream >> std::ws >> v[i] >> std::ws;
-			if (aStream.peek() != '/')
-				continue;
-			aStream >> c >> std::ws;
-			if (aStream.peek() == '/')
-			{
-				aStream >> c >> std::ws >> vn[i];
-				continue;
-			}
-			else
-				aStream >> vt[i];
-			if (aStream.peek() != '/')
-				continue;
-			aStream >> c >> vn[i];
-		}
-	}
-};
+	return vec4(v.x,v.y,v.z,1);
+}
 
 vec3 vec3fFromStream(std::istream & aStream)
 {
@@ -72,9 +39,7 @@ MeshModel::~MeshModel(void)
 void MeshModel::loadFile(string fileName)
 {
 	ifstream ifile(fileName.c_str());
-	vector<FaceIdcs> faces;
-	vector<vec3> vertices;
-	vector<vec3> normals;
+
 	// while not end of file
 	while (!ifile.eof())
 	{
@@ -90,11 +55,11 @@ void MeshModel::loadFile(string fileName)
 
 		// based on the type parse data
 		if (lineType == "v") 
-			vertices.push_back(vec3fFromStream(issLine));
+			_vertices.push_back(hmgFromVec3(vec3fFromStream(issLine)));
 		else if (lineType == "vn") 
-			normals.push_back(vec3fFromStream(issLine));
+			_normals.push_back(hmgFromVec3(vec3fFromStream(issLine)));
 		else if (lineType == "f") 
-			faces.push_back(FaceIdcs(issLine));
+			_faces.push_back(Face(issLine));
 		else if (lineType == "#" || lineType == "")
 		{
 			// comment / empty line
@@ -111,16 +76,20 @@ void MeshModel::loadFile(string fileName)
 	//Then vertex_positions should contain:
 	//vertex_positions={v1,v2,v3,v1,v3,v4}
 
-	vertex_positions = new vec3[faces.size() * 3]; 
+	//vertex_positions = new vec3[faces.size() * 3];
+
 	// iterate through all stored faces and create triangles
-	int k=0;
-	for (vector<FaceIdcs>::iterator it = faces.begin(); it != faces.end(); ++it)
-	{
-		for (int i = 0; i < 3; i++) // Assuming all faces are constructed with 3 verticies
-		{
-			vertex_positions[k++] = vec3(vertices[it->v[i] - 1]); // Pushing only verticies (w/o normals/textures)
-		}
-	}
+	//int k=0;
+	//for (vector<Face>::iterator it = faces.begin(); it != faces.end(); ++it)
+	//{
+	//	for (int i = 0; i < 3; i++) // Assuming all faces are constructed with 3 verticies
+	//	{
+	//		vertex_positions[k++] = vec3(vertices[it->v[i] - 1]); // Pushing only verticies (w/o normals/textures)
+	//	}
+	//}
+
+
+
 }
 
 

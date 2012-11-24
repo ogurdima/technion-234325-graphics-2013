@@ -33,17 +33,94 @@ void Renderer::CreateBuffers(int width, int height)
 
 void Renderer::SetDemoBuffer()
 {
-	//vertical line
-	for(int i=0; i<m_width; i++)
-	{
-		m_outBuffer[INDEX(m_width,256,i,0)]=1;	m_outBuffer[INDEX(m_width,256,i,1)]=0;	m_outBuffer[INDEX(m_width,256,i,2)]=0;
+	////vertical line
+	//for(int i=0; i<m_height; i++)
+	//{
+	//	m_outBuffer[INDEX(m_width,256,i,0)]=1;	m_outBuffer[INDEX(m_width,256,i,1)]=0;	m_outBuffer[INDEX(m_width,256,i,2)]=0;
+	//}
+	////horizontal line
+	//for(int i=0; i<m_width; i++)
+	//{
+	//	m_outBuffer[INDEX(m_width,i,256,0)]=1;	m_outBuffer[INDEX(m_width,i,256,1)]=0;	m_outBuffer[INDEX(m_width,i,256,2)]=1;
+	//}
 
+	//// diagonal line
+	//for(int i=0; i<m_width; i++)
+	//{
+	//	m_outBuffer[INDEX(m_width,i,i,0)]=0;	m_outBuffer[INDEX(m_width,i,i,1)]=1;	m_outBuffer[INDEX(m_width,i,i,2)]=0;
+	//}
+
+	//DrawLine(vec2(20,20), vec2(200,200));
+	//DrawLine(vec2(20,200), vec2(200,20));
+	//DrawLine(vec2(256,256), vec2(256,300));
+	//DrawLine(vec2(50,5), vec2(35,120));
+
+	vec2 p1, p2;
+	vec2 center(m_width / 2, m_height / 2);
+	float r = m_width / 2;
+	float a = 0;
+	for (int i = 0; i < 32; i++){
+		p1.x = center.x - r * cos(a);
+		p1.y = center.y - r * sin(a);
+		p2.x = center.x + r * cos(a);
+		p2.y = center.y + r * sin(a);
+
+		DrawLine(p1, p2);
+
+		a += 3.14159265358979323846 / 16; /* 2PI/32 */
 	}
-	//horizontal line
-	for(int i=0; i<m_width; i++)
-	{
-		m_outBuffer[INDEX(m_width,i,256,0)]=1;	m_outBuffer[INDEX(m_width,i,256,1)]=0;	m_outBuffer[INDEX(m_width,i,256,2)]=1;
+}
 
+
+#pragma region // HW 1
+
+void Renderer::plotPixel(int x, int y)
+{
+	m_outBuffer[INDEX(m_width,x,y,0)]=1;	m_outBuffer[INDEX(m_width,x,y,1)]=1;	m_outBuffer[INDEX(m_width,x,y,2)]=1;
+}
+
+void Renderer::DrawLine(vec2 p1, vec2 p2)
+{
+	int x1 = (int)p1.x;
+	int x2 = (int)p2.x;
+	int y1 = (int)p1.y;
+	int y2 = (int)p2.y;
+	bool steep = abs(y2 - y1) > abs(x2 - x1);
+
+	if(steep)
+	{
+		swap(x1,y1);
+		swap(x2,y2);
+	}
+	if(x1 > x1)
+	{
+		swap(x1,x2);
+		swap(y1,y2);
+	}
+	
+	int dx = x2 - x1;
+	int dy = abs(y2 - y1);
+
+	int e =  dx/2;
+	int y = y1;
+	int yStep = (y1 < y2) ? 1 : -1;
+
+	for(int x = x1; x <= x2; ++x)
+	{
+		if(steep)
+		{
+			plotPixel(y,x);
+		}
+		else
+		{
+			plotPixel(x,y);
+		}
+		e -= dy;
+		if(e < 0)
+		{
+			e += dx;
+			y += yStep;
+		}
 	}
 }
 
@@ -51,6 +128,10 @@ void Renderer::SetDemoBuffer()
 
 
 
+#pragma endregion
+
+
+#pragma region  // Don't touch.
 /////////////////////////////////////////////////////
 //OpenGL stuff. Don't touch.
 
@@ -135,3 +216,4 @@ void Renderer::SwapBuffers()
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glutSwapBuffers();
 }
+#pragma endregion

@@ -141,7 +141,7 @@ int my_main( int argc, char **argv )
 	glutInitContextProfile( GLUT_CORE_PROFILE );
 	glutCreateWindow( "CG" );
 	glewExperimental = GL_TRUE;
-	glewInit();
+	//glewInit();
 	GLenum err = glewInit();
 	if (GLEW_OK != err)
 	{
@@ -176,6 +176,21 @@ CWinApp theApp;
 
 using namespace std;
 
+//void foo () 
+//{
+//	mat2 a1(1, 2 ,3 ,4);
+//	mat2 a2(1, 0 ,0 ,1);
+//	cout << a1;
+//	cout << a2;
+//	cout <<  a1 * a2  << endl;
+//
+//	mat3 a3(1,2,3,4,5,6,7,8,9);
+//
+//	cout << a3 << endl;
+//	cout << transpose(a3) << endl;
+//	system("pause");
+//}
+
 int main( int argc, char **argv )
 {
 	int nRetCode = 0;
@@ -194,3 +209,5 @@ int main( int argc, char **argv )
 
 	return nRetCode;
 }
+
+
