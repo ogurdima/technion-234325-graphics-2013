@@ -40,6 +40,7 @@ bool lb_down,rb_down,mb_down;
 void display( void )
 {
 	//Call the scene and ask it to draw itself
+	scene->draw();
 }
 
 void reshape( int width, int height )
@@ -155,6 +156,9 @@ int my_main( int argc, char **argv )
 
 	renderer = new Renderer(512,512);
 	scene = new Scene(renderer);
+	Camera* c = new Camera();
+	c->Ortho(-3,3,-3,3,-3,3);
+	scene->AddCamera(c);
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
 
@@ -164,7 +168,6 @@ int my_main( int argc, char **argv )
 	glutMotionFunc ( motion );
 	glutReshapeFunc( reshape );
 	initMenu();
-
 
 	glutMainLoop();
 	delete scene;

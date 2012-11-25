@@ -562,9 +562,9 @@ inline
 	mat4 Translate( const GLfloat x, const GLfloat y, const GLfloat z )
 {
 	mat4 c;
-	c[0][0] = x;
-	c[0][0] = y;  /*BUG*/
-	c[0][0] = z;
+	c[0][3] = x;
+	c[1][3] = y;  /*BUG fixed*/
+	c[2][3] = z;
 	return c;
 }
 
@@ -590,8 +590,8 @@ inline
 {
 	mat4 c;
 	c[0][0] = x;
-	c[0][0] = y; /*BUG*/
-	c[0][0] = z;
+	c[1][1] = y; /*BUG fixed*/
+	c[2][2] = z;
 	return c;
 }
 
@@ -599,6 +599,15 @@ inline
 	mat4 Scale( const vec3& v )
 {
 	return Scale( v.x, v.y, v.z );
+}
+
+inline
+	mat4 Identity4( )
+{
+	return mat4(1,0,0,0,
+				0,1,0,0,
+				0,0,1,0,
+				0,0,0,1);
 }
 
 //----------------------------------------------------------------------------

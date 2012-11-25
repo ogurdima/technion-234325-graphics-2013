@@ -4,6 +4,8 @@
 #include "vec.h"
 #include "mat.h"
 #include "GL/glew.h"
+#include "Camera.h"
+#include "Vertex.h"
 
 using namespace std;
 class Renderer
@@ -12,12 +14,13 @@ class Renderer
 	float *m_zbuffer; // width*height
 	int m_width, m_height;
 
+	Camera * _camera;
+
 	void CreateBuffers(int width, int height);
 	void CreateLocalBuffer();
 
 	//////////////////////////////
 	// openGL stuff. Don't touch.
-
 	GLuint gScreenTex;
 	GLuint gScreenVtc;
 	GLuint gBuffer;
@@ -29,11 +32,14 @@ public:
 	Renderer(int width, int height);
 	~Renderer(void);
 	void Init();
+	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3);
 	void DrawTriangles(const vector<vec3>* vertices, const vector<vec3>* normals=NULL);
+	void Draw(const vector<Vertex> vertices);
 	void SetCameraTransform(const mat4& cTransform);
 	void SetProjection(const mat4& projection);
 	void SetObjectMatrices(const mat4& oTransform, const mat3& nTransform);
 	void SwapBuffers();
+	void SetCamera(Camera* c);
 	void ClearColorBuffer();
 	void ClearDepthBuffer();
 	void SetDemoBuffer();

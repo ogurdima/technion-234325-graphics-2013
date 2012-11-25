@@ -72,7 +72,45 @@ void Renderer::SetDemoBuffer()
 }
 
 
-#pragma region // HW 1
+void Renderer::Draw(vector<Vertex> vertices)
+{
+	// foreach vertex make transformation of camera and view 
+	mat4 p = _camera->Projection();
+	for(vector<Vertex>::iterator it = vertices.begin();   it != vertices.end(); it++) 
+	{
+		vec4 v = p * (*it);
+		*it = v;
+	}
+
+	// Clipping
+
+	// Rasterization
+
+	for(int i = 0; i+3 <= vertices.size(); i+=3)
+	{
+		Vertex v1 = vertices.at(i);
+		Vertex v2 = vertices.at(i+1);
+		Vertex v3 = vertices.at(i+2);
+		DrawTriangle2D(	vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), vec2(v2.x/v2.w,v2.y/v2.w));
+	}
+
+}
+
+void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3)
+{
+	vec2 vv1((v1.x + 1) * m_width/2, (v1.y + 1) * m_height/2);
+	vec2 vv2((v2.x + 1) * m_width/2, (v2.y + 1) * m_height/2);
+	vec2 vv3((v3.x + 1) * m_width/2, (v3.y + 1) * m_height/2);
+	DrawLine(vv1,vv2);
+	DrawLine(vv1,vv3);
+	DrawLine(vv2,vv3);
+}
+
+void Renderer::SetCamera(Camera* c)
+{
+	_camera = c;
+}
+
 
 void Renderer::plotPixel(int x, int y)
 {
@@ -125,10 +163,6 @@ void Renderer::DrawLine(vec2 p1, vec2 p2)
 }
 
 
-
-
-
-#pragma endregion
 
 
 #pragma region  // Don't touch.

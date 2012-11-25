@@ -24,10 +24,9 @@ protected :
 	mat3 _normal_transform;
 
 public:
-
+	vector<Vertex> transformVertices();
 	MeshModel(string fileName);
 	~MeshModel(void);
 	void loadFile(string fileName);
-	void draw();
-	
+	void draw(Renderer * r);
 };
