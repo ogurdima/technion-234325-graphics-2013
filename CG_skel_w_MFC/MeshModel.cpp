@@ -102,7 +102,7 @@ vector<Vertex> MeshModel::transformVertices()
 	vector<Vertex> vertex_positions;
 
 	// iterate through all stored faces and create triangles
-	int k=0;
+	//int k=0;
 	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it)
 	{
 		for (int i = 0; i < 3; i++) // Assuming all faces are constructed with 3 verticies

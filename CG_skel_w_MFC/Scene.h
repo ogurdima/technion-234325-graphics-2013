@@ -32,6 +32,7 @@ public:
 	void loadOBJModel(string fileName);
 
 	void AddCamera(Camera * c);
+	void SetView(float leftView, float rightView, float zNear, float zFar, float top, float bottom, vec3 eye, vec3 up, vec3 at);
 
 	void draw();
 	void drawDemo();

@@ -30,6 +30,7 @@ class Renderer
 public:
 	Renderer();
 	Renderer(int width, int height);
+	void FlushBuffer();
 	~Renderer(void);
 	void Init();
 	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3);
@@ -46,5 +47,6 @@ public:
 
 	// HW 1
 	void DrawLine(vec2 p1, vec2 p2);
+	void DrawLine3D(vec4 v1, vec4 v2);
 	void plotPixel(int x, int y);
 };

@@ -31,6 +31,17 @@ void Renderer::CreateBuffers(int width, int height)
 	m_outBuffer = new float[3*m_width*m_height];
 }
 
+void Renderer::FlushBuffer()
+{
+	for(int i=0; i<m_height; i++)
+	{
+		for (int j = 0; j < m_width; j++)
+		{
+			m_outBuffer[INDEX(m_width,j,i,0)]=0;	m_outBuffer[INDEX(m_width,j,i,1)]=0;	m_outBuffer[INDEX(m_width,j,i,2)]=0;
+		}
+	}
+}
+
 void Renderer::SetDemoBuffer()
 {
 	////vertical line
@@ -74,8 +85,10 @@ void Renderer::SetDemoBuffer()
 
 void Renderer::Draw(vector<Vertex> vertices)
 {
+	static int count = 3;
 	// foreach vertex make transformation of camera and view 
-	mat4 p = _camera->Projection();
+	mat4 p = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * _camera->Projection() * _camera->Transformation();
+	
 	for(vector<Vertex>::iterator it = vertices.begin();   it != vertices.end(); it++) 
 	{
 		vec4 v = p * (*it);
@@ -85,25 +98,28 @@ void Renderer::Draw(vector<Vertex> vertices)
 	// Clipping
 
 	// Rasterization
-
-	for(int i = 0; i+3 <= vertices.size(); i+=3)
+	for(int i = 0; i+3 <= vertices.size() ; i+=3)
 	{
 		Vertex v1 = vertices.at(i);
 		Vertex v2 = vertices.at(i+1);
 		Vertex v3 = vertices.at(i+2);
-		DrawTriangle2D(	vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), vec2(v2.x/v2.w,v2.y/v2.w));
+		DrawTriangle2D(	vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), vec2(v3.x/v3.w,v3.y/v3.w));
 	}
+	
+}
 
+void Renderer::DrawLine3D(vec4 v1, vec4 v2) {
+	mat4 p = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * _camera->Projection() * _camera->Transformation();
+	v1 = p * v1;
+	v2 = p * v2;
+	DrawLine(vec2(v1.x, v1.y),vec2(v2.x, v2.y));
 }
 
 void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3)
 {
-	vec2 vv1((v1.x + 1) * m_width/2, (v1.y + 1) * m_height/2);
-	vec2 vv2((v2.x + 1) * m_width/2, (v2.y + 1) * m_height/2);
-	vec2 vv3((v3.x + 1) * m_width/2, (v3.y + 1) * m_height/2);
-	DrawLine(vv1,vv2);
-	DrawLine(vv1,vv3);
-	DrawLine(vv2,vv3);
+	DrawLine(v1,v2);
+	DrawLine(v1,v3);
+	DrawLine(v2,v3);
 }
 
 void Renderer::SetCamera(Camera* c)
@@ -114,6 +130,8 @@ void Renderer::SetCamera(Camera* c)
 
 void Renderer::plotPixel(int x, int y)
 {
+	if (x < 0 || x >= m_width || y < 0 || y >= m_height)
+		return;
 	m_outBuffer[INDEX(m_width,x,y,0)]=1;	m_outBuffer[INDEX(m_width,x,y,1)]=1;	m_outBuffer[INDEX(m_width,x,y,2)]=1;
 }
 
@@ -249,5 +267,6 @@ void Renderer::SwapBuffers()
 	glBindVertexArray(gScreenVtc);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glutSwapBuffers();
+	FlushBuffer();
 }
 #pragma endregion

@@ -33,6 +33,11 @@ Renderer *renderer;
 
 int last_x,last_y;
 bool lb_down,rb_down,mb_down;
+bool ctr_down;
+bool shift_down;
+
+float leftView, rightView, zNear, zFar, top, bottom;
+vec3 eye, up, at;
 
 //----------------------------------------------------------------------------
 // Callbacks
@@ -55,13 +60,24 @@ void keyboard( unsigned char key, int x, int y )
 		exit( EXIT_SUCCESS );
 		break;
 	}
+	//case :
+		//ctr_down = 
+	
 }
+
+
 
 void mouse(int button, int state, int x, int y)
 {
 	//button = {GLUT_LEFT_BUTTON, GLUT_MIDDLE_BUTTON, GLUT_RIGHT_BUTTON}
 	//state = {GLUT_DOWN,GLUT_UP}
+	const int wheel_up = 3;
+	const int wheel_down = 4;
 
+	ctr_down = (glutGetModifiers() & GLUT_ACTIVE_CTRL) ? true : false;
+	shift_down = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) ? true : false;
+
+	float zoom_factor = 1.1;
 	//set down flags
 	switch(button) {
 	case GLUT_LEFT_BUTTON:
@@ -73,8 +89,27 @@ void mouse(int button, int state, int x, int y)
 	case GLUT_MIDDLE_BUTTON:
 		mb_down = (state==GLUT_UP)?0:1;	
 		break;
+	case wheel_up:
+		zoom_factor = 0.9;
+	case wheel_down:
+		if (state==GLUT_DOWN) 
+		{
+			leftView *= zoom_factor;
+			rightView*=zoom_factor;
+			top*= zoom_factor;
+			bottom*=zoom_factor;
+
+		}
+		break;
+
 	}
 
+	if ((ctr_down || shift_down) && lb_down) {
+		last_x=x;
+		last_y=y;
+	}
+
+	scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
 	// add your code
 }
 
@@ -86,6 +121,25 @@ void motion(int x, int y)
 	// update last x,y
 	last_x=x;
 	last_y=y;
+	if (ctr_down && lb_down) {
+		float len = length(at - eye);
+		//vec3 direction = 
+		vec3 axis1 = normalize(cross((at - eye), top));
+		vec3 axis2 = normalize(cross( axis1,(at - eye)));
+		eye += (dx * axis1 / 50);
+		eye += (dy * axis2 / 50);
+		eye = at + len * normalize(eye - at);
+	}
+	if (shift_down && lb_down) {
+		vec3 axis1 = normalize(cross((at - eye), top));
+		vec3 axis2 = normalize(cross( axis1,(at - eye)));
+		eye += (dx * axis1 / 50);
+		eye += (dy * axis2 / 50);
+		at += (dx * axis1 / 50);
+		at += (dy * axis2 / 50);
+
+	}
+	scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
 }
 
 void fileMenu(int id)
@@ -137,7 +191,7 @@ int my_main( int argc, char **argv )
 	// Initialize window
 	glutInit( &argc, argv );
 	glutInitDisplayMode( GLUT_RGBA| GLUT_DOUBLE);
-	glutInitWindowSize( 512, 512 );
+	glutInitWindowSize( 800, 800 );
 	glutInitContextVersion( 3, 2 );
 	glutInitContextProfile( GLUT_CORE_PROFILE );
 	glutCreateWindow( "CG" );
@@ -154,11 +208,26 @@ int my_main( int argc, char **argv )
 
 
 
-	renderer = new Renderer(512,512);
+	renderer = new Renderer(800,800);
 	scene = new Scene(renderer);
 	Camera* c = new Camera();
-	c->Ortho(-3,3,-3,3,-3,3);
+	float p = 3;
+	
+	eye = vec3(3,3,4);
+	at = vec3(0,0,0);
+	up = vec3(0,1,0);
+	leftView = -3;
+	rightView = 3;
+	top = 3;
+	bottom = -3;
+	zNear = 2;
+	zFar = 8;
+
+	//c->Ortho(-p,p,-p,p,-p,p);
+	//c->LookAt(vec4(3,3,4,0), vec4(3,0,4,0),vec4(0,1,0,0));
+	//c->Frustum(-3,3,-3,3,2,8);
 	scene->AddCamera(c);
+	scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
 
