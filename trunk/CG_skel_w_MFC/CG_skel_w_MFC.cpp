@@ -117,26 +117,29 @@ void motion(int x, int y)
 {
 	// calc difference in mouse movement
 	int dx=x-last_x;
-	int dy=y-last_y;
+	int dy=last_y - y;
 	// update last x,y
 	last_x=x;
 	last_y=y;
 	if (ctr_down && lb_down) {
 		float len = length(at - eye);
 		//vec3 direction = 
-		vec3 axis1 = normalize(cross((at - eye), top));
+		vec3 axis1 = normalize(cross((at - eye), up));
 		vec3 axis2 = normalize(cross( axis1,(at - eye)));
 		eye += (dx * axis1 / 50);
 		eye += (dy * axis2 / 50);
 		eye = at + len * normalize(eye - at);
+		up =  normalize( cross( cross( (at - eye), top), (at - eye)));
 	}
 	if (shift_down && lb_down) {
-		vec3 axis1 = normalize(cross((at - eye), top));
+		vec3 axis1 = normalize(cross((at - eye), up));
 		vec3 axis2 = normalize(cross( axis1,(at - eye)));
-		eye += (dx * axis1 / 50);
-		eye += (dy * axis2 / 50);
-		at += (dx * axis1 / 50);
-		at += (dy * axis2 / 50);
+		vec3 vdxx = (dx * axis1 / 50); 
+		vec3 vdyy = (dy * axis2 / 50); 
+		eye +=  vdxx;
+		eye += vdyy;
+		at += vdxx;
+		at += vdyy;
 
 	}
 	scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
@@ -213,7 +216,7 @@ int my_main( int argc, char **argv )
 	Camera* c = new Camera();
 	float p = 3;
 	
-	eye = vec3(3,3,4);
+	eye = vec3(0,0,7);
 	at = vec3(0,0,0);
 	up = vec3(0,1,0);
 	leftView = -3;
@@ -221,7 +224,7 @@ int my_main( int argc, char **argv )
 	top = 3;
 	bottom = -3;
 	zNear = 2;
-	zFar = 8;
+	zFar = 10;
 
 	//c->Ortho(-p,p,-p,p,-p,p);
 	//c->LookAt(vec4(3,3,4,0), vec4(3,0,4,0),vec4(0,1,0,0));
