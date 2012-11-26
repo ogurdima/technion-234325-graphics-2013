@@ -495,8 +495,7 @@ public:
 //  --- Non-class mat4 Methods ---
 //
 
-inline
-	mat4 matrixCompMult( const mat4& A, const mat4& B ) {
+inline mat4 matrixCompMult( const mat4& A, const mat4& B ) {
 		return mat4(
 			A[0][0]*B[0][0], A[0][1]*B[0][1], A[0][2]*B[0][2], A[0][3]*B[0][3],
 			A[1][0]*B[1][0], A[1][1]*B[1][1], A[1][2]*B[1][2], A[1][3]*B[1][3],
@@ -504,8 +503,7 @@ inline
 			A[3][0]*B[3][0], A[3][1]*B[3][1], A[3][2]*B[3][2], A[3][3]*B[3][3] );
 }
 
-inline
-	mat4 transpose( const mat4& A ) {
+inline mat4 transpose( const mat4& A ) {
 		return mat4( A[0][0], A[1][0], A[2][0], A[3][0],
 			A[0][1], A[1][1], A[2][1], A[3][1],
 			A[0][2], A[1][2], A[2][2], A[3][2],
@@ -521,11 +519,27 @@ inline
 #define Error( str ) do { std::cerr << "[" __FILE__ ":" << __LINE__ << "] " \
 	<< str << std::endl; } while(0)
 
-inline
-	vec4 mvmult( const mat4& a, const vec4& b )
+
+inline mat4 Identity4()
+{
+	return mat4(1,0,0,0,
+				0,1,0,0,
+				0,0,1,0,
+				0,0,0,1
+			);
+}
+
+inline mat3 Identity3()
+{
+	return mat3(1,0,0,
+				0,1,0,
+				0,0,1
+			);
+}
+
+inline vec4 mvmult( const mat4& a, const vec4& b )
 {
 	Error( "replace with vector matrix multiplcation operator" );
-
 	vec4 c;
 	int i, j;
 	for(i=0; i<4; i++) {
@@ -536,12 +550,9 @@ inline
 }
 
 //----------------------------------------------------------------------------
-//
 //  Rotation matrix generators
-//
-
-inline
-	mat4 RotateX( const GLfloat theta )
+//----------------------------------------------------------------------------
+inline mat4 RotateX( const GLfloat theta )
 {
 	GLfloat angle = (M_PI/180.0) * theta;
 
@@ -552,24 +563,10 @@ inline
 	return c;
 }
 
-
-inline
-	mat4 Identity4( )
-{
-	return mat4(1,0,0,0,
-				0,1,0,0,
-				0,0,1,0,
-				0,0,0,1);
-}
-
-
 //----------------------------------------------------------------------------
-//
-//  Translation matrix generators
-//
-
-inline
-	mat4 Translate( const GLfloat x, const GLfloat y, const GLfloat z )
+// Translation matrix generators
+//----------------------------------------------------------------------------
+inline mat4 Translate( const GLfloat x, const GLfloat y, const GLfloat z )
 {
 	mat4 c = Identity4();
 	c[0][3] = x;
@@ -578,25 +575,20 @@ inline
 	return c;
 }
 
-inline
-	mat4 Translate( const vec3& v )
+inline mat4 Translate( const vec3& v )
 {
 	return Translate( v.x, v.y, v.z );
 }
 
-inline
-	mat4 Translate( const vec4& v )
+inline mat4 Translate( const vec4& v )
 {
 	return Translate( v.x, v.y, v.z );
 }
 
 //----------------------------------------------------------------------------
-//
-//  Scale matrix generators
-//
-
-inline
-	mat4 Scale( const GLfloat x, const GLfloat y, const GLfloat z )
+// Scale matrix generators
+//----------------------------------------------------------------------------
+inline mat4 Scale( const GLfloat x, const GLfloat y, const GLfloat z )
 {
 	mat4 c;
 	c[0][0] = x;
@@ -606,12 +598,9 @@ inline
 	return c;
 }
 
-inline
-	mat4 Scale( const vec3& v )
+inline mat4 Scale( const vec3& v )
 {
 	return Scale( v.x, v.y, v.z );
 }
 
 
-
-//----------------------------------------------------------------------------

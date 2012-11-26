@@ -11,6 +11,7 @@ Renderer::Renderer() :m_width(512), m_height(512)
 	InitOpenGLRendering();
 	CreateBuffers(512,512);
 }
+
 Renderer::Renderer(int width, int height) :m_width(width), m_height(m_height)
 {
 	InitOpenGLRendering();
@@ -20,8 +21,6 @@ Renderer::Renderer(int width, int height) :m_width(width), m_height(m_height)
 Renderer::~Renderer(void)
 {
 }
-
-
 
 void Renderer::CreateBuffers(int width, int height)
 {
@@ -82,22 +81,14 @@ void Renderer::SetDemoBuffer()
 	}
 }
 
-
 void Renderer::Draw(vector<Vertex> vertices)
 {
-	static int count = 3;
-	// foreach vertex make transformation of camera and view 
-	mat4 p = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * _camera->Projection() * _camera->Transformation();
-	
+	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
 	for(vector<Vertex>::iterator it = vertices.begin();   it != vertices.end(); it++) 
 	{
-		vec4 v = p * (*it);
+		vec4 v = finalProjection * (*it);
 		*it = v;
 	}
-
-	// Clipping
-
-	// Rasterization
 	for(int i = 0; i+3 <= vertices.size() ; i+=3)
 	{
 		Vertex v1 = vertices.at(i);
@@ -105,14 +96,12 @@ void Renderer::Draw(vector<Vertex> vertices)
 		Vertex v3 = vertices.at(i+2);
 		DrawTriangle2D(	vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), vec2(v3.x/v3.w,v3.y/v3.w));
 	}
-	
 }
 
 void Renderer::DrawLine3D(vec4 v1, vec4 v2) {
-	mat4 p = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * _camera->Projection() * _camera->Transformation();
-	v1 = p * v1;
-	v2 = p * v2;
-	DrawLine(vec2(v1.x, v1.y),vec2(v2.x, v2.y));
+	vec2 p1 = ProjectPoint(v1);
+	vec2 p2 = ProjectPoint(v2);
+	DrawLine(p1, p2);
 }
 
 void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3)
@@ -124,9 +113,8 @@ void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3)
 
 void Renderer::SetCamera(Camera* c)
 {
-	_camera = c;
+	m_camera = c;
 }
-
 
 void Renderer::plotPixel(int x, int y)
 {
@@ -180,6 +168,27 @@ void Renderer::DrawLine(vec2 p1, vec2 p2)
 	}
 }
 
+inline vec2 Renderer::ProjectPoint(vec3 p)
+{
+	return ProjectPoint(vec4(p));
+}
+
+inline vec2 Renderer::ProjectPoint(vec4 p)
+{
+	if (NULL == m_camera)
+		return vec2(0,0);
+	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
+	vec4 projected = finalProjection * p;
+	return vec2(projected.x/projected.w, projected.y/projected.w);
+}
+
+vec3 Renderer::ObjectToCamera(vec4 p) {
+	if (NULL == m_camera)
+		return vec3(0,0,0);
+	mat4 cameraTransformation = m_camera->Transformation();
+	vec4 inCameraCoords = cameraTransformation * p;
+	return vec3(inCameraCoords.x/inCameraCoords.w, inCameraCoords.y/inCameraCoords.w, inCameraCoords.z/inCameraCoords.w);
+}
 
 
 
