@@ -21,5 +21,6 @@ public:
 	void Perspective( const float fovy, const float aspect,
 		const float zNear, const float zFar);
 	mat4 Projection();
+	mat4 Transformation();
 };
 

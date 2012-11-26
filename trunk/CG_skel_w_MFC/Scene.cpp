@@ -15,11 +15,8 @@ void Scene::draw()
 {
 	// 1. Send the renderer the current camera transform and the projection
 	// 2. Tell all models to draw themselves
-	
 	if(models.size() == 0 || cameras.size() == 0 )
 		return;
-
-	m_renderer->SetCamera(cameras[activeCamera]);
 
 	Model* model = models[activeModel];
 	model->draw(m_renderer);
@@ -37,4 +34,16 @@ void Scene::AddCamera(Camera * c)
 {
 	cameras.push_back(c);
 	activeCamera = cameras.size() - 1;
+	m_renderer->SetCamera(cameras[activeCamera]);
+}
+
+void Scene::SetView(float leftView, float rightView, float zNear, float zFar, float top, float bottom, vec3 eye, vec3 up, vec3 at)
+{
+	cameras[activeCamera]->LookAt(vec4(eye, 0), vec4(at, 0), vec4(up, 0));
+	cameras[activeCamera]->Frustum(leftView, rightView, bottom, top, zNear, zFar);
+
+	if(models.size() == 0 || cameras.size() == 0 )
+		return;
+	draw();
+	m_renderer->DrawLine3D(eye, at);
 }
