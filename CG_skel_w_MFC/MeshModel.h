@@ -11,15 +11,15 @@ using namespace std;
 class MeshModel : public Model
 {
 protected :
-	MeshModel() {}
-
-	//vec3 *vertex_positions;
+	MeshModel() {
+		_world_transform = Identity4();
+		_normal_transform = Identity3();
+	}
 
 	vector<Face> _faces;
 	vector<Vertex> _vertices;
 	vector<vec4> _normals;
 
-	//add more attributes
 	mat4 _world_transform;
 	mat3 _normal_transform;
 
