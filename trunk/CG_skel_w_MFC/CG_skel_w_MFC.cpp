@@ -129,7 +129,7 @@ void motion(int x, int y)
 		eye += (dx * axis1 / 50);
 		eye += (dy * axis2 / 50);
 		eye = at + len * normalize(eye - at);
-		up =  normalize( cross( cross( (at - eye), top), (at - eye)));
+		up =  normalize( cross( cross( (at - eye), up), (at - eye)));
 	}
 	if (shift_down && lb_down) {
 		vec3 axis1 = normalize(cross((at - eye), up));
