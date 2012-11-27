@@ -71,7 +71,7 @@ public:
 	//--------------------------------------------------------------------
 	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
 	void DrawTriangles(const vector<vec3>* vertices, const vector<vec3>* normals=NULL);
-	void Draw(const vector<Vertex> vertices);
+	void Draw(const vector<Vertex> vertices, Rgb color = Rgb(1,1,1) );
 	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1) );
 	void DrawLine3D(vec4 v1, vec4 v2, Rgb col = Rgb(1,1,1));
 	void plotPixel(int x, int y, Rgb color = Rgb(1,1,1));
