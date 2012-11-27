@@ -164,9 +164,38 @@ void motion(int x, int y)
 		glutPostRedisplay();
 	}
 	if (alt_down && lb_down) {
-		vec3 dv = (dy * axis2 * smoothFactor) - (dx * axis1 * smoothFactor);
+		vec3 dv =  ( -dx * axis1 * smoothFactor) + (dy * axis2 * smoothFactor);
 		vec4 rotationAxisObjectSpace = vec4(normalize(cross(visionAxis, dv)), 0);
-		
+		float angle = 5 * M_PI / 180.0; //converting to radian value
+		float u = rotationAxisObjectSpace.x;
+		float v = rotationAxisObjectSpace.y;
+		float w = rotationAxisObjectSpace.z;
+		float u2 = u * u;
+		float v2 = v * v;
+		float w2 = w * w;
+		float L = (u*u + v * v + w * w);
+
+		mat4 rotationMatrix;
+		rotationMatrix[0][0] = (u2 + (v2 + w2) * cos(angle)) / L;
+		rotationMatrix[0][1] = (u * v * (1 - cos(angle)) - w * sqrt(L) * sin(angle)) / L;
+		rotationMatrix[0][2] = (u * w * (1 - cos(angle)) + v * sqrt(L) * sin(angle)) / L;
+		rotationMatrix[0][3] = 0.0; 
+ 
+		rotationMatrix[1][0] = (u * v * (1 - cos(angle)) + w * sqrt(L) * sin(angle)) / L;
+		rotationMatrix[1][1] = (v2 + (u2 + w2) * cos(angle)) / L;
+		rotationMatrix[1][2] = (v * w * (1 - cos(angle)) - u * sqrt(L) * sin(angle)) / L;
+		rotationMatrix[1][3] = 0.0; 
+ 
+		rotationMatrix[2][0] = (u * w * (1 - cos(angle)) - v * sqrt(L) * sin(angle)) / L;
+		rotationMatrix[2][1] = (v * w * (1 - cos(angle)) + u * sqrt(L) * sin(angle)) / L;
+		rotationMatrix[2][2] = (w2 + (u2 + v2) * cos(angle)) / L;
+		rotationMatrix[2][3] = 0.0; 
+ 
+		rotationMatrix[3][0] = 0.0;
+		rotationMatrix[3][1] = 0.0;
+		rotationMatrix[3][2] = 0.0;
+		rotationMatrix[3][3] = 1.0;
+
 		vector<vec4> modelCoords = scene->getAnchoredModelCoordinates();
 		mat4 rotX = RotateX( dot(modelCoords[0], rotationAxisObjectSpace) ); 
 		mat4 rotY = RotateY( dot(modelCoords[1], rotationAxisObjectSpace) ); 
@@ -176,7 +205,8 @@ void motion(int x, int y)
 		vec4 p2 = -rotationAxisObjectSpace * 50;
 		p2.w = 1;
 		//renderer->DrawLine3D( p1, p2 , Rgb(1,1,0));
-		scene->RotateModel(rotX*rotY*rotZ);
+		//scene->RotateModel(rotX*rotY*rotZ);
+		scene->RotateModel(rotationMatrix);
 		glutPostRedisplay();
 	}
 	//scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
