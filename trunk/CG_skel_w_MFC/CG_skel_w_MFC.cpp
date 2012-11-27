@@ -21,12 +21,18 @@
 #include "Scene.h"
 #include "Renderer.h"
 #include <string>
+#include "InputDialog.h"
 
 #define BUFFER_OFFSET( offset )   ((GLvoid*) (offset))
 
 #define FILE_OPEN 1
 #define MAIN_DEMO 1
 #define MAIN_ABOUT 2
+#define MAIN_TRY_DIALOG 3
+#define MAIN_CLEAN_SCENE 4
+#define MAIN_ADD_CAMERA 5
+#define MAIN_ADD_MODEL 6
+
 
 //----------------------------------------------------------------------------
 // Global variables
@@ -35,8 +41,7 @@ Scene *scene;
 Renderer *renderer;
 int last_x,last_y;
 bool lb_down, rb_down, mb_down, ctr_down, shift_down, alt_down;
-float leftView, rightView, zNear, zFar, top, bottom;
-vec3 eye, up, at;
+
 
 //----------------------------------------------------------------------------
 // Callbacks
@@ -58,9 +63,11 @@ void keyboard( unsigned char key, int x, int y )
 	case 033:
 		exit( EXIT_SUCCESS );
 		break;
+	case 'm':
+		scene->ToggleActiveModel();
+		glutPostRedisplay();
 	}
-	//case :
-		//ctr_down = 
+	
 	
 }
 
@@ -94,10 +101,10 @@ void mouse(int button, int state, int x, int y)
 	case wheel_down:
 		if (state==GLUT_DOWN) 
 		{
-			leftView *= zoom_factor;
-			rightView*=zoom_factor;
-			top*= zoom_factor;
-			bottom*=zoom_factor;
+			Camera* ac = scene->ActiveCam();
+			if (NULL == ac)
+				return;
+			ac->Zoom(zoom_factor);
 			glutPostRedisplay();
 		}
 		break;
@@ -107,10 +114,13 @@ void mouse(int button, int state, int x, int y)
 	if (lb_down) {
 		last_x=x;
 		last_y=y;
+		if (alt_down) {
+			scene->SetActiveModelAnchor();
+		}
 		//glutPostRedisplay();
 	}
 
-	scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
+	//scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
 	
 	// add your code
 }
@@ -118,21 +128,29 @@ void mouse(int button, int state, int x, int y)
 void motion(int x, int y)
 {
 	// calc difference in mouse movement
-	int dx=x-last_x;
-	int dy= y - last_y;
+	int dx = x - last_x;
+	int dy = y - last_y;
 	// update last x,y
-	last_x=x;
-	last_y=y;
-	vec3 axis1 = normalize(cross((at - eye), up));
-	vec3 axis2 = normalize(cross( axis1,(at - eye)));
-	float smoothFactor = (rightView - leftView) / 50.0;
+	last_x = x;
+	last_y = y;
+	Camera* ac = scene->ActiveCam();
+	if (NULL == ac)
+		return;
+	vec3 eye = ac->Eye();
+	vec3 up = ac->Up();
+	vec3 at = ac->At();
+
+	vec3 visionAxis = (at - eye);
+	vec3 axis1 = normalize( cross( visionAxis, up ) );
+	vec3 axis2 = normalize( cross( axis1, visionAxis ) );
+	float smoothFactor = (ac->Right() - ac->Left()) / 50.0;
 	if (ctr_down && lb_down) {
-		float len = length(at - eye);
-		//vec3 direction = 
+		float len = length(visionAxis);
 		eye += (-(dx * axis1) * smoothFactor);
 		eye += ((dy * axis2) * smoothFactor);
-		eye = at + len * normalize(eye - at);
-		up =  normalize( cross( cross( (at - eye), up), (at - eye)));
+		eye = at + len * normalize( eye - at );
+		up = normalize( cross( cross( (at - eye), up ), (at - eye) ) );
+		ac->LookAt(eye, at, up);
 		glutPostRedisplay();
 	}
 	if (shift_down && lb_down) {
@@ -142,15 +160,14 @@ void motion(int x, int y)
 		eye += vdyy;
 		at += vdxx;
 		at += vdyy;
+		ac->LookAt(eye, at, up);
 		glutPostRedisplay();
 	}
 	if (alt_down && lb_down) {
-		vec3 toScreen = (at - eye);
-		vec4 dv = (dy * axis2 * smoothFactor) + (dx * axis1 * smoothFactor);
-		vec4 rotationAxisObjectSpace = normalize(cross(toScreen, dv));
-		rotationAxisObjectSpace.w = 0;
+		vec3 dv = (dy * axis2 * smoothFactor) - (dx * axis1 * smoothFactor);
+		vec4 rotationAxisObjectSpace = vec4(normalize(cross(visionAxis, dv)), 0);
 		
-		vector<vec4> modelCoords = scene->getModelCoordinates();
+		vector<vec4> modelCoords = scene->getAnchoredModelCoordinates();
 		mat4 rotX = RotateX( dot(modelCoords[0], rotationAxisObjectSpace) ); 
 		mat4 rotY = RotateY( dot(modelCoords[1], rotationAxisObjectSpace) ); 
 		mat4 rotZ = RotateZ( dot(modelCoords[2], rotationAxisObjectSpace) ); 
@@ -158,12 +175,11 @@ void motion(int x, int y)
 		p1.w = 1;
 		vec4 p2 = -rotationAxisObjectSpace * 50;
 		p2.w = 1;
-
-		renderer->DrawLine3D( p1, p2 , Rgb(1,1,0));
+		//renderer->DrawLine3D( p1, p2 , Rgb(1,1,0));
 		scene->RotateModel(rotX*rotY*rotZ);
 		glutPostRedisplay();
 	}
-	scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
+	//scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
 	
 }
 
@@ -184,12 +200,36 @@ void fileMenu(int id)
 
 void mainMenu(int id)
 {
+	CXyzDialog cameraEye("Please specify camera location in world cordinates");
+	CXyzDialog cameraAt("Please specify camera target point in world cordinates");
+	CXyzDialog cameraUp("Please specify camera UP vector in world cordinates");
+
 	switch (id)
 	{
-	case MAIN_DEMO:
+	case MAIN_CLEAN_SCENE:
+		scene->Clean();
 		break;
-	case MAIN_ABOUT:
-		AfxMessageBox(_T("Computer Graphics"));
+	case MAIN_ADD_MODEL:
+		{
+			CFileDialog dlg(TRUE,_T(".obj"),NULL,NULL,_T("*.obj|*.*"));
+			if(dlg.DoModal()==IDOK)
+			{
+				std::string s((LPCTSTR)dlg.GetPathName());
+				scene->loadOBJModel((LPCTSTR)dlg.GetPathName());
+				glutPostRedisplay();
+			}
+		}
+		break;
+	case MAIN_ADD_CAMERA:
+		if (cameraEye.DoModal() == IDOK && cameraAt.DoModal() == IDOK && cameraUp.DoModal() == IDOK) {
+			
+		}
+		break;
+	/*case MAIN_TRY_DIALOG:
+		if (IDOK == cdialog.DoModal()) {
+			vec3 v = cdialog.GetXYZ();
+			cout << "X="<< v.x << " Y=" << v.y << " Z=" << v.z << std::endl;
+		}*/
 		break;
 	}
 }
@@ -197,12 +237,17 @@ void mainMenu(int id)
 void initMenu()
 {
 
-	int menuFile = glutCreateMenu(fileMenu);
-	glutAddMenuEntry("Open..",FILE_OPEN);
+	//int menuFile = glutCreateMenu(fileMenu);
+	//glutAddMenuEntry("Open..",FILE_OPEN);
 	glutCreateMenu(mainMenu);
-	glutAddSubMenu("File",menuFile);
-	glutAddMenuEntry("Demo",MAIN_DEMO);
-	glutAddMenuEntry("About",MAIN_ABOUT);
+	glutAddMenuEntry("Clear Screen",MAIN_CLEAN_SCENE);
+	glutAddMenuEntry("Add Model",MAIN_ADD_MODEL);
+	glutAddMenuEntry("Add Camera",MAIN_ADD_CAMERA);
+	//glutAddSubMenu("File",menuFile);
+	//glutAddMenuEntry("Demo",MAIN_DEMO);
+	//glutAddMenuEntry("Try Dialog",MAIN_TRY_DIALOG);
+	//glutAddMenuEntry("About",MAIN_ABOUT);
+
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 //----------------------------------------------------------------------------
@@ -237,21 +282,25 @@ int my_main( int argc, char **argv )
 	Camera* c = new Camera();
 	float p = 3;
 	
-	eye = vec3(3,3,3);
-	at = vec3(0,0,0);
-	up = vec3(0,1,0);
-	leftView = -3;
-	rightView = 3;
-	top = 3;
-	bottom = -3;
-	zNear = 2;
-	zFar = 7;
+	vec3 eye = vec3(3,3,3);
+	vec3 at = vec3(0,0,0);
+	vec3 up = vec3(0,1,0);
+	float leftView = -3;
+	float rightView = 3;
+	float top = 3;
+	float bottom = -3;
+	float zNear = 2;
+	float zFar = 7;
 
 	//c->Ortho(-p,p,-p,p,-p,p);
 	//c->LookAt(vec4(3,3,4,0), vec4(3,0,4,0),vec4(0,1,0,0));
 	//c->Frustum(-3,3,-3,3,2,8);
 	scene->AddCamera(c);
-	scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
+	Camera* ac = scene->ActiveCam();
+	if (ac != NULL) {
+		ac->LookAt(eye, at, up);
+		ac->Frustum(leftView, rightView, bottom, top, zNear, zFar);
+	}
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
 

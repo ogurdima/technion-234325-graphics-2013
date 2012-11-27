@@ -90,10 +90,10 @@ void MeshModel::loadFile(string fileName)
 	//}
 }
 
-void MeshModel::draw(Renderer * r)
+void MeshModel::draw(Renderer * r, Rgb color)
 {
 	vector<Vertex> vp = transformVertices();
-	r->Draw(vp);
+	r->Draw(vp, color);
 }
 
 
@@ -124,4 +124,9 @@ vector<vec4> MeshModel::coordinates() {
 	v.push_back(_world_transform * vec4(0,1,0,0));
 	v.push_back(_world_transform * vec4(0,0,1,0));
 	return v;
+}
+
+vec4 MeshModel::origin()
+{
+	return _world_transform * vec4(0,0,0,1);
 }

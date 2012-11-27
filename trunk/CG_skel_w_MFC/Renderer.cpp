@@ -81,7 +81,7 @@ void Renderer::SetDemoBuffer()
 	}
 }
 
-void Renderer::Draw(vector<Vertex> vertices)
+void Renderer::Draw(vector<Vertex> vertices, Rgb color)
 {
 	static int count = 3;
 	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
@@ -95,12 +95,9 @@ void Renderer::Draw(vector<Vertex> vertices)
 		Vertex v1 = vertices.at(i);
 		Vertex v2 = vertices.at(i+1);
 		Vertex v3 = vertices.at(i+2);
-		DrawTriangle2D(	vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), vec2(v3.x/v3.w,v3.y/v3.w));
+		DrawTriangle2D(	vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), vec2(v3.x/v3.w,v3.y/v3.w), color);
 	}
 	count += 3;
-	DrawLine3D(vec4(0,0,0,1), vec4(3,0,0,0),Rgb(1,0,0));
-	DrawLine3D(vec4(0,0,0,1), vec4(0,3,0,0), Rgb(0,1,0));
-	DrawLine3D(vec4(0,0,0,1), vec4(0,0,3,0), Rgb(0.2,0.2, 1));
 }
 
 void Renderer::DrawLine3D(vec4 v1, vec4 v2, Rgb col) {
@@ -175,7 +172,7 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 
 inline vec2 Renderer::ProjectPoint(vec3 p)
 {
-	return ProjectPoint(vec4(p));
+	return ProjectPoint(vec4(p, 1));
 }
 
 inline vec2 Renderer::ProjectPoint(vec4 p)
