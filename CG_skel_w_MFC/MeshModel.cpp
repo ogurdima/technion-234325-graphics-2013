@@ -112,3 +112,16 @@ vector<Vertex> MeshModel::transformVertices()
 	}
 	return vertex_positions;
 }
+
+void MeshModel::addLeftWorldTransformation(mat4 transform)
+{
+	_world_transform = transform * _world_transform;
+}
+
+vector<vec4> MeshModel::coordinates() {
+	vector<vec4> v;
+	v.push_back(_world_transform * vec4(1,0,0,0));
+	v.push_back(_world_transform * vec4(0,1,0,0));
+	v.push_back(_world_transform * vec4(0,0,1,0));
+	return v;
+}

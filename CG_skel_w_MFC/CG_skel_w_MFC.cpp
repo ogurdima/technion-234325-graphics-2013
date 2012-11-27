@@ -28,20 +28,19 @@
 #define MAIN_DEMO 1
 #define MAIN_ABOUT 2
 
+//----------------------------------------------------------------------------
+// Global variables
+//----------------------------------------------------------------------------
 Scene *scene;
 Renderer *renderer;
-
 int last_x,last_y;
-bool lb_down,rb_down,mb_down;
-bool ctr_down;
-bool shift_down;
-
+bool lb_down, rb_down, mb_down, ctr_down, shift_down, alt_down;
 float leftView, rightView, zNear, zFar, top, bottom;
 vec3 eye, up, at;
 
 //----------------------------------------------------------------------------
 // Callbacks
-
+//----------------------------------------------------------------------------
 void display( void )
 {
 	//Call the scene and ask it to draw itself
@@ -76,6 +75,7 @@ void mouse(int button, int state, int x, int y)
 
 	ctr_down = (glutGetModifiers() & GLUT_ACTIVE_CTRL) ? true : false;
 	shift_down = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) ? true : false;
+	alt_down = (glutGetModifiers() & GLUT_ACTIVE_ALT) ? true : false;
 
 	float zoom_factor = 1.1;
 	//set down flags
@@ -98,18 +98,20 @@ void mouse(int button, int state, int x, int y)
 			rightView*=zoom_factor;
 			top*= zoom_factor;
 			bottom*=zoom_factor;
-
+			glutPostRedisplay();
 		}
 		break;
 
 	}
 
-	if ((ctr_down || shift_down) && lb_down) {
+	if (lb_down) {
 		last_x=x;
 		last_y=y;
+		//glutPostRedisplay();
 	}
 
 	scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
+	
 	// add your code
 }
 
@@ -117,32 +119,52 @@ void motion(int x, int y)
 {
 	// calc difference in mouse movement
 	int dx=x-last_x;
-	int dy=last_y - y;
+	int dy= y - last_y;
 	// update last x,y
 	last_x=x;
 	last_y=y;
+	vec3 axis1 = normalize(cross((at - eye), up));
+	vec3 axis2 = normalize(cross( axis1,(at - eye)));
+	float smoothFactor = (rightView - leftView) / 50.0;
 	if (ctr_down && lb_down) {
 		float len = length(at - eye);
 		//vec3 direction = 
-		vec3 axis1 = normalize(cross((at - eye), up));
-		vec3 axis2 = normalize(cross( axis1,(at - eye)));
-		eye += (dx * axis1 / 50);
-		eye += (dy * axis2 / 50);
+		eye += (-(dx * axis1) * smoothFactor);
+		eye += ((dy * axis2) * smoothFactor);
 		eye = at + len * normalize(eye - at);
 		up =  normalize( cross( cross( (at - eye), up), (at - eye)));
+		glutPostRedisplay();
 	}
 	if (shift_down && lb_down) {
-		vec3 axis1 = normalize(cross((at - eye), up));
-		vec3 axis2 = normalize(cross( axis1,(at - eye)));
-		vec3 vdxx = (dx * axis1 / 50); 
-		vec3 vdyy = (dy * axis2 / 50); 
+		vec3 vdxx = -(dx * axis1 * smoothFactor); 
+		vec3 vdyy = (dy * axis2 * smoothFactor); 
 		eye +=  vdxx;
 		eye += vdyy;
 		at += vdxx;
 		at += vdyy;
+		glutPostRedisplay();
+	}
+	if (alt_down && lb_down) {
+		vec3 toScreen = (at - eye);
+		vec4 dv = (dy * axis2 * smoothFactor) + (dx * axis1 * smoothFactor);
+		vec4 rotationAxisObjectSpace = normalize(cross(toScreen, dv));
+		rotationAxisObjectSpace.w = 0;
+		
+		vector<vec4> modelCoords = scene->getModelCoordinates();
+		mat4 rotX = RotateX( dot(modelCoords[0], rotationAxisObjectSpace) ); 
+		mat4 rotY = RotateY( dot(modelCoords[1], rotationAxisObjectSpace) ); 
+		mat4 rotZ = RotateZ( dot(modelCoords[2], rotationAxisObjectSpace) ); 
+		vec4 p1 = rotationAxisObjectSpace * 50;
+		p1.w = 1;
+		vec4 p2 = -rotationAxisObjectSpace * 50;
+		p2.w = 1;
 
+		renderer->DrawLine3D( p1, p2 , Rgb(1,1,0));
+		scene->RotateModel(rotX*rotY*rotZ);
+		glutPostRedisplay();
 	}
 	scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
+	
 }
 
 void fileMenu(int id)
@@ -165,7 +187,6 @@ void mainMenu(int id)
 	switch (id)
 	{
 	case MAIN_DEMO:
-		scene->drawDemo();
 		break;
 	case MAIN_ABOUT:
 		AfxMessageBox(_T("Computer Graphics"));
@@ -216,7 +237,7 @@ int my_main( int argc, char **argv )
 	Camera* c = new Camera();
 	float p = 3;
 	
-	eye = vec3(0,0,7);
+	eye = vec3(3,3,3);
 	at = vec3(0,0,0);
 	up = vec3(0,1,0);
 	leftView = -3;
@@ -224,7 +245,7 @@ int my_main( int argc, char **argv )
 	top = 3;
 	bottom = -3;
 	zNear = 2;
-	zFar = 10;
+	zFar = 7;
 
 	//c->Ortho(-p,p,-p,p,-p,p);
 	//c->LookAt(vec4(3,3,4,0), vec4(3,0,4,0),vec4(0,1,0,0));

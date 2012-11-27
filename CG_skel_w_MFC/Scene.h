@@ -15,6 +15,7 @@ public:
 };
 
 
+
 class Light {
 
 };
@@ -30,12 +31,15 @@ public:
 	Scene() {};
 	Scene(Renderer *renderer) : m_renderer(renderer) {};
 	void loadOBJModel(string fileName);
-
+	void Clean();
 	void AddCamera(Camera * c);
+	void RotateModel(mat4 rotMatrix);
 	void SetView(float leftView, float rightView, float zNear, float zFar, float top, float bottom, vec3 eye, vec3 up, vec3 at);
+	vector<vec4> getModelCoordinates();
 
 	void draw();
 	void drawDemo();
+	bool isLegal();
 	
 	int activeModel;
 	int activeLight;
