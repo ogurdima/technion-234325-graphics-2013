@@ -8,6 +8,23 @@
 #include "Vertex.h"
 
 using namespace std;
+
+struct Rgb {
+	Rgb(float _r, float _g, float _b) {
+		_r = abs(_r);
+		_g = abs(_g);
+		_b = abs(_b);
+		float sum = _r + _g + _b;
+		r = 3*_r/sum;
+		g = 3*_g/sum;
+		b = 3*_b/sum;
+	}
+
+	float r;
+	float g;
+	float b;
+};
+
 class Renderer
 {
 	float *m_outBuffer; // 3*width*height
@@ -52,13 +69,12 @@ public:
 	//--------------------------------------------------------------------
 	// Drawing stuff
 	//--------------------------------------------------------------------
-	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3);
+	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
 	void DrawTriangles(const vector<vec3>* vertices, const vector<vec3>* normals=NULL);
 	void Draw(const vector<Vertex> vertices);
-	void DrawOld(vector<Vertex> vertices);
-	void DrawLine(vec2 p1, vec2 p2);
-	void DrawLine3D(vec4 v1, vec4 v2);
-	void plotPixel(int x, int y);
+	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1) );
+	void DrawLine3D(vec4 v1, vec4 v2, Rgb col = Rgb(1,1,1));
+	void plotPixel(int x, int y, Rgb color = Rgb(1,1,1));
 	//--------------------------------------------------------------------
 	// Camera stuff
 	//--------------------------------------------------------------------

@@ -83,32 +83,37 @@ void Renderer::SetDemoBuffer()
 
 void Renderer::Draw(vector<Vertex> vertices)
 {
+	static int count = 3;
 	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
 	for(vector<Vertex>::iterator it = vertices.begin();   it != vertices.end(); it++) 
 	{
 		vec4 v = finalProjection * (*it);
 		*it = v;
 	}
-	for(int i = 0; i+3 <= vertices.size() ; i+=3)
+	for(int i = 0 /*count-3*/; i+3 <= vertices.size() /*&& i+3 <= count*/ ; i+=3)
 	{
 		Vertex v1 = vertices.at(i);
 		Vertex v2 = vertices.at(i+1);
 		Vertex v3 = vertices.at(i+2);
 		DrawTriangle2D(	vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), vec2(v3.x/v3.w,v3.y/v3.w));
 	}
+	count += 3;
+	DrawLine3D(vec4(0,0,0,1), vec4(3,0,0,0),Rgb(1,0,0));
+	DrawLine3D(vec4(0,0,0,1), vec4(0,3,0,0), Rgb(0,1,0));
+	DrawLine3D(vec4(0,0,0,1), vec4(0,0,3,0), Rgb(0.2,0.2, 1));
 }
 
-void Renderer::DrawLine3D(vec4 v1, vec4 v2) {
+void Renderer::DrawLine3D(vec4 v1, vec4 v2, Rgb col) {
 	vec2 p1 = ProjectPoint(v1);
 	vec2 p2 = ProjectPoint(v2);
-	DrawLine(p1, p2);
+	DrawLine(p1, p2, col);
 }
 
-void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3)
+void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col)
 {
-	DrawLine(v1,v2);
-	DrawLine(v1,v3);
-	DrawLine(v2,v3);
+	DrawLine(v1,v2, col);
+	DrawLine(v1,v3, col);
+	DrawLine(v2,v3, col);
 }
 
 void Renderer::SetCamera(Camera* c)
@@ -116,14 +121,14 @@ void Renderer::SetCamera(Camera* c)
 	m_camera = c;
 }
 
-void Renderer::plotPixel(int x, int y)
+void Renderer::plotPixel(int x, int y, Rgb color)
 {
 	if (x < 0 || x >= m_width || y < 0 || y >= m_height)
 		return;
-	m_outBuffer[INDEX(m_width,x,y,0)]=1;	m_outBuffer[INDEX(m_width,x,y,1)]=1;	m_outBuffer[INDEX(m_width,x,y,2)]=1;
+	m_outBuffer[INDEX(m_width,x,y,0)]=color.r;	m_outBuffer[INDEX(m_width,x,y,1)]=color.g;	m_outBuffer[INDEX(m_width,x,y,2)]=color.b;
 }
 
-void Renderer::DrawLine(vec2 p1, vec2 p2)
+void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 {
 	int x1 = (int)p1.x;
 	int x2 = (int)p2.x;
@@ -136,7 +141,7 @@ void Renderer::DrawLine(vec2 p1, vec2 p2)
 		swap(x1,y1);
 		swap(x2,y2);
 	}
-	if(x1 > x1)
+	if(x1 > x2)
 	{
 		swap(x1,x2);
 		swap(y1,y2);
@@ -153,11 +158,11 @@ void Renderer::DrawLine(vec2 p1, vec2 p2)
 	{
 		if(steep)
 		{
-			plotPixel(y,x);
+			plotPixel(y,x, col);
 		}
 		else
 		{
-			plotPixel(x,y);
+			plotPixel(x,y, col);
 		}
 		e -= dy;
 		if(e < 0)

@@ -4,6 +4,7 @@
 #include <string>
 
 using namespace std;
+
 void Scene::loadOBJModel(string fileName)
 {
 	MeshModel *model = new MeshModel(fileName);
@@ -15,17 +16,10 @@ void Scene::draw()
 {
 	// 1. Send the renderer the current camera transform and the projection
 	// 2. Tell all models to draw themselves
-	if(models.size() == 0 || cameras.size() == 0 )
+	if(! isLegal())
 		return;
-
 	Model* model = models[activeModel];
 	model->draw(m_renderer);
-	m_renderer->SwapBuffers();
-}
-
-void Scene::drawDemo()
-{
-	m_renderer->SetDemoBuffer();
 	m_renderer->SwapBuffers();
 }
 
@@ -41,13 +35,34 @@ void Scene::SetView(float leftView, float rightView, float zNear, float zFar, fl
 {
 	cameras[activeCamera]->LookAt(vec4(eye, 0), vec4(at, 0), vec4(up, 0));
 	cameras[activeCamera]->Frustum(leftView, rightView, bottom, top, zNear, zFar);
+}
 
-	if(models.size() == 0 || cameras.size() == 0 )
+void Scene::RotateModel(mat4 rotMatrix)
+{
+	if (models.size() == 0)
 		return;
-	draw();
-	//m_renderer->DrawLine3D(eye, at);
-	vec3 cameraEye = m_renderer->ObjectToCamera(eye);
-	vec3 cameraAt = m_renderer->ObjectToCamera(at);
-	m_renderer->DrawLine3D(cameraEye, cameraAt); 
-	//m_renderer->DrawLine3D(vec4(0,0,0,1), vec4(3,0,0,1));
+	Model* model = models[activeModel];
+	MeshModel* mmodel = dynamic_cast<MeshModel*>(model);
+	if (mmodel == NULL)
+		return;
+	mmodel->addLeftWorldTransformation(rotMatrix);
+}
+
+vector<vec4> Scene::getModelCoordinates() { 
+	Model* model = models[activeModel];
+	MeshModel* mmodel = dynamic_cast<MeshModel*>(model);
+	return mmodel->coordinates();
+}
+
+void Scene::Clean()
+{
+	activeCamera = -1;
+	activeLight = -1;
+	activeModel = -1;
+	models.clear();
+	cameras.clear();
+}
+
+bool Scene::isLegal() {
+	return (activeModel != -1 && activeCamera != -1 && models.size() > activeModel && cameras.size() > activeCamera);
 }

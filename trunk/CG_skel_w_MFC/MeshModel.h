@@ -25,8 +25,10 @@ protected :
 
 public:
 	vector<Vertex> transformVertices();
+	vector<vec4> coordinates();
 	MeshModel(string fileName);
 	~MeshModel(void);
 	void loadFile(string fileName);
 	void draw(Renderer * r);
+	void addLeftWorldTransformation(mat4 transform);
 };
