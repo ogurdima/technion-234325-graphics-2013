@@ -71,8 +71,6 @@ void keyboard( unsigned char key, int x, int y )
 	
 }
 
-
-
 void mouse(int button, int state, int x, int y)
 {
 	//button = {GLUT_LEFT_BUTTON, GLUT_MIDDLE_BUTTON, GLUT_RIGHT_BUTTON}
@@ -129,7 +127,7 @@ void motion(int x, int y)
 	last_x = x;
 	last_y = y;
 	Camera* ac = scene->ActiveCam();
-	if (NULL == ac)
+	if (NULL == ac || (dx ==0 && dy == 0))
 		return;
 	vec3 eye = ac->Eye();
 	vec3 up = ac->Up();
@@ -160,7 +158,8 @@ void motion(int x, int y)
 	}
 	if (alt_down && lb_down) {
 		vec3 dv =  ( -dx * axis1 * smoothFactor) + (dy * axis2 * smoothFactor);
-		vec4 rotationAxisObjectSpace = vec4(normalize(cross(visionAxis, dv)), 0);
+		vec3 modelOrigin = scene->ActiveModel()->origin();
+		vec4 rotationAxisObjectSpace =  vec4(normalize(cross(visionAxis, dv)), 0);
 		float angle = 5 * M_PI / 180.0; //converting to radian value
 		float u = rotationAxisObjectSpace.x;
 		float v = rotationAxisObjectSpace.y;
@@ -190,7 +189,10 @@ void motion(int x, int y)
 		rotationMatrix[3][1] = 0.0;
 		rotationMatrix[3][2] = 0.0;
 		rotationMatrix[3][3] = 1.0;
+
+		scene->TranslateActiveModel(Translate(-modelOrigin.x,-modelOrigin.y, -modelOrigin.z));
 		scene->RotateActiveModel(rotationMatrix);
+		scene->TranslateActiveModel(Translate(modelOrigin.x,modelOrigin.y, modelOrigin.z));
 		glutPostRedisplay();
 	}
 	if (alt_down && mb_down) {
@@ -242,7 +244,10 @@ void mainMenu(int id)
 		break;
 	case MAIN_ADD_CAMERA:
 		if (cameraEye.DoModal() == IDOK && cameraAt.DoModal() == IDOK && cameraUp.DoModal() == IDOK) {
-			
+			Camera * c = new Camera(*(scene->ActiveCam()));
+			c->LookAt(cameraEye.GetXYZ(), cameraAt.GetXYZ(), cameraUp.GetXYZ());
+			scene->AddCamera(c);
+			glutPostRedisplay();
 		}
 		break;
 	/*case MAIN_TRY_DIALOG:
@@ -305,10 +310,10 @@ int my_main( int argc, char **argv )
 	vec3 eye = vec3(3,3,3);
 	vec3 at = vec3(0,0,0);
 	vec3 up = vec3(0,1,0);
-	float leftView = -3;
-	float rightView = 3;
-	float top = 3;
-	float bottom = -3;
+	float leftView = -4;
+	float rightView = 4;
+	float top = 4;
+	float bottom = -4;
 	float zNear = 2;
 	float zFar = 7;
 
@@ -320,6 +325,8 @@ int my_main( int argc, char **argv )
 	if (ac != NULL) {
 		ac->LookAt(eye, at, up);
 		ac->Frustum(leftView, rightView, bottom, top, zNear, zFar);
+		//ac->Ortho(leftView, rightView, bottom, top, zNear, zFar);
+
 	}
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks

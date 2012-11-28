@@ -34,11 +34,15 @@ public:
 	}
 
 	vector<Vertex> transformVertices();
+	vector<vec4> transformNormals(float len );
+
 	vector<Vertex> transformVertices(vector<Vertex> inModelCoords);
 	MeshModel(string fileName);
 	~MeshModel(void);
 	void loadFile(string fileName);
 	void virtual draw(Renderer * r, Rgb color = Rgb(0.7,0.7,0.7) );
+	void virtual drawNormals(Renderer * r, float len, Rgb color = Rgb(0.7,0.7,0.7) );
+
 	
 	void virtual addLeftWorldTransformation(mat4 transform);
 	vector<vec3> virtual coordinates();

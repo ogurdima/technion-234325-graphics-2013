@@ -81,5 +81,8 @@ mat4 Camera::Transformation()
 
 void Camera::Zoom(float zoomFactor)
 {
-	eye = at + (abs(zoomFactor)*(eye - at));
+	right *= zoomFactor;
+	left *= zoomFactor;
+	top *= zoomFactor;
+	bottom *= zoomFactor;
 }

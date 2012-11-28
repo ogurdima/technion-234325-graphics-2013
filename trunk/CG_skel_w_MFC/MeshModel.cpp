@@ -8,11 +8,6 @@
 
 using namespace std;
 
-vec4 hmgFromVec3(const vec3& v)
-{
-	return vec4(v.x,v.y,v.z,1);
-}
-
 vec3 vec3fFromStream(std::istream & aStream)
 {
 	float x, y, z;
@@ -55,9 +50,12 @@ void MeshModel::loadFile(string fileName)
 
 		// based on the type parse data
 		if (lineType == "v") 
-			_vertices.push_back(hmgFromVec3(vec3fFromStream(issLine)));
-		else if (lineType == "vn") 
-			_normals.push_back(hmgFromVec3(vec3fFromStream(issLine)));
+			_vertices.push_back(vec4(vec3fFromStream(issLine),1));
+		else if (lineType == "vn")
+		{
+			//cout << "NORMAL" << endl;
+			_normals.push_back(vec4(vec3fFromStream(issLine),0));
+		}
 		else if (lineType == "f") 
 			_faces.push_back(Face(issLine));
 		else if (lineType == "#" || lineType == "")
@@ -76,7 +74,10 @@ void MeshModel::draw(Renderer * r, Rgb color)
 	vector<Vertex> vp = transformVertices();
 	r->Draw(vp, color);
 }
-
+void MeshModel::drawNormals(Renderer * r,float len, Rgb color)
+{
+	r->DrawNormals(transformNormals(len), color);
+}
 
 vector<Vertex> MeshModel::transformVertices()
 {
@@ -92,6 +93,24 @@ vector<Vertex> MeshModel::transformVertices()
 		}
 	}
 	return vertex_positions;
+}
+
+// returns vertex-normal list
+vector<Vertex> MeshModel::transformNormals(float len)
+{
+	vector<Vertex> retVal;
+	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it)
+	{
+		for (int i = 0; i < 3; i++) // Assuming all faces are constructed with 3 verticies
+		{
+			if(it->vn[i] == 0) // normal is not defined for vertex
+				continue;
+			vec4 normalEnd = _vertices[it->v[i] - 1] + len * normalize((_normals[it->vn[i] - 1]));
+			retVal.push_back( _world_transform * _vertices[it->v[i] - 1] ); // push vertex
+			retVal.push_back( _world_transform * normalEnd ); // push normal endpoint
+		}
+	}
+	return retVal;
 }
 
 vector<Vertex> MeshModel::transformVertices(vector<Vertex> inModelCoords)
@@ -111,12 +130,15 @@ void MeshModel::addLeftWorldTransformation(mat4 transform)
 
 vector<vec3> MeshModel::coordinates() {
 	vector<vec3> v;
-	vec4 tx = _world_transform * vec4(1,0,0,0);
-	vec4 ty = _world_transform * vec4(0,1,0,0);
-	vec4 tz = _world_transform * vec4(0,0,1,0);
-	v.push_back( vec3(tx.x, tx.y, tx.z) );
-	v.push_back( vec3(ty.x, ty.y, ty.z) );
-	v.push_back( vec3(tz.x, tz.y, tz.z) );
+	//mat4 stam = transpose(_world_transform);
+	vec4 tx = _world_transform * vec4(1,0,0,1);
+	vec4 ty = _world_transform * vec4(0,1,0,1);
+	vec4 tz = _world_transform * vec4(0,0,1,1);
+	vec4 orig4 = _world_transform * vec4(0,0,0,1);
+
+	v.push_back( vec3(tx.x / tx.w, tx.y / tx.w, tx.z / tx.w) );
+	v.push_back( vec3(ty.x / ty.w, ty.y / ty.w, ty.z / ty.w) );
+	v.push_back( vec3(tz.x / tz.w, tz.y / tz.w, tz.z / tz.w) );
 	return v;
 }
 

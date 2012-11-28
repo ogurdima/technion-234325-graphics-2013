@@ -83,7 +83,7 @@ void Renderer::SetDemoBuffer()
 
 void Renderer::Draw(vector<Vertex> vertices, Rgb color)
 {
-	static int count = 3;
+	
 	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
 	for(vector<Vertex>::iterator it = vertices.begin();   it != vertices.end(); it++) 
 	{
@@ -97,7 +97,24 @@ void Renderer::Draw(vector<Vertex> vertices, Rgb color)
 		Vertex v3 = vertices.at(i+2);
 		DrawTriangle2D(	vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), vec2(v3.x/v3.w,v3.y/v3.w), color);
 	}
-	count += 3;
+}
+
+void Renderer::DrawNormals(vector<vec4> vertex_normal, Rgb color)
+{
+	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
+	for(vector<vec4>::iterator it = vertex_normal.begin();   it != vertex_normal.end(); it++) 
+	{
+		vec4 v = finalProjection * (*it);
+		*it = v;
+	}
+	int factor = 10;
+	for(int i = 0 /*count-3*/; i+2 <= vertex_normal.size() /*&& i+3 <= count*/ ; i+=2)
+	{
+		vec4 p1 = vertex_normal.at(i);
+		vec4 p2 =  vertex_normal.at(i+1);
+		DrawLine( vec2(p1.x/p1.w,p1.y/p1.w), vec2(p2.x/p2.w,p2.y/p2.w), color );
+		bool OK = true;
+	}
 }
 
 void Renderer::DrawPolyline(vector<Vertex> vertices, Rgb color)
@@ -147,6 +164,13 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 	int x2 = (int)p2.x;
 	int y1 = (int)p1.y;
 	int y2 = (int)p2.y;
+
+	if (	((x1 < 0 || x1 > m_width) || (y1 < 0 || y1 > m_height)) &&
+			((x2 < 0 || x2 > m_width) || (y2 < 0 || y2 > m_height))	)
+	{
+		return;
+	}
+
 	bool steep = abs(y2 - y1) > abs(x2 - x1);
 
 	if(steep)
