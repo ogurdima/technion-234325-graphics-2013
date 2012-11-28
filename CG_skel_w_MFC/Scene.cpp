@@ -28,11 +28,13 @@ void Scene::draw()
 		{
 			//drawModelAxes(model);
 			model->draw(m_renderer, Rgb(0,0.75,0));
-			model->drawBoundingBox( m_renderer, Rgb(0.5,0.5,0) );
+			//model->drawBoundingBox( m_renderer, Rgb(0.5,0.5,0) );
 		}
 		else {
 			model->draw(m_renderer);
 		}
+		float normalLength = 1;
+		model->drawNormals(m_renderer,normalLength, Rgb(0.1, 0.1, 0.1));
 	}
 	
 	m_renderer->SwapBuffers();
@@ -40,18 +42,18 @@ void Scene::draw()
 
 void Scene::drawWorldAxes()
 {
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0.5,0,0), Rgb(0.5, 0, 0) );
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,0.5,0), Rgb(0, 0.5, 0) );
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,0,0.5), Rgb(0, 0.5, 0.5) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(1,0,0), Rgb(0.5, 0, 0) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,1,0), Rgb(0, 0.5, 0) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,0,1), Rgb(0, 0.5, 0.5) );
 }
 
 void Scene::drawModelAxes(Model* m)
 {
 	vector<vec3> modelAxes = m->coordinates();
 	vec3 modelOrigin = m->origin();
-	m_renderer->DrawLine3D(modelOrigin, 0.2*normalize(modelAxes[0]), Rgb(0.5,0.5,0));
-	m_renderer->DrawLine3D(modelOrigin, 0.2*normalize(modelAxes[1]), Rgb(0.5,0.5,0));
-	m_renderer->DrawLine3D(modelOrigin, 0.2*normalize(modelAxes[2]), Rgb(0.5,0.5,0));
+	m_renderer->DrawLine3D(modelOrigin, modelAxes[0], Rgb(0.5,0.5,1));
+	m_renderer->DrawLine3D(modelOrigin, modelAxes[1], Rgb(0.5,0.5,1));
+	m_renderer->DrawLine3D(modelOrigin, modelAxes[2], Rgb(0.5,0.5,1));
 }
 
 void Scene::AddCamera(Camera * c)
@@ -61,11 +63,11 @@ void Scene::AddCamera(Camera * c)
 	m_renderer->SetCamera(cameras[activeCamera]);
 }
 
-void Scene::SetView(float leftView, float rightView, float zNear, float zFar, float top, float bottom, vec3 eye, vec3 up, vec3 at)
-{
-	cameras[activeCamera]->LookAt(eye, at, up);
-	cameras[activeCamera]->Frustum(leftView, rightView, bottom, top, zNear, zFar);
-}
+//void Scene::SetView(float leftView, float rightView, float zNear, float zFar, float top, float bottom, vec3 eye, vec3 up, vec3 at)
+//{
+//	cameras[activeCamera]->LookAt(eye, at, up);
+//	cameras[activeCamera]->Frustum(leftView, rightView, bottom, top, zNear, zFar);
+//}
 
 void Scene::RotateActiveModel(mat4 rotMatrix)
 {

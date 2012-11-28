@@ -70,6 +70,7 @@ public:
 	// Drawing stuff
 	//--------------------------------------------------------------------
 	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
+	void DrawNormals(const vector<vec4> vertex_normal, Rgb color = Rgb(1,1,1));
 	void DrawTriangles(const vector<vec3>* vertices, const vector<vec3>* normals=NULL);
 	void Draw(const vector<Vertex> vertices, Rgb color = Rgb(1,1,1) );
 	void DrawPolyline(const vector<Vertex> vertices, Rgb color = Rgb(1,1,1) );
