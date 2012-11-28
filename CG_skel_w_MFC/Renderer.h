@@ -14,10 +14,10 @@ struct Rgb {
 		_r = abs(_r);
 		_g = abs(_g);
 		_b = abs(_b);
-		float sum = _r + _g + _b;
-		r = 3*_r/sum;
-		g = 3*_g/sum;
-		b = 3*_b/sum;
+		float max = max(1.0, max(_r, max(_g,_b) ) );
+		r = _r/max;
+		g = _g/max;
+		b = _b/max;
 	}
 
 	float r;
@@ -72,8 +72,9 @@ public:
 	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
 	void DrawTriangles(const vector<vec3>* vertices, const vector<vec3>* normals=NULL);
 	void Draw(const vector<Vertex> vertices, Rgb color = Rgb(1,1,1) );
+	void DrawPolyline(const vector<Vertex> vertices, Rgb color = Rgb(1,1,1) );
 	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1) );
-	void DrawLine3D(vec4 v1, vec4 v2, Rgb col = Rgb(1,1,1));
+	void DrawLine3D(vec3 v1, vec3 v2, Rgb col = Rgb(1,1,1));
 	void plotPixel(int x, int y, Rgb color = Rgb(1,1,1));
 	//--------------------------------------------------------------------
 	// Camera stuff

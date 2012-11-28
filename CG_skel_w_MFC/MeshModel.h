@@ -34,13 +34,16 @@ public:
 	}
 
 	vector<Vertex> transformVertices();
+	vector<Vertex> transformVertices(vector<Vertex> inModelCoords);
 	MeshModel(string fileName);
 	~MeshModel(void);
 	void loadFile(string fileName);
 	void virtual draw(Renderer * r, Rgb color = Rgb(0.7,0.7,0.7) );
 	
 	void virtual addLeftWorldTransformation(mat4 transform);
-	vector<vec4> virtual coordinates();
-	vec4 virtual origin();
+	vector<vec3> virtual coordinates();
+	vec3 virtual origin();
+
+	virtual void drawBoundingBox(Renderer * r = NULL, Rgb color = Rgb(0.4,0.4,0.4) );
 
 };

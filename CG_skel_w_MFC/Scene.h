@@ -18,7 +18,9 @@ protected:
 	vector<Light*> lights;
 	vector<Camera*> cameras;
 	Renderer *m_renderer;
-	vector<vec4> anchored;
+	vector<vec3> anchored;
+
+	void AddActiveModelTransform(mat4 trans);
 
 public:
 	Scene() {};
@@ -26,10 +28,11 @@ public:
 	void loadOBJModel(string fileName);
 	void Clean();
 	void AddCamera(Camera * c);
-	void RotateModel(mat4 rotMatrix);
+	void RotateActiveModel(mat4 rotMatrix);
 	void SetActiveModelAnchor();
 	void SetView(float leftView, float rightView, float zNear, float zFar, float top, float bottom, vec3 eye, vec3 up, vec3 at);
-	vector<vec4> getAnchoredModelCoordinates();
+	vector<vec3> getAnchoredModelCoordinates();
+	void TranslateActiveModel(mat4 transMatrix);
 
 	Camera* ActiveCam();
 	Model* ActiveModel();
