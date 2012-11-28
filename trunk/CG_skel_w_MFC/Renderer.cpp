@@ -100,9 +100,25 @@ void Renderer::Draw(vector<Vertex> vertices, Rgb color)
 	count += 3;
 }
 
-void Renderer::DrawLine3D(vec4 v1, vec4 v2, Rgb col) {
-	vec2 p1 = ProjectPoint(v1);
-	vec2 p2 = ProjectPoint(v2);
+void Renderer::DrawPolyline(vector<Vertex> vertices, Rgb color)
+{
+	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
+	for(vector<Vertex>::iterator it = vertices.begin();   it != vertices.end(); it++) 
+	{
+		vec4 v = finalProjection * (*it);
+		*it = v;
+	}
+	for(int i = 0; i+1 < vertices.size(); i++)
+	{
+		Vertex v1 = vertices.at(i);
+		Vertex v2 = vertices.at(i+1);
+		DrawLine(vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), color);
+	}
+}
+
+void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
+	vec2 p1 = ProjectPoint( vec4(v1, 1) );
+	vec2 p2 = ProjectPoint( vec4(v2, 1) );
 	DrawLine(p1, p2, col);
 }
 

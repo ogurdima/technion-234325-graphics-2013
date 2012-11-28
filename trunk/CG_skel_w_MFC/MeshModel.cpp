@@ -69,25 +69,6 @@ void MeshModel::loadFile(string fileName)
 			cout<< "Found unknown line Type \"" << lineType << "\"" << endl;
 		}
 	}
-
-	//Vertex_positions is an array of vec3. Every three elements define a triangle in 3D.
-	//If the face part of the obj is
-	//f 1 2 3
-	//f 1 3 4
-	//Then vertex_positions should contain:
-	//vertex_positions={v1,v2,v3,v1,v3,v4}
-
-	//vertex_positions = new vec3[faces.size() * 3];
-
-	// iterate through all stored faces and create triangles
-	//int k=0;
-	//for (vector<Face>::iterator it = faces.begin(); it != faces.end(); ++it)
-	//{
-	//	for (int i = 0; i < 3; i++) // Assuming all faces are constructed with 3 verticies
-	//	{
-	//		vertex_positions[k++] = vec3(vertices[it->v[i] - 1]); // Pushing only verticies (w/o normals/textures)
-	//	}
-	//}
 }
 
 void MeshModel::draw(Renderer * r, Rgb color)
@@ -113,20 +94,89 @@ vector<Vertex> MeshModel::transformVertices()
 	return vertex_positions;
 }
 
+vector<Vertex> MeshModel::transformVertices(vector<Vertex> inModelCoords)
+{
+	for(vector<Vertex>::iterator it = inModelCoords.begin();   it != inModelCoords.end(); it++) 
+	{
+		vec4 v = _world_transform * (*it);
+		*it = v;
+	}
+	return inModelCoords; // it is actually now in world coordinates
+}
+
 void MeshModel::addLeftWorldTransformation(mat4 transform)
 {
 	_world_transform = transform * _world_transform;
 }
 
-vector<vec4> MeshModel::coordinates() {
-	vector<vec4> v;
-	v.push_back(_world_transform * vec4(1,0,0,0));
-	v.push_back(_world_transform * vec4(0,1,0,0));
-	v.push_back(_world_transform * vec4(0,0,1,0));
+vector<vec3> MeshModel::coordinates() {
+	vector<vec3> v;
+	vec4 tx = _world_transform * vec4(1,0,0,0);
+	vec4 ty = _world_transform * vec4(0,1,0,0);
+	vec4 tz = _world_transform * vec4(0,0,1,0);
+	v.push_back( vec3(tx.x, tx.y, tx.z) );
+	v.push_back( vec3(ty.x, ty.y, ty.z) );
+	v.push_back( vec3(tz.x, tz.y, tz.z) );
 	return v;
 }
 
-vec4 MeshModel::origin()
+vec3 MeshModel::origin()
 {
-	return _world_transform * vec4(0,0,0,1);
+	vec4 orig4 = _world_transform * vec4(0,0,0,1);
+	return vec3( orig4.x, orig4.y, orig4.z );
+}
+
+void MeshModel::drawBoundingBox(Renderer * r, Rgb color)
+{
+	typedef enum {X = 0, Y, Z} COORD;
+	if (r == NULL || _vertices.size() == 0)
+		return;
+	Vertex v = _vertices[0];
+	float max[3] = {};
+	float min[3] = {};
+	min[X] = max[X] = v.x;
+	min[Y] = max[Y] = v.y;
+	min[Z] = max[Z] = v.z;
+	for (int i = 1; i < _vertices.size(); i++) {
+		v = _vertices[i];
+		min[X] = min(min[X], v.x);
+		min[Y] = min(min[Y], v.y);
+		min[Z] = min(min[Z], v.z);
+		max[X] = max(max[X], v.x);
+		max[Y] = max(max[Y], v.y);
+		max[Z] = max(max[Z], v.z);
+	}
+	vector<Vertex> rims;
+
+	//Hello shitcode!
+
+	rims.clear();
+	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],min[Y],min[Z],1) );
+	rims = transformVertices(rims);
+	r->DrawPolyline(rims, color);
+
+	rims.clear();
+	rims.push_back( Vertex(min[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],max[Z],1) );
+	rims = transformVertices(rims);
+	r->DrawPolyline(rims, color);
+
+	rims.clear();
+	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],min[Z],1) );
+	rims = transformVertices(rims);
+	r->DrawPolyline(rims, color);
+
+	rims.clear();
+	rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) );
+	rims = transformVertices(rims);
+	r->DrawPolyline(rims, color);
+
+	rims.clear();
+	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],min[Z],1) );
+	rims = transformVertices(rims);
+	r->DrawPolyline(rims, color);
+
+	rims.clear();
+	rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) );
+	rims = transformVertices(rims);
+	r->DrawPolyline(rims, color);
 }

@@ -111,18 +111,13 @@ void mouse(int button, int state, int x, int y)
 
 	}
 
-	if (lb_down) {
+	if (lb_down || mb_down || rb_down) {
 		last_x=x;
 		last_y=y;
 		if (alt_down) {
 			scene->SetActiveModelAnchor();
 		}
-		//glutPostRedisplay();
 	}
-
-	//scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
-	
-	// add your code
 }
 
 void motion(int x, int y)
@@ -153,7 +148,7 @@ void motion(int x, int y)
 		ac->LookAt(eye, at, up);
 		glutPostRedisplay();
 	}
-	if (shift_down && lb_down) {
+	if (ctr_down && mb_down) {
 		vec3 vdxx = -(dx * axis1 * smoothFactor); 
 		vec3 vdyy = (dy * axis2 * smoothFactor); 
 		eye +=  vdxx;
@@ -195,21 +190,16 @@ void motion(int x, int y)
 		rotationMatrix[3][1] = 0.0;
 		rotationMatrix[3][2] = 0.0;
 		rotationMatrix[3][3] = 1.0;
-
-		vector<vec4> modelCoords = scene->getAnchoredModelCoordinates();
-		mat4 rotX = RotateX( dot(modelCoords[0], rotationAxisObjectSpace) ); 
-		mat4 rotY = RotateY( dot(modelCoords[1], rotationAxisObjectSpace) ); 
-		mat4 rotZ = RotateZ( dot(modelCoords[2], rotationAxisObjectSpace) ); 
-		vec4 p1 = rotationAxisObjectSpace * 50;
-		p1.w = 1;
-		vec4 p2 = -rotationAxisObjectSpace * 50;
-		p2.w = 1;
-		//renderer->DrawLine3D( p1, p2 , Rgb(1,1,0));
-		//scene->RotateModel(rotX*rotY*rotZ);
-		scene->RotateModel(rotationMatrix);
+		scene->RotateActiveModel(rotationMatrix);
 		glutPostRedisplay();
 	}
-	//scene->SetView(leftView, rightView, zNear, zFar, top, bottom, eye, up, at);
+	if (alt_down && mb_down) {
+		vec3 dv =  ( -dx * axis1 * smoothFactor) + (dy * axis2 * smoothFactor);
+		vector<vec3> modelAxes = scene->getAnchoredModelCoordinates();
+		mat4 tr = Translate( dot(dv, modelAxes[0]), dot(dv, modelAxes[1]), dot(dv, modelAxes[2]) );
+		scene->TranslateActiveModel(tr);
+		glutPostRedisplay();
+	}
 	
 }
 

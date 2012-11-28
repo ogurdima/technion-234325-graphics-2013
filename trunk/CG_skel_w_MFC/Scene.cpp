@@ -26,8 +26,9 @@ void Scene::draw()
 		Model* model = models[i];
 		if (model == ActiveModel())
 		{
-			drawModelAxes(model);
-			model->draw(m_renderer, Rgb(1,0,0));
+			//drawModelAxes(model);
+			model->draw(m_renderer, Rgb(0,0.75,0));
+			model->drawBoundingBox( m_renderer, Rgb(0.5,0.5,0) );
 		}
 		else {
 			model->draw(m_renderer);
@@ -39,15 +40,15 @@ void Scene::draw()
 
 void Scene::drawWorldAxes()
 {
-	m_renderer->DrawLine3D(vec4(0,0,0,1), vec4(0.5,0,0,0), Rgb(1,0,0));
-	m_renderer->DrawLine3D(vec4(0,0,0,1), vec4(0,0.5,0,0), Rgb(0,1,0));
-	m_renderer->DrawLine3D(vec4(0,0,0,1), vec4(0,0,0.5,0), Rgb(0.2,0.2, 1));
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0.5,0,0), Rgb(0.5, 0, 0) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,0.5,0), Rgb(0, 0.5, 0) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,0,0.5), Rgb(0, 0.5, 0.5) );
 }
 
 void Scene::drawModelAxes(Model* m)
 {
-	vector<vec4> modelAxes = m->coordinates();
-	vec4 modelOrigin = m->origin();
+	vector<vec3> modelAxes = m->coordinates();
+	vec3 modelOrigin = m->origin();
 	m_renderer->DrawLine3D(modelOrigin, 0.2*normalize(modelAxes[0]), Rgb(0.5,0.5,0));
 	m_renderer->DrawLine3D(modelOrigin, 0.2*normalize(modelAxes[1]), Rgb(0.5,0.5,0));
 	m_renderer->DrawLine3D(modelOrigin, 0.2*normalize(modelAxes[2]), Rgb(0.5,0.5,0));
@@ -66,15 +67,24 @@ void Scene::SetView(float leftView, float rightView, float zNear, float zFar, fl
 	cameras[activeCamera]->Frustum(leftView, rightView, bottom, top, zNear, zFar);
 }
 
-void Scene::RotateModel(mat4 rotMatrix)
+void Scene::RotateActiveModel(mat4 rotMatrix)
 {
+	AddActiveModelTransform(rotMatrix);
+}
+
+void Scene::TranslateActiveModel(mat4 transMatrix)
+{
+	AddActiveModelTransform(transMatrix);
+}
+
+void Scene::AddActiveModelTransform(mat4 trans) {
 	if (models.size() == 0)
 		return;
 	Model* model = models[activeModel];
 	MeshModel* mmodel = dynamic_cast<MeshModel*>(model);
 	if (mmodel == NULL)
 		return;
-	mmodel->addLeftWorldTransformation(rotMatrix);
+	mmodel->addLeftWorldTransformation(trans);
 }
 
 void Scene::SetActiveModelAnchor()
@@ -82,7 +92,7 @@ void Scene::SetActiveModelAnchor()
 	anchored = ActiveModel()->coordinates();
 }
 
-vector<vec4> Scene::getAnchoredModelCoordinates() { 
+vector<vec3> Scene::getAnchoredModelCoordinates() { 
 	return anchored;
 }
 
@@ -93,6 +103,8 @@ void Scene::Clean()
 	activeModel = -1;
 	models.clear();
 	//cameras.clear();
+
+	m_renderer->SwapBuffers();
 }
 
 bool Scene::isLegal() {
