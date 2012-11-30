@@ -41,8 +41,12 @@ class Renderer
 	void InitOpenGLRendering();
 	//////////////////////////////
 
-	void CreateBuffers(int width, int height);
-	void CreateLocalBuffer();
+
+	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
+	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1) );
+	void PlotPixel(int x, int y, Rgb color = Rgb(1,1,1));
+	float ScaleFactor();
+	mat4 FinalProjection();
 
 public:
 	Renderer();
@@ -52,11 +56,12 @@ public:
 	//--------------------------------------------------------------------
 	// Buffer stuff
 	//--------------------------------------------------------------------
+	void CreateBuffers(int width, int height);
+	void CreateLocalBuffer();
 	void SwapBuffers();
 	void FlushBuffer();
 	void ClearColorBuffer();
 	void ClearDepthBuffer();
-	void SetDemoBuffer();
 
 	//--------------------------------------------------------------------
 	// Transformation stuff
@@ -69,24 +74,20 @@ public:
 	//--------------------------------------------------------------------
 	// Drawing stuff
 	//--------------------------------------------------------------------
-	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
-	void DrawNormals(const vector<vec4> vertex_normal, Rgb color = Rgb(1,1,1));
-	void DrawTriangles(const vector<vec3>* vertices, const vector<vec3>* normals=NULL);
-	void Draw(const vector<Vertex> vertices, Rgb color = Rgb(1,1,1) );
-	void DrawPolyline(const vector<Vertex> vertices, Rgb color = Rgb(1,1,1) );
-	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1) );
+	//triangles
+	void DrawTriangles(vector<vec3>* vertices, const vector<vec3>* normals=NULL); // need to implement
+	void Draw(vector<Vertex>& vertices, Rgb color = Rgb(1,1,1) );
+	//line segments
+	void DrawLineSegments(vector<vec4>& segments, Rgb color = Rgb(1,1,1));
+	//polyline
+	void DrawPolyline(vector<Vertex>& vertices, Rgb color = Rgb(1,1,1) );
+	//lines
 	void DrawLine3D(vec3 v1, vec3 v2, Rgb col = Rgb(1,1,1));
-	void plotPixel(int x, int y, Rgb color = Rgb(1,1,1));
+	//pixel
+	
+
 	//--------------------------------------------------------------------
 	// Camera stuff
 	//--------------------------------------------------------------------
-	void SetCameraTransform(const mat4& cTransform);
-	void SetProjection(const mat4& projection);
 	void SetCamera(Camera* c);
-
-	//--------------------------------------------------------------------
-	// Models stuff
-	//--------------------------------------------------------------------
-	void SetObjectMatrices(const mat4& oTransform, const mat3& nTransform);
-	
 };

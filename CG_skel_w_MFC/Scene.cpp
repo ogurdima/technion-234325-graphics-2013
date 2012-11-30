@@ -5,6 +5,50 @@
 
 using namespace std;
 
+Scene::Scene() :
+activeModel(-1),
+activeLight(-1),
+activeCamera(-1),
+m_renderer(NULL),
+drawCameras(false)
+{
+
+}
+
+Scene::Scene(Renderer *renderer) : 
+m_renderer(renderer),
+activeModel(-1),
+activeLight(-1),
+activeCamera(-1),
+drawCameras(false)
+{
+
+}
+
+Scene::~Scene() 
+{
+	for (int i = 0; i < models.size(); i++) {
+		if (NULL != models[i]) {
+			delete models[i];
+			models[i] = NULL;
+		}
+	}
+
+	for (int i = 0; i < cameras.size(); i++) {
+		if (NULL != cameras[i]) {
+			delete cameras[i];
+			cameras[i] = NULL;
+		}
+	}
+
+	for (int i = 0; i < lights.size(); i++) {
+		if (NULL != lights[i]) {
+			delete lights[i];
+			lights[i] = NULL;
+		}
+	}
+}
+
 void Scene::loadOBJModel(string fileName)
 {
 	MeshModel *model = new MeshModel(fileName);
@@ -18,23 +62,42 @@ void Scene::draw()
 	// 2. Tell all models to draw themselves
 	if(! isLegal())
 		return;
-	
-	
 	drawWorldAxes();
 
 	for (int i = 0; i < models.size(); i++) {
 		Model* model = models[i];
 		if (model == ActiveModel())
 		{
-			//drawModelAxes(model);
 			model->draw(m_renderer, Rgb(0,0.75,0));
-			//model->drawBoundingBox( m_renderer, Rgb(0.5,0.5,0) );
 		}
 		else {
 			model->draw(m_renderer);
 		}
-		float normalLength = 1;
-		model->drawNormals(m_renderer,normalLength, Rgb(0.1, 0.1, 0.1));
+	}
+
+	if (drawCameras) {
+		for (int i = 0; i < cameras.size(); i++) {
+			Camera* c = cameras[i];
+			if (c == ActiveCam())
+				continue;
+			Vertex cntr = Vertex(c->Eye(), 1);
+			Vertex north = cntr + vec4(1,0,0);
+			Vertex south = cntr - vec4(1,0,0);
+			Vertex east = cntr + vec4(0,1,0);
+			Vertex west = cntr - vec4(0,1,0);
+			Vertex top = cntr + vec4(0,0,1);
+			Vertex bot = cntr - vec4(0,0,1);
+
+			vector<Vertex> segments;
+			segments.push_back(north);
+			segments.push_back(south);
+			segments.push_back(east);
+			segments.push_back(west);
+			segments.push_back(top);
+			segments.push_back(bot);
+
+			m_renderer->DrawLineSegments(segments, Rgb(1, 0, 0));
+		}
 	}
 	
 	m_renderer->SwapBuffers();
@@ -42,9 +105,9 @@ void Scene::draw()
 
 void Scene::drawWorldAxes()
 {
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(1,0,0), Rgb(0.5, 0, 0) );
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,1,0), Rgb(0, 0.5, 0) );
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,0,1), Rgb(0, 0.5, 0.5) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(3,0,0), Rgb(0.5, 0, 0) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,3,0), Rgb(0, 0.5, 0) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,0,3), Rgb(0, 0.5, 0.5) );
 }
 
 void Scene::drawModelAxes(Model* m)
@@ -56,27 +119,12 @@ void Scene::drawModelAxes(Model* m)
 	m_renderer->DrawLine3D(modelOrigin, modelAxes[2], Rgb(0.5,0.5,1));
 }
 
-void Scene::AddCamera(Camera * c)
+void Scene::AddCamera(Camera c)
 {
-	cameras.push_back(c);
+	Camera* cc = new Camera(c);
+	cameras.push_back(cc);
 	activeCamera = cameras.size() - 1;
 	m_renderer->SetCamera(cameras[activeCamera]);
-}
-
-//void Scene::SetView(float leftView, float rightView, float zNear, float zFar, float top, float bottom, vec3 eye, vec3 up, vec3 at)
-//{
-//	cameras[activeCamera]->LookAt(eye, at, up);
-//	cameras[activeCamera]->Frustum(leftView, rightView, bottom, top, zNear, zFar);
-//}
-
-void Scene::RotateActiveModel(mat4 rotMatrix)
-{
-	AddActiveModelTransform(rotMatrix);
-}
-
-void Scene::TranslateActiveModel(mat4 transMatrix)
-{
-	AddActiveModelTransform(transMatrix);
 }
 
 void Scene::AddActiveModelTransform(mat4 trans) {
@@ -120,11 +168,12 @@ Camera* Scene::ActiveCam()
 	return cameras[activeCamera];
 }
 
-Model* Scene::ActiveModel()
+inline MeshModel* Scene::ActiveModel()
 {
 	if(activeModel == -1  || models.size() <= activeModel)
 		return NULL;
-	return models[activeModel];
+	MeshModel* mmodel = dynamic_cast<MeshModel*>( models[activeModel]);
+	return mmodel;
 }
 
 void Scene::ToggleActiveModel()
@@ -133,4 +182,11 @@ void Scene::ToggleActiveModel()
 		return;
 	activeModel += 1;
 	activeModel %= models.size();
+}
+
+bool Scene::ToggleShowCameras()
+{
+	bool oldval = drawCameras;
+	drawCameras = ! drawCameras;
+	return oldval;
 }

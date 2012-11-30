@@ -22,7 +22,11 @@ vec2 vec2fFromStream(std::istream & aStream)
 	return vec2(x, y);
 }
 
-MeshModel::MeshModel(string fileName)
+MeshModel::MeshModel(string fileName) :
+_drawBB(false),
+_drawVN(false),
+_drawFN(false),
+_drawMF(false)
 {
 	loadFile(fileName);
 }
@@ -73,10 +77,34 @@ void MeshModel::draw(Renderer * r, Rgb color)
 {
 	vector<Vertex> vp = transformVertices();
 	r->Draw(vp, color);
+	if (_drawBB) 
+	{
+		drawBoundingBox(r);
+	}
+	if (_drawVN)
+	{
+		r->DrawLineSegments(transformNormals(0.1));
+	}
+	if (_drawFN)
+	{
+		//compute face normals and draw them
+	}
+	if (_drawMF)
+	{
+		vector<vec3> fr = coordinates();
+		vec3 o = origin();
+		r->DrawLine3D(o, fr[0], Rgb(0.5,0.5,1));
+		r->DrawLine3D(o, fr[1], Rgb(0.5,0.5,1));
+		r->DrawLine3D(o, fr[2], Rgb(0.5,0.5,1));
+	}
 }
+
+	
+
+
 void MeshModel::drawNormals(Renderer * r,float len, Rgb color)
 {
-	r->DrawNormals(transformNormals(len), color);
+	
 }
 
 vector<Vertex> MeshModel::transformVertices()
@@ -201,4 +229,32 @@ void MeshModel::drawBoundingBox(Renderer * r, Rgb color)
 	rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) );
 	rims = transformVertices(rims);
 	r->DrawPolyline(rims, color);
+}
+
+
+bool MeshModel::ToggleShowFaceNormals()
+{
+	bool oldval = _drawFN;
+	_drawFN = ! _drawFN;
+	return oldval;
+}
+
+bool MeshModel::ToggleShowBoundingBox()
+{
+	bool oldval = _drawBB;
+	_drawBB = ! _drawBB;
+	return oldval;
+}
+
+bool MeshModel::ToggleShowVertexNormals()
+{
+	bool oldval = _drawVN;
+	_drawVN = ! _drawVN;
+	return oldval;
+}
+
+bool MeshModel::ToggleShowModelFrame() {
+	bool oldval = _drawMF;
+	_drawMF = ! _drawMF;
+	return oldval;
 }

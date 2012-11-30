@@ -6,13 +6,21 @@
 
 #define INDEX(width,x,y,c) (x+y*width)*3+c
 
-Renderer::Renderer() :m_width(512), m_height(512)
+Renderer::Renderer() :
+m_width(512), 
+m_height(512), 
+m_outBuffer(NULL),
+m_zbuffer(NULL)
 {
 	InitOpenGLRendering();
 	CreateBuffers(512,512);
 }
 
-Renderer::Renderer(int width, int height) :m_width(width), m_height(m_height)
+Renderer::Renderer(int width, int height) :
+m_width(width), 
+m_height(m_height), 
+m_outBuffer(NULL),
+m_zbuffer(NULL)
 {
 	InitOpenGLRendering();
 	CreateBuffers(width,height);
@@ -20,6 +28,16 @@ Renderer::Renderer(int width, int height) :m_width(width), m_height(m_height)
 
 Renderer::~Renderer(void)
 {
+	if (m_outBuffer != NULL) {
+		delete m_outBuffer;
+		m_outBuffer = NULL;
+	}
+
+	if (m_zbuffer != NULL) {
+		delete m_zbuffer;
+		m_zbuffer = NULL;
+	}
+
 }
 
 void Renderer::CreateBuffers(int width, int height)
@@ -27,10 +45,33 @@ void Renderer::CreateBuffers(int width, int height)
 	m_width=width;
 	m_height=height;	
 	CreateOpenGLBuffer(); //Do not remove this line.
+	if (m_outBuffer != NULL) {
+		delete m_outBuffer;
+		m_outBuffer = NULL;
+	}
 	m_outBuffer = new float[3*m_width*m_height];
 }
 
 void Renderer::FlushBuffer()
+{
+	ClearColorBuffer();
+	//ClearDepthBuffer();
+}
+
+
+float Renderer::ScaleFactor() 
+{
+	return min(m_width/2, m_height/2);
+}
+
+inline mat4 Renderer::FinalProjection()
+{
+	//mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
+	mat4 finalProjection = Scale( ScaleFactor(), ScaleFactor(), 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
+	return finalProjection;
+}
+
+void Renderer::ClearColorBuffer() 
 {
 	for(int i=0; i<m_height; i++)
 	{
@@ -41,50 +82,16 @@ void Renderer::FlushBuffer()
 	}
 }
 
-void Renderer::SetDemoBuffer()
+void Renderer::ClearDepthBuffer()
 {
-	////vertical line
-	//for(int i=0; i<m_height; i++)
-	//{
-	//	m_outBuffer[INDEX(m_width,256,i,0)]=1;	m_outBuffer[INDEX(m_width,256,i,1)]=0;	m_outBuffer[INDEX(m_width,256,i,2)]=0;
-	//}
-	////horizontal line
-	//for(int i=0; i<m_width; i++)
-	//{
-	//	m_outBuffer[INDEX(m_width,i,256,0)]=1;	m_outBuffer[INDEX(m_width,i,256,1)]=0;	m_outBuffer[INDEX(m_width,i,256,2)]=1;
-	//}
-
-	//// diagonal line
-	//for(int i=0; i<m_width; i++)
-	//{
-	//	m_outBuffer[INDEX(m_width,i,i,0)]=0;	m_outBuffer[INDEX(m_width,i,i,1)]=1;	m_outBuffer[INDEX(m_width,i,i,2)]=0;
-	//}
-
-	//DrawLine(vec2(20,20), vec2(200,200));
-	//DrawLine(vec2(20,200), vec2(200,20));
-	//DrawLine(vec2(256,256), vec2(256,300));
-	//DrawLine(vec2(50,5), vec2(35,120));
-
-	vec2 p1, p2;
-	vec2 center(m_width / 2, m_height / 2);
-	float r = m_width / 2;
-	float a = 0;
-	for (int i = 0; i < 32; i++){
-		p1.x = center.x - r * cos(a);
-		p1.y = center.y - r * sin(a);
-		p2.x = center.x + r * cos(a);
-		p2.y = center.y + r * sin(a);
-
-		DrawLine(p1, p2);
-
-		a += 3.14159265358979323846 / 16; /* 2PI/32 */
-	}
+	// clear it
 }
 
-void Renderer::Draw(vector<Vertex> vertices, Rgb color)
+
+void Renderer::Draw(vector<Vertex>& vertices, Rgb color)
 {
-	
-	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
+
+	mat4 finalProjection = FinalProjection();
 	for(vector<Vertex>::iterator it = vertices.begin();   it != vertices.end(); it++) 
 	{
 		vec4 v = finalProjection * (*it);
@@ -99,27 +106,26 @@ void Renderer::Draw(vector<Vertex> vertices, Rgb color)
 	}
 }
 
-void Renderer::DrawNormals(vector<vec4> vertex_normal, Rgb color)
+void Renderer::DrawLineSegments(vector<vec4>& segmentList, Rgb color)
 {
-	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
-	for(vector<vec4>::iterator it = vertex_normal.begin();   it != vertex_normal.end(); it++) 
+	mat4 finalProjection = FinalProjection();
+	for(vector<vec4>::iterator it = segmentList.begin();   it != segmentList.end(); it++) 
 	{
 		vec4 v = finalProjection * (*it);
 		*it = v;
 	}
-	int factor = 10;
-	for(int i = 0 /*count-3*/; i+2 <= vertex_normal.size() /*&& i+3 <= count*/ ; i+=2)
+	for(int i = 0; i+2 <= segmentList.size(); i+=2)
 	{
-		vec4 p1 = vertex_normal.at(i);
-		vec4 p2 =  vertex_normal.at(i+1);
+		vec4 p1 = segmentList.at(i);
+		vec4 p2 =  segmentList.at(i+1);
 		DrawLine( vec2(p1.x/p1.w,p1.y/p1.w), vec2(p2.x/p2.w,p2.y/p2.w), color );
 		bool OK = true;
 	}
 }
 
-void Renderer::DrawPolyline(vector<Vertex> vertices, Rgb color)
+void Renderer::DrawPolyline(vector<Vertex>& vertices, Rgb color)
 {
-	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
+	mat4 finalProjection =FinalProjection();
 	for(vector<Vertex>::iterator it = vertices.begin();   it != vertices.end(); it++) 
 	{
 		vec4 v = finalProjection * (*it);
@@ -139,25 +145,16 @@ void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
 	DrawLine(p1, p2, col);
 }
 
-void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col)
+inline void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col)
 {
 	DrawLine(v1,v2, col);
 	DrawLine(v1,v3, col);
 	DrawLine(v2,v3, col);
 }
 
-void Renderer::SetCamera(Camera* c)
-{
-	m_camera = c;
-}
-
-void Renderer::plotPixel(int x, int y, Rgb color)
-{
-	if (x < 0 || x >= m_width || y < 0 || y >= m_height)
-		return;
-	m_outBuffer[INDEX(m_width,x,y,0)]=color.r;	m_outBuffer[INDEX(m_width,x,y,1)]=color.g;	m_outBuffer[INDEX(m_width,x,y,2)]=color.b;
-}
-
+//--------------------------------------------------------------------------
+// Bresenham
+//--------------------------------------------------------------------------
 void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 {
 	int x1 = (int)p1.x;
@@ -166,7 +163,7 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 	int y2 = (int)p2.y;
 
 	if (	((x1 < 0 || x1 > m_width) || (y1 < 0 || y1 > m_height)) &&
-			((x2 < 0 || x2 > m_width) || (y2 < 0 || y2 > m_height))	)
+		((x2 < 0 || x2 > m_width) || (y2 < 0 || y2 > m_height))	)
 	{
 		return;
 	}
@@ -183,7 +180,7 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 		swap(x1,x2);
 		swap(y1,y2);
 	}
-	
+
 	int dx = x2 - x1;
 	int dy = abs(y2 - y1);
 
@@ -195,11 +192,11 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 	{
 		if(steep)
 		{
-			plotPixel(y,x, col);
+			PlotPixel(y,x, col);
 		}
 		else
 		{
-			plotPixel(x,y, col);
+			PlotPixel(x,y, col);
 		}
 		e -= dy;
 		if(e < 0)
@@ -208,6 +205,25 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 			y += yStep;
 		}
 	}
+}
+
+//--------------------------------------------------------------------------
+// Safely plot pixel in the given integer coordinates of the given color
+//--------------------------------------------------------------------------
+inline void Renderer::PlotPixel(int x, int y, Rgb color)
+{
+	if (x < 0 || x >= m_width || y < 0 || y >= m_height)
+		return;
+	m_outBuffer[INDEX(m_width,x,y,0)]=color.r;	m_outBuffer[INDEX(m_width,x,y,1)]=color.g;	m_outBuffer[INDEX(m_width,x,y,2)]=color.b;
+}
+
+//--------------------------------------------------------------------------
+// Transformation stuff
+//--------------------------------------------------------------------------
+
+void Renderer::SetCamera(Camera* c)
+{
+	m_camera = c;
 }
 
 inline vec2 Renderer::ProjectPoint(vec3 p)
@@ -219,7 +235,7 @@ inline vec2 Renderer::ProjectPoint(vec4 p)
 {
 	if (NULL == m_camera)
 		return vec2(0,0);
-	mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
+	mat4 finalProjection = FinalProjection();
 	vec4 projected = finalProjection * p;
 	return vec2(projected.x/projected.w, projected.y/projected.w);
 }
