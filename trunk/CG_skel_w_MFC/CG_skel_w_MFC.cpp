@@ -25,14 +25,25 @@
 
 #define BUFFER_OFFSET( offset )   ((GLvoid*) (offset))
 
-#define FILE_OPEN 1
-#define MAIN_DEMO 1
-#define MAIN_ABOUT 2
-#define MAIN_TRY_DIALOG 3
-#define MAIN_CLEAN_SCENE 4
-#define MAIN_ADD_CAMERA 5
-#define MAIN_ADD_MODEL 6
+#define FILE_OPEN						1
+#define MAIN_DEMO						1
+#define MAIN_ABOUT						2
+#define MAIN_TRY_DIALOG					3
+#define MAIN_CLEAN_SCENE				4
+#define MAIN_ADD_CAMERA					5
+#define MAIN_ADD_MODEL					6
+#define MAIN_RENDER_CAMERAS				7
 
+#define MODEL_SHOW_VERTEX_NORMALS		20
+#define MODEL_SHOW_FACE_NORMALS			21
+#define MODEL_SHOW_BOUNDING_BOX			22
+#define MODEL_SHOW_FRAME				23
+
+#define CAMERA_SET_LOCATION				30
+#define CAMERA_SET_FOV					31
+#define CAMERA_SET_FOCUS_POINT			32
+#define CAMERA_FOCUS_ON_ACTIVE_MODEL	33
+#define CAMERA_SET_TYPE					34
 
 //----------------------------------------------------------------------------
 // Global variables
@@ -48,13 +59,18 @@ bool lb_down, rb_down, mb_down, ctr_down, shift_down, alt_down;
 //----------------------------------------------------------------------------
 void display( void )
 {
-	//Call the scene and ask it to draw itself
 	scene->draw();
 }
 
 void reshape( int width, int height )
 {
-	//update the renderer's buffers
+	renderer->CreateBuffers(width, height);
+	Camera* ac = scene->ActiveCam();
+	float windowAR = (float) width / (float) height;
+	float x = abs(ac->Left()) + abs(ac->Right());
+	float y = x / windowAR;
+	//scene->ActiveCam()->Frustum(-x/2, x/2, -y/2, y/2, ac->ZNear(), ac->ZFar());
+	glutPostRedisplay();
 }
 
 void keyboard( unsigned char key, int x, int y )
@@ -99,6 +115,14 @@ void mouse(int button, int state, int x, int y)
 	case wheel_down:
 		if (state==GLUT_DOWN) 
 		{
+			if (alt_down) {
+				MeshModel* am = scene->ActiveModel();
+				if (NULL == am)
+					break;
+				am->addLeftWorldTransformation(Scale(1/zoom_factor, 1/zoom_factor, 1/zoom_factor));
+				glutPostRedisplay();
+				break;
+			}
 			Camera* ac = scene->ActiveCam();
 			if (NULL == ac)
 				return;
@@ -112,9 +136,6 @@ void mouse(int button, int state, int x, int y)
 	if (lb_down || mb_down || rb_down) {
 		last_x=x;
 		last_y=y;
-		if (alt_down) {
-			scene->SetActiveModelAnchor();
-		}
 	}
 }
 
@@ -127,7 +148,8 @@ void motion(int x, int y)
 	last_x = x;
 	last_y = y;
 	Camera* ac = scene->ActiveCam();
-	if (NULL == ac || (dx ==0 && dy == 0))
+	MeshModel* am = scene->ActiveModel();
+	if (NULL == ac || (dx ==0 && dy == 0) || am == NULL)
 		return;
 	vec3 eye = ac->Eye();
 	vec3 up = ac->Up();
@@ -190,16 +212,15 @@ void motion(int x, int y)
 		rotationMatrix[3][2] = 0.0;
 		rotationMatrix[3][3] = 1.0;
 
-		scene->TranslateActiveModel(Translate(-modelOrigin.x,-modelOrigin.y, -modelOrigin.z));
-		scene->RotateActiveModel(rotationMatrix);
-		scene->TranslateActiveModel(Translate(modelOrigin.x,modelOrigin.y, modelOrigin.z));
+		am->addLeftWorldTransformation(Translate(-modelOrigin.x,-modelOrigin.y, -modelOrigin.z));
+		am->addLeftWorldTransformation(rotationMatrix);
+		am->addLeftWorldTransformation(Translate(modelOrigin.x,modelOrigin.y, modelOrigin.z));
 		glutPostRedisplay();
 	}
 	if (alt_down && mb_down) {
 		vec3 dv =  ( -dx * axis1 * smoothFactor) + (dy * axis2 * smoothFactor);
-		vector<vec3> modelAxes = scene->getAnchoredModelCoordinates();
-		mat4 tr = Translate( dot(dv, modelAxes[0]), dot(dv, modelAxes[1]), dot(dv, modelAxes[2]) );
-		scene->TranslateActiveModel(tr);
+		mat4 tr = Translate( -dv.x * smoothFactor, -dv.y * smoothFactor, -dv.z * smoothFactor );
+		am->addLeftWorldTransformation(tr);
 		glutPostRedisplay();
 	}
 	
@@ -244,31 +265,107 @@ void mainMenu(int id)
 		break;
 	case MAIN_ADD_CAMERA:
 		if (cameraEye.DoModal() == IDOK && cameraAt.DoModal() == IDOK && cameraUp.DoModal() == IDOK) {
-			Camera * c = new Camera(*(scene->ActiveCam()));
-			c->LookAt(cameraEye.GetXYZ(), cameraAt.GetXYZ(), cameraUp.GetXYZ());
+			Camera c = Camera(*(scene->ActiveCam()));
+			c.LookAt(cameraEye.GetXYZ(), cameraAt.GetXYZ(), cameraUp.GetXYZ());
 			scene->AddCamera(c);
 			glutPostRedisplay();
 		}
 		break;
-	/*case MAIN_TRY_DIALOG:
-		if (IDOK == cdialog.DoModal()) {
-			vec3 v = cdialog.GetXYZ();
-			cout << "X="<< v.x << " Y=" << v.y << " Z=" << v.z << std::endl;
-		}*/
+	case MAIN_RENDER_CAMERAS:
+		scene->ToggleShowCameras();
+	}
+}
+
+void menuActiveModel(int id)
+{
+	if (NULL == scene->ActiveModel())
+		return;
+	MeshModel* m = scene->ActiveModel();
+	switch (id)
+	{
+	case MODEL_SHOW_VERTEX_NORMALS:
+		m->ToggleShowVertexNormals();
+		break;
+	case MODEL_SHOW_FACE_NORMALS: 
+		m->ToggleShowFaceNormals();
+		break;
+	case MODEL_SHOW_BOUNDING_BOX:
+		m->ToggleShowBoundingBox();
+		break;
+	case MODEL_SHOW_FRAME:
+		m->ToggleShowModelFrame();
 		break;
 	}
+	glutPostRedisplay();
+}
+
+void menuActiveCamera(int id)
+{
+	if (NULL == scene->ActiveCam())
+		return;
+	Camera* c = scene->ActiveCam();
+	switch (id)
+	{
+	case CAMERA_SET_LOCATION:
+		{
+			CXyzDialog cameraEye("Please specify camera location in world cordinates");
+			if (cameraEye.DoModal() == IDOK) 
+			{
+				c->LookAt(cameraEye.GetXYZ(), c->At(), c->Up());
+			}
+			break;
+		}
+	case CAMERA_SET_FOV:
+		break;
+	case CAMERA_SET_FOCUS_POINT:
+		{
+			CXyzDialog cameraAt("Please specify a location in world cordinates");
+			if (cameraAt.DoModal() == IDOK) 
+			{
+				c->LookAt(c->Eye(), cameraAt.GetXYZ(), c->Up());
+			}
+			break;
+		}
+	case CAMERA_FOCUS_ON_ACTIVE_MODEL:
+		if (NULL == scene->ActiveModel())
+			break;
+		c->LookAt(c->Eye(), scene->ActiveModel()->origin(), c->Up());
+		break;
+	case CAMERA_SET_TYPE:
+		break;
+	}
+
+
+	glutPostRedisplay();
 }
 
 void initMenu()
 {
+	int activeModelMenuId = glutCreateMenu(menuActiveModel);
+	glutAddMenuEntry("Show Normals per Vertex", MODEL_SHOW_VERTEX_NORMALS);
+	glutAddMenuEntry("Show Normals per Face", MODEL_SHOW_FACE_NORMALS);
+	glutAddMenuEntry("Show Bounding Box", MODEL_SHOW_BOUNDING_BOX);
+	glutAddMenuEntry("Show Model Frame", MODEL_SHOW_FRAME);
 
-	//int menuFile = glutCreateMenu(fileMenu);
-	//glutAddMenuEntry("Open..",FILE_OPEN);
+	int activeCameraMenuId = glutCreateMenu(menuActiveCamera);
+	glutAddMenuEntry("Set Camera Location", CAMERA_SET_LOCATION);
+	glutAddMenuEntry("Set Camera FOV", CAMERA_SET_FOV);
+	glutAddMenuEntry("Look At", CAMERA_SET_FOCUS_POINT);
+	glutAddMenuEntry("Focus on Active Model", CAMERA_FOCUS_ON_ACTIVE_MODEL);
+	
+
 	glutCreateMenu(mainMenu);
+	glutAddMenuEntry("Render Cameras",MAIN_RENDER_CAMERAS);
 	glutAddMenuEntry("Clear Screen",MAIN_CLEAN_SCENE);
 	glutAddMenuEntry("Add Model",MAIN_ADD_MODEL);
+	glutAddSubMenu("Active Model", activeModelMenuId);
+
 	glutAddMenuEntry("Add Camera",MAIN_ADD_CAMERA);
-	//glutAddSubMenu("File",menuFile);
+	glutAddSubMenu("Active Camera", activeCameraMenuId);
+
+
+	
+
 	//glutAddMenuEntry("Demo",MAIN_DEMO);
 	//glutAddMenuEntry("Try Dialog",MAIN_TRY_DIALOG);
 	//glutAddMenuEntry("About",MAIN_ABOUT);
@@ -284,19 +381,18 @@ int my_main( int argc, char **argv )
 	//----------------------------------------------------------------------------
 	// Initialize window
 	glutInit( &argc, argv );
-	glutInitDisplayMode( GLUT_RGBA| GLUT_DOUBLE);
+	glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE );
 	glutInitWindowSize( 800, 800 );
 	glutInitContextVersion( 3, 2 );
 	glutInitContextProfile( GLUT_CORE_PROFILE );
-	glutCreateWindow( "CG" );
+	glutCreateWindow( "The Awesome" );
 	glewExperimental = GL_TRUE;
-	//glewInit();
 	GLenum err = glewInit();
 	if (GLEW_OK != err)
 	{
 		/* Problem: glewInit failed, something is seriously wrong. */
 		fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-		/*		...*/
+		exit(1);
 	}
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
@@ -304,7 +400,7 @@ int my_main( int argc, char **argv )
 
 	renderer = new Renderer(800,800);
 	scene = new Scene(renderer);
-	Camera* c = new Camera();
+	Camera c = Camera();
 	float p = 3;
 	
 	vec3 eye = vec3(3,3,3);
@@ -325,12 +421,12 @@ int my_main( int argc, char **argv )
 	if (ac != NULL) {
 		ac->LookAt(eye, at, up);
 		ac->Frustum(leftView, rightView, bottom, top, zNear, zFar);
-		//ac->Ortho(leftView, rightView, bottom, top, zNear, zFar);
+		ac->Ortho(leftView, rightView, bottom, top, zNear, zFar);
 
 	}
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
-
+	//----------------------------------------------------------------------------
 	glutDisplayFunc( display );
 	glutKeyboardFunc( keyboard );
 	glutMouseFunc( mouse );
@@ -339,8 +435,8 @@ int my_main( int argc, char **argv )
 	initMenu();
 
 	glutMainLoop();
-	delete scene;
 	delete renderer;
+	delete scene;
 	return 0;
 }
 

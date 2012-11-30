@@ -19,6 +19,11 @@ protected :
 	mat4 _world_transform;
 	mat3 _normal_transform;
 
+	bool _drawVN;
+	bool _drawFN;
+	bool _drawBB;
+	bool _drawMF;
+
 public:
 	MeshModel() {
 		_world_transform = Identity4();
@@ -49,5 +54,11 @@ public:
 	vec3 virtual origin();
 
 	virtual void drawBoundingBox(Renderer * r = NULL, Rgb color = Rgb(0.4,0.4,0.4) );
+
+	
+	bool ToggleShowFaceNormals();
+	bool ToggleShowBoundingBox();
+	bool ToggleShowVertexNormals();
+	bool ToggleShowModelFrame();
 
 };
