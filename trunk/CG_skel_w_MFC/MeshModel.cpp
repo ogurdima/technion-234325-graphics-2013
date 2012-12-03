@@ -71,6 +71,8 @@ void MeshModel::loadFile(string fileName)
 			cout<< "Found unknown line Type \"" << lineType << "\"" << endl;
 		}
 	}
+
+	CalculateFaceNormals();
 }
 
 void MeshModel::draw(Renderer * r, Rgb color)
@@ -88,6 +90,7 @@ void MeshModel::draw(Renderer * r, Rgb color)
 	if (_drawFN)
 	{
 		//compute face normals and draw them
+		r->DrawLineSegments(transformFaceNormals());
 	}
 	if (_drawMF)
 	{
@@ -133,12 +136,30 @@ vector<Vertex> MeshModel::transformNormals(float len)
 		{
 			if(it->vn[i] == 0) // normal is not defined for vertex
 				continue;
-			vec4 normalEnd = _vertices[it->v[i] - 1] + len * normalize((_normals[it->vn[i] - 1]));
-			retVal.push_back( _world_transform * _vertices[it->v[i] - 1] ); // push vertex
-			retVal.push_back( _world_transform * normalEnd ); // push normal endpoint
+			vec4 normalStart = _world_transform * _vertices[it->v[i] - 1];
+			vec4 normalEnd = normalStart + (_normal_transform * _normals[it->vn[i] - 1]);
+			retVal.push_back( normalStart ); // push vertex
+			retVal.push_back( normalEnd ); // push normal endpoint
 		}
 	}
 	return retVal;
+}
+
+vector<Vertex> MeshModel::transformFaceNormals() 
+{
+	vector<Vertex> origNormalList;
+	for (int i = 0; i < _faces.size(); i++) 
+	{
+		Face& f = _faces[i];
+		vec4& n = _faceNormals[i];
+		vec4 normalStart = (_vertices[f.v[0] - 1] + _vertices[f.v[1] - 1] + _vertices[f.v[2] - 1]) / 3;
+		// Starting from here we are in world frame
+		normalStart = _world_transform * normalStart;
+		vec4 normalEnd = normalStart + (_normal_transform * n);
+		origNormalList.push_back(normalStart);
+		origNormalList.push_back(normalEnd);
+	}
+	return origNormalList;
 }
 
 vector<Vertex> MeshModel::transformVertices(vector<Vertex> inModelCoords)
@@ -151,9 +172,26 @@ vector<Vertex> MeshModel::transformVertices(vector<Vertex> inModelCoords)
 	return inModelCoords; // it is actually now in world coordinates
 }
 
-void MeshModel::addLeftWorldTransformation(mat4 transform)
+
+void MeshModel::Rotate(mat4 m)
 {
-	_world_transform = transform * _world_transform;
+	_world_transform = m * _world_transform;
+	_normal_transform = m * _normal_transform;
+}
+
+void MeshModel::Translate(mat4 m)
+{
+	_world_transform = m * _world_transform;
+	_normal_transform = m * _normal_transform;
+}
+
+void MeshModel::Scale(mat4 m)
+{
+	_world_transform = m * _world_transform;
+	m[0][0] = 1 / m[0][0];
+	m[1][1] = 1 / m[1][1];
+	m[2][2] = 1 / m[2][2];
+	_normal_transform = m * _normal_transform;
 }
 
 vector<vec3> MeshModel::coordinates() {
@@ -257,4 +295,19 @@ bool MeshModel::ToggleShowModelFrame() {
 	bool oldval = _drawMF;
 	_drawMF = ! _drawMF;
 	return oldval;
+}
+
+void MeshModel::CalculateFaceNormals()
+{
+	vec4 p1, p2, p3, d1, d2, crs;
+	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it)
+	{
+		p1 = _vertices[it->v[0] - 1];
+		p2 = _vertices[it->v[1] - 1];
+		p3 = _vertices[it->v[2] - 1];
+		d1 = p2 - p1; //assuming counterclockwise enumeration
+		d2 = p3 - p2;
+		crs = normalize(vec4(cross(d1, d2), 0));
+		_faceNormals.push_back(crs);
+	}
 }

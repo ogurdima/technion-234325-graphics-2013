@@ -39,18 +39,19 @@ bool lb_down,rb_down,mb_down;
 
 void display( void )
 {
-//Call the scene and ask it to draw itself
+	//Call the scene and ask it to draw itself
 }
 
 void reshape( int width, int height )
 {
-//update the renderer's buffers
+	//update the renderer's buffers
 }
 
 void keyboard( unsigned char key, int x, int y )
 {
 	switch ( key ) {
 	case 033:
+		system("pause");
 		exit( EXIT_SUCCESS );
 		break;
 	}
@@ -60,18 +61,18 @@ void mouse(int button, int state, int x, int y)
 {
 	//button = {GLUT_LEFT_BUTTON, GLUT_MIDDLE_BUTTON, GLUT_RIGHT_BUTTON}
 	//state = {GLUT_DOWN,GLUT_UP}
-	
+
 	//set down flags
 	switch(button) {
-		case GLUT_LEFT_BUTTON:
-			lb_down = (state==GLUT_UP)?0:1;
-			break;
-		case GLUT_RIGHT_BUTTON:
-			rb_down = (state==GLUT_UP)?0:1;
-			break;
-		case GLUT_MIDDLE_BUTTON:
-			mb_down = (state==GLUT_UP)?0:1;	
-			break;
+	case GLUT_LEFT_BUTTON:
+		lb_down = (state==GLUT_UP)?0:1;
+		break;
+	case GLUT_RIGHT_BUTTON:
+		rb_down = (state==GLUT_UP)?0:1;
+		break;
+	case GLUT_MIDDLE_BUTTON:
+		mb_down = (state==GLUT_UP)?0:1;	
+		break;
 	}
 
 	// add your code
@@ -91,14 +92,14 @@ void fileMenu(int id)
 {
 	switch (id)
 	{
-		case FILE_OPEN:
-			CFileDialog dlg(TRUE,_T(".obj"),NULL,NULL,_T("*.obj|*.*"));
-			if(dlg.DoModal()==IDOK)
-			{
-				std::string s((LPCTSTR)dlg.GetPathName());
-				scene->loadOBJModel((LPCTSTR)dlg.GetPathName());
-			}
-			break;
+	case FILE_OPEN:
+		CFileDialog dlg(TRUE,_T(".obj"),NULL,NULL,_T("*.obj|*.*"));
+		if(dlg.DoModal()==IDOK)
+		{
+			std::string s((LPCTSTR)dlg.GetPathName());
+			scene->loadOBJModel((LPCTSTR)dlg.GetPathName());
+		}
+		break;
 	}
 }
 
@@ -134,37 +135,44 @@ int my_main( int argc, char **argv )
 {
 	//----------------------------------------------------------------------------
 	// Initialize window
-	glutInit( &argc, argv );
-	glutInitDisplayMode( GLUT_RGBA| GLUT_DOUBLE);
-	glutInitWindowSize( 512, 512 );
-	glutInitContextVersion( 3, 2 );
-	glutInitContextProfile( GLUT_CORE_PROFILE );
-	glutCreateWindow( "CG" );
-	glewExperimental = GL_TRUE;
-	glewInit();
-	GLenum err = glewInit();
-	if (GLEW_OK != err)
+
+	try
 	{
-		/* Problem: glewInit failed, something is seriously wrong. */
-		fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-		/*		...*/
+		glutInit( &argc, argv );
+		glutInitDisplayMode( GLUT_RGBA| GLUT_DOUBLE);
+		glutInitWindowSize( 512, 512 );
+		glutInitContextVersion( 3, 2 );
+		glutInitContextProfile( GLUT_CORE_PROFILE );
+		glutCreateWindow( "CG" );
+		glewExperimental = GL_TRUE;
+		glewInit();
+		GLenum err = glewInit();
+		if (GLEW_OK != err)
+		{
+			/* Problem: glewInit failed, something is seriously wrong. */
+			fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+			/*		...*/
+		}
+		fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
+
+
+		renderer = new Renderer(512,512);
+		scene = new Scene(renderer);
+		//----------------------------------------------------------------------------
+		// Initialize Callbacks
+
+		glutDisplayFunc( display );
+		glutKeyboardFunc( keyboard );
+		glutMouseFunc( mouse );
+		glutMotionFunc ( motion );
+		glutReshapeFunc( reshape );
+		initMenu();
 	}
-	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-	
-	
-	renderer = new Renderer(512,512);
-	scene = new Scene(renderer);
-	//----------------------------------------------------------------------------
-	// Initialize Callbacks
-
-	glutDisplayFunc( display );
-	glutKeyboardFunc( keyboard );
-	glutMouseFunc( mouse );
-	glutMotionFunc ( motion );
-	glutReshapeFunc( reshape );
-	initMenu();
-	
+	catch(exception ex)
+	{
+		fprintf(stderr, "Exception: %s\n", ex.what());
+	}
 
 	glutMainLoop();
 	delete scene;
@@ -179,7 +187,7 @@ using namespace std;
 int main( int argc, char **argv )
 {
 	int nRetCode = 0;
-	
+
 	// initialize MFC and print and error on failure
 	if (!AfxWinInit(::GetModuleHandle(NULL), NULL, ::GetCommandLine(), 0))
 	{
@@ -191,6 +199,6 @@ int main( int argc, char **argv )
 	{
 		my_main(argc, argv );
 	}
-	
+
 	return nRetCode;
 }

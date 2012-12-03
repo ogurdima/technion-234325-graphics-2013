@@ -15,19 +15,22 @@ protected :
 	vector<Face> _faces;
 	vector<Vertex> _vertices;
 	vector<vec4> _normals;
+	vector<vec4> _faceNormals;
 
 	mat4 _world_transform;
-	mat3 _normal_transform;
+	mat4 _normal_transform;
 
 	bool _drawVN;
 	bool _drawFN;
 	bool _drawBB;
 	bool _drawMF;
 
+	void CalculateFaceNormals();
+
 public:
 	MeshModel() {
 		_world_transform = Identity4();
-		_normal_transform = Identity3();
+		_normal_transform = Identity4();
 	}
 
 	MeshModel(const MeshModel& rhs) {
@@ -36,10 +39,12 @@ public:
 		_faces = rhs._faces;
 		_vertices = rhs._vertices;
 		_normals = rhs._normals;
+		_faceNormals = rhs._faceNormals;
 	}
 
 	vector<Vertex> transformVertices();
 	vector<vec4> transformNormals(float len );
+	vector<Vertex> transformFaceNormals();
 
 	vector<Vertex> transformVertices(vector<Vertex> inModelCoords);
 	MeshModel(string fileName);
@@ -49,7 +54,10 @@ public:
 	void virtual drawNormals(Renderer * r, float len, Rgb color = Rgb(0.7,0.7,0.7) );
 
 	
-	void virtual addLeftWorldTransformation(mat4 transform);
+	
+	void Rotate(mat4 m);
+	void Scale(mat4 m);
+	void Translate(mat4 m);
 	vector<vec3> virtual coordinates();
 	vec3 virtual origin();
 

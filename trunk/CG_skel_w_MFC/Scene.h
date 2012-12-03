@@ -25,6 +25,7 @@ protected:
 	int activeLight;
 	int activeCamera;
 	bool drawCameras;
+	bool drawWorldFrame;
 
 	
 
@@ -51,5 +52,9 @@ public:
 	void drawModelAxes(Model* m);
 	bool isLegal();
 	void ToggleActiveModel();
+	void ToggleActiveCamera();
 	bool ToggleShowCameras();
+	bool ToggleShowWorldFrame();
+
+	
 };

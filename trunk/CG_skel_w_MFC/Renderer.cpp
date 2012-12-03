@@ -58,16 +58,28 @@ void Renderer::FlushBuffer()
 	//ClearDepthBuffer();
 }
 
-
-float Renderer::ScaleFactor() 
+vec2 Renderer::ScaleFactor() 
 {
-	return min(m_width/2, m_height/2);
+	vec2 res;
+	float screenAR = (float) m_width / (float) m_height;
+	if (m_camera->Aspect() > screenAR)
+	{
+		res.x = m_width/2;
+		res.y = res.x / m_camera->Aspect();
+	}
+	else
+	{
+		res.y = m_height/2;
+		res.x = res.y * m_camera->Aspect();
+	}
+	return res;
 }
 
 inline mat4 Renderer::FinalProjection()
 {
 	//mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
-	mat4 finalProjection = Scale( ScaleFactor(), ScaleFactor(), 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
+	vec2 sf = ScaleFactor();
+	mat4 finalProjection =  Scale( sf.x , sf.y, 1)  * Translate(1,1,0) *  m_camera->Projection() * m_camera->Transformation();
 	return finalProjection;
 }
 
@@ -87,23 +99,62 @@ void Renderer::ClearDepthBuffer()
 	// clear it
 }
 
+void Renderer::DrawVisibleBoundary()
+{
+	vec2 sf = ScaleFactor();
+	vec4 v1 = Scale( sf.x, sf.y, 0) * Translate(1,1,0) * vec4(-1,-1,0,1);
+	vec4 v2 = Scale( sf.x, sf.y, 0) * Translate(1,1,0) * vec4(-1,1,0,1);
+	vec4 v3 = Scale( sf.x, sf.y, 0) * Translate(1,1,0) * vec4(1,1,0,1);
+	vec4 v4 = Scale( sf.x, sf.y, 0) * Translate(1,1,0) * vec4(1,-1,0,1);
+	DrawLine(vec2(v1.x / v1.w, v1.y/ v1.w), vec2(v2.x / v2.w, v2.y/ v2.w) );
+	DrawLine(vec2(v3.x / v3.w, v3.y/ v3.w), vec2(v2.x / v2.w, v2.y/ v2.w) );
+	DrawLine(vec2(v3.x / v3.w, v3.y/ v3.w), vec2(v4.x / v4.w, v4.y/ v4.w) );
+	DrawLine(vec2(v1.x / v1.w, v1.y/ v1.w), vec2(v4.x / v4.w, v4.y/ v4.w) );
+}
 
 void Renderer::Draw(vector<Vertex>& vertices, Rgb color)
 {
-
 	mat4 finalProjection = FinalProjection();
-	for(vector<Vertex>::iterator it = vertices.begin();   it != vertices.end(); it++) 
+	vector<Vertex>::iterator it = vertices.begin();
+	while (it != vertices.end())
 	{
-		vec4 v = finalProjection * (*it);
-		*it = v;
+		Vertex v1 = finalProjection * ( *it++);
+		Vertex v2 = finalProjection * ( *it++);
+		Vertex v3 = finalProjection * ( *it++);
+		
+		vec3 p1 = vec3(v1.x/v1.w, v1.y/v1.w, v1.z/v1.w);
+		vec3 p2 = vec3(v2.x/v2.w, v2.y/v2.w, v2.z/v2.w);
+		if (clip(p1, p2)) {
+			DrawLine(p1, p2, color);
+		}
+		p1 = vec3(v1.x/v1.w, v1.y/v1.w, v1.z/v1.w);
+		p2 = vec3(v3.x/v3.w, v3.y/v3.w, v3.z/v3.w);
+		if (clip(p1, p2)) {
+			DrawLine(p1, p2, color);
+		}
+		p1 = vec3(v2.x/v2.w, v2.y/v2.w, v2.z/v2.w);
+		p2 = vec3(v3.x/v3.w, v3.y/v3.w, v3.z/v3.w);
+		if (clip(p1, p2)) {
+			DrawLine(p1, p2, color);
+		}
+
 	}
-	for(int i = 0 /*count-3*/; i+3 <= vertices.size() /*&& i+3 <= count*/ ; i+=3)
+
+	for(int i = 0; i+3 <= vertices.size()  ; i+=3)
 	{
 		Vertex v1 = vertices.at(i);
 		Vertex v2 = vertices.at(i+1);
 		Vertex v3 = vertices.at(i+2);
+		
 		DrawTriangle2D(	vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), vec2(v3.x/v3.w,v3.y/v3.w), color);
 	}
+}
+
+bool Renderer::clip(vec3& v1, vec3& v2)
+{
+
+
+	return true;
 }
 
 void Renderer::DrawLineSegments(vector<vec4>& segmentList, Rgb color)
@@ -205,6 +256,11 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 			y += yStep;
 		}
 	}
+}
+
+void Renderer::DrawLine(vec3 p1, vec3 p2, Rgb col)
+{
+	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col);
 }
 
 //--------------------------------------------------------------------------

@@ -70,13 +70,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <None Include="ReadMe.txt" />
     <None Include="fshader.glsl">
       <Filter>Shaders</Filter>
     </None>
     <None Include="vshader.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="hw1_w_MFC.rc">

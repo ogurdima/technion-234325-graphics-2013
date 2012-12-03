@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "CG_skel_w_MFC.h"
+#include <sstream>
 
 
 #ifdef _DEBUG
@@ -33,17 +34,24 @@
 #define MAIN_ADD_CAMERA					5
 #define MAIN_ADD_MODEL					6
 #define MAIN_RENDER_CAMERAS				7
+#define MAIN_SHOW_WORLD_FRAME			8
 
 #define MODEL_SHOW_VERTEX_NORMALS		20
 #define MODEL_SHOW_FACE_NORMALS			21
 #define MODEL_SHOW_BOUNDING_BOX			22
 #define MODEL_SHOW_FRAME				23
+#define MODEL_NON_UNIFORM_SCALE			24
 
 #define CAMERA_SET_LOCATION				30
 #define CAMERA_SET_FOV					31
 #define CAMERA_SET_FOCUS_POINT			32
 #define CAMERA_FOCUS_ON_ACTIVE_MODEL	33
 #define CAMERA_SET_TYPE					34
+
+#define LENS_ORTHO						341
+#define LENS_PERSPECTIVE				342
+#define LENS_FRUSTUM					343
+
 
 //----------------------------------------------------------------------------
 // Global variables
@@ -52,6 +60,147 @@ Scene *scene;
 Renderer *renderer;
 int last_x,last_y;
 bool lb_down, rb_down, mb_down, ctr_down, shift_down, alt_down;
+
+
+void parseElem(string cmd, float& zNear, float& zFar, float& top, float& bot, float& left, float& right, float& fovy, float& aspect) 
+{
+	if (cmd.empty())
+		return;
+	int eqPos = cmd.find_first_of("=");
+	if (eqPos == -1)
+		return;
+	string operand = cmd.substr(0, eqPos);
+	string val = cmd.substr(eqPos + 1, cmd.size());
+	float fval;
+	std::stringstream iss(val);
+	iss >> fval;
+
+	if (operand == "n") 
+	{
+		zNear = fval;
+	}
+	else if (operand == "f")
+	{
+		 zFar = fval;
+	}
+	else if (operand == "l")
+	{
+		 left = fval;
+	}
+	else if (operand == "r")
+	{
+		 right = fval;
+	}
+	else if (operand == "t")
+	{
+		 top = fval;
+	}
+	else if (operand == "b")
+	{
+		 bot = fval;
+	}
+	else if (operand == "fovy")
+	{
+		 fovy = fval;
+	}
+	else if (operand == "aspect")
+	{
+		 aspect = fval;
+	}
+}
+
+void parseOrthoElem(string cmd)
+{
+	float zNear = scene->ActiveCam()->ZNear();
+	float zFar = scene->ActiveCam()->ZFar();
+	float top = scene->ActiveCam()->Top();
+	float bot = scene->ActiveCam()->Bottom();
+	float left = scene->ActiveCam()->Left();
+	float right = scene->ActiveCam()->Right();
+	float fovy = scene->ActiveCam()->Fovy();
+	float aspect = scene->ActiveCam()->Aspect();
+
+	parseElem(cmd, zNear, zFar, top, bot, left, right, fovy, aspect);
+	scene->ActiveCam()->Ortho(left, right, bot, top, zNear, zFar);
+}
+
+void parseOrthoCmd(string cmd)
+{
+	if (cmd.empty())
+		return;
+	int commaPos = cmd.find_first_of(",");
+	if (commaPos == -1)
+	{
+		parseOrthoElem(cmd);
+		return;
+	}
+	string before = cmd.substr(0, commaPos);
+	parseOrthoElem(before);
+	string after = cmd.substr(commaPos + 1, cmd.size());
+	parseOrthoCmd(after);
+}
+
+void parsePerspectiveElem(string cmd)
+{
+	float zNear = scene->ActiveCam()->ZNear();
+	float zFar = scene->ActiveCam()->ZFar();
+	float top = scene->ActiveCam()->Top();
+	float bot = scene->ActiveCam()->Bottom();
+	float left = scene->ActiveCam()->Left();
+	float right = scene->ActiveCam()->Right();
+	float fovy = scene->ActiveCam()->Fovy();
+	float aspect = scene->ActiveCam()->Aspect();
+
+	parseElem(cmd, zNear, zFar, top, bot, left, right, fovy, aspect);
+	scene->ActiveCam()->Perspective(fovy, aspect,zNear, zFar);
+}
+
+void parsePerspectiveCmd(string cmd)
+{
+	if (cmd.empty())
+		return;
+	int commaPos = cmd.find_first_of(",");
+	if (commaPos == -1)
+	{
+		parsePerspectiveElem(cmd);
+		return;
+	}
+	string before = cmd.substr(0, commaPos);
+	parsePerspectiveElem(before);
+	string after = cmd.substr(commaPos + 1, cmd.size());
+	parsePerspectiveCmd(after);
+}
+
+void parseFrustumElem(string cmd)
+{
+	float zNear = scene->ActiveCam()->ZNear();
+	float zFar = scene->ActiveCam()->ZFar();
+	float top = scene->ActiveCam()->Top();
+	float bot = scene->ActiveCam()->Bottom();
+	float left = scene->ActiveCam()->Left();
+	float right = scene->ActiveCam()->Right();
+	float fovy = scene->ActiveCam()->Fovy();
+	float aspect = scene->ActiveCam()->Aspect();
+
+	parseElem(cmd, zNear, zFar, top, bot, left, right, fovy, aspect);
+	scene->ActiveCam()->Frustum(left, right, bot, top, zNear, zFar);
+}
+
+void parseFrustumCmd(string cmd)
+{
+	if (cmd.empty())
+		return;
+	int commaPos = cmd.find_first_of(",");
+	if (commaPos == -1)
+	{
+		parseFrustumElem(cmd);
+		return;
+	}
+	string before = cmd.substr(0, commaPos);
+	parseFrustumElem(before);
+	string after = cmd.substr(commaPos + 1, cmd.size());
+	parseFrustumCmd(after);
+}
 
 
 //----------------------------------------------------------------------------
@@ -81,6 +230,9 @@ void keyboard( unsigned char key, int x, int y )
 		break;
 	case 'm':
 		scene->ToggleActiveModel();
+		glutPostRedisplay();
+	case 'c':
+		scene->ToggleActiveCamera();
 		glutPostRedisplay();
 	}
 	
@@ -119,7 +271,7 @@ void mouse(int button, int state, int x, int y)
 				MeshModel* am = scene->ActiveModel();
 				if (NULL == am)
 					break;
-				am->addLeftWorldTransformation(Scale(1/zoom_factor, 1/zoom_factor, 1/zoom_factor));
+				am->Scale(Scale(1/zoom_factor, 1/zoom_factor, 1/zoom_factor));
 				glutPostRedisplay();
 				break;
 			}
@@ -212,33 +364,18 @@ void motion(int x, int y)
 		rotationMatrix[3][2] = 0.0;
 		rotationMatrix[3][3] = 1.0;
 
-		am->addLeftWorldTransformation(Translate(-modelOrigin.x,-modelOrigin.y, -modelOrigin.z));
-		am->addLeftWorldTransformation(rotationMatrix);
-		am->addLeftWorldTransformation(Translate(modelOrigin.x,modelOrigin.y, modelOrigin.z));
+		am->Translate(Translate(-modelOrigin.x,-modelOrigin.y, -modelOrigin.z));
+		am->Rotate(rotationMatrix);
+		am->Translate(Translate(modelOrigin.x,modelOrigin.y, modelOrigin.z));
 		glutPostRedisplay();
 	}
 	if (alt_down && mb_down) {
 		vec3 dv =  ( -dx * axis1 * smoothFactor) + (dy * axis2 * smoothFactor);
 		mat4 tr = Translate( -dv.x * smoothFactor, -dv.y * smoothFactor, -dv.z * smoothFactor );
-		am->addLeftWorldTransformation(tr);
+		am->Translate(tr);
 		glutPostRedisplay();
 	}
 	
-}
-
-void fileMenu(int id)
-{
-	switch (id)
-	{
-	case FILE_OPEN:
-		CFileDialog dlg(TRUE,_T(".obj"),NULL,NULL,_T("*.obj|*.*"));
-		if(dlg.DoModal()==IDOK)
-		{
-			std::string s((LPCTSTR)dlg.GetPathName());
-			scene->loadOBJModel((LPCTSTR)dlg.GetPathName());
-		}
-		break;
-	}
 }
 
 void mainMenu(int id)
@@ -251,6 +388,7 @@ void mainMenu(int id)
 	{
 	case MAIN_CLEAN_SCENE:
 		scene->Clean();
+		glutPostRedisplay();
 		break;
 	case MAIN_ADD_MODEL:
 		{
@@ -265,7 +403,7 @@ void mainMenu(int id)
 		break;
 	case MAIN_ADD_CAMERA:
 		if (cameraEye.DoModal() == IDOK && cameraAt.DoModal() == IDOK && cameraUp.DoModal() == IDOK) {
-			Camera c = Camera(*(scene->ActiveCam()));
+			Camera c;
 			c.LookAt(cameraEye.GetXYZ(), cameraAt.GetXYZ(), cameraUp.GetXYZ());
 			scene->AddCamera(c);
 			glutPostRedisplay();
@@ -273,6 +411,12 @@ void mainMenu(int id)
 		break;
 	case MAIN_RENDER_CAMERAS:
 		scene->ToggleShowCameras();
+		glutPostRedisplay();
+		break;
+	case MAIN_SHOW_WORLD_FRAME:
+		scene->ToggleShowWorldFrame();
+		glutPostRedisplay();
+		break;
 	}
 }
 
@@ -295,6 +439,57 @@ void menuActiveModel(int id)
 	case MODEL_SHOW_FRAME:
 		m->ToggleShowModelFrame();
 		break;
+	case MODEL_NON_UNIFORM_SCALE:
+		{
+			CXyzDialog dialog;
+			if(IDOK ==  dialog.DoModal())
+			{
+				vec3 scl = dialog.GetXYZ();
+				scene->ActiveModel()->Scale(Scale(scl));
+			}
+		}
+		break;
+	}
+	glutPostRedisplay();
+}
+
+void menuLens(int id)
+{
+	Camera* cam = scene->ActiveCam();
+	if (NULL == cam) return;
+	
+	switch (id)
+	{
+	case LENS_ORTHO:
+		{
+			CCmdDialog cid;
+			if(IDOK ==  cid.DoModal())
+			{
+				string cmd = cid.GetCmd();
+				parseOrthoCmd(cmd);
+			}
+		}
+		break;
+	case LENS_FRUSTUM:
+		{
+			CCmdDialog cid;
+			if(IDOK ==  cid.DoModal())
+			{
+				string cmd = cid.GetCmd();
+				parseFrustumCmd(cmd);
+			}
+		}
+		break;
+	case LENS_PERSPECTIVE:
+		{
+			CCmdDialog cid;
+			if(IDOK ==  cid.DoModal())
+			{
+				string cmd = cid.GetCmd();
+				parsePerspectiveCmd(cmd);
+			}
+		}
+		break;
 	}
 	glutPostRedisplay();
 }
@@ -315,8 +510,6 @@ void menuActiveCamera(int id)
 			}
 			break;
 		}
-	case CAMERA_SET_FOV:
-		break;
 	case CAMERA_SET_FOCUS_POINT:
 		{
 			CXyzDialog cameraAt("Please specify a location in world cordinates");
@@ -346,15 +539,23 @@ void initMenu()
 	glutAddMenuEntry("Show Normals per Face", MODEL_SHOW_FACE_NORMALS);
 	glutAddMenuEntry("Show Bounding Box", MODEL_SHOW_BOUNDING_BOX);
 	glutAddMenuEntry("Show Model Frame", MODEL_SHOW_FRAME);
+	glutAddMenuEntry("Nonuniform Scale", MODEL_NON_UNIFORM_SCALE);
+	
+
+	int lensMenu = glutCreateMenu(menuLens);
+	glutAddMenuEntry("Ortho", LENS_ORTHO);
+	glutAddMenuEntry("Perspective", LENS_PERSPECTIVE);
+	glutAddMenuEntry("Frustum", LENS_FRUSTUM);
 
 	int activeCameraMenuId = glutCreateMenu(menuActiveCamera);
 	glutAddMenuEntry("Set Camera Location", CAMERA_SET_LOCATION);
-	glutAddMenuEntry("Set Camera FOV", CAMERA_SET_FOV);
 	glutAddMenuEntry("Look At", CAMERA_SET_FOCUS_POINT);
 	glutAddMenuEntry("Focus on Active Model", CAMERA_FOCUS_ON_ACTIVE_MODEL);
+	glutAddSubMenu("Set lens type", lensMenu);
 	
 
 	glutCreateMenu(mainMenu);
+	glutAddMenuEntry("Show world frame",MAIN_SHOW_WORLD_FRAME);
 	glutAddMenuEntry("Render Cameras",MAIN_RENDER_CAMERAS);
 	glutAddMenuEntry("Clear Screen",MAIN_CLEAN_SCENE);
 	glutAddMenuEntry("Add Model",MAIN_ADD_MODEL);
@@ -374,8 +575,6 @@ void initMenu()
 }
 //----------------------------------------------------------------------------
 
-
-
 int my_main( int argc, char **argv )
 {
 	//----------------------------------------------------------------------------
@@ -383,7 +582,7 @@ int my_main( int argc, char **argv )
 	glutInit( &argc, argv );
 	glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE );
 	glutInitWindowSize( 800, 800 );
-	glutInitContextVersion( 3, 2 );
+	glutInitContextVersion( 2, 1 );
 	glutInitContextProfile( GLUT_CORE_PROFILE );
 	glutCreateWindow( "The Awesome" );
 	glewExperimental = GL_TRUE;
@@ -408,8 +607,8 @@ int my_main( int argc, char **argv )
 	vec3 up = vec3(0,1,0);
 	float leftView = -4;
 	float rightView = 4;
-	float top = 4;
-	float bottom = -4;
+	float top = 3;
+	float bottom = -3;
 	float zNear = 2;
 	float zFar = 7;
 
@@ -421,8 +620,7 @@ int my_main( int argc, char **argv )
 	if (ac != NULL) {
 		ac->LookAt(eye, at, up);
 		ac->Frustum(leftView, rightView, bottom, top, zNear, zFar);
-		ac->Ortho(leftView, rightView, bottom, top, zNear, zFar);
-
+		//ac->Ortho(leftView, rightView, bottom, top, zNear, zFar);
 	}
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
@@ -443,21 +641,6 @@ int my_main( int argc, char **argv )
 CWinApp theApp;
 
 using namespace std;
-
-//void foo () 
-//{
-//	mat2 a1(1, 2 ,3 ,4);
-//	mat2 a2(1, 0 ,0 ,1);
-//	cout << a1;
-//	cout << a2;
-//	cout <<  a1 * a2  << endl;
-//
-//	mat3 a3(1,2,3,4,5,6,7,8,9);
-//
-//	cout << a3 << endl;
-//	cout << transpose(a3) << endl;
-//	system("pause");
-//}
 
 int main( int argc, char **argv )
 {

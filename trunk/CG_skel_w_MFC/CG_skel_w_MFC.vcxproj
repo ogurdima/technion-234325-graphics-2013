@@ -110,6 +110,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CG_skel_w_MFC.h" />
+    <ClInclude Include="Face.h" />
     <ClInclude Include="InitShader.h" />
     <ClInclude Include="InputDialog.h" />
     <ClInclude Include="mat.h" />
@@ -122,6 +123,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="vec.h" />
+    <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CG_skel_w_MFC.rc" />
