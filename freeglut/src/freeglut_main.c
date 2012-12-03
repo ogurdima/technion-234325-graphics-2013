@@ -351,6 +351,7 @@ void fgError( const char *fmt, ... )
     if ( fgState.Initialised )
         fgDeinitialize ();
 
+	system("pause");
     exit( 1 );
 }
 
@@ -1431,6 +1432,7 @@ void FGAPIENTRY glutMainLoopEvent( void )
             if( fgState.ActionOnWindowClose == GLUT_ACTION_EXIT )
             {
                 fgDeinitialize( );
+				system("pause");
                 exit( 0 );
             }
             else if( fgState.ActionOnWindowClose == GLUT_ACTION_GLUTMAINLOOP_RETURNS )
@@ -1532,7 +1534,10 @@ void FGAPIENTRY glutMainLoop( void )
     action = fgState.ActionOnWindowClose;
     fgDeinitialize( );
     if( action == GLUT_ACTION_EXIT )
+	{
+		system("pause");
         exit( 0 );
+	}
 }
 
 /*

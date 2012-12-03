@@ -46,6 +46,7 @@ InitShader(const char* vShaderFile, const char* fShaderFile)
 	s.source = readShaderSource( s.filename );
 	if ( shaders[i].source == NULL ) {
 	    std::cerr << "Failed to read " << s.filename << std::endl;
+		system("pause");
 	    exit( EXIT_FAILURE );
 	}
 	
@@ -64,6 +65,7 @@ InitShader(const char* vShaderFile, const char* fShaderFile)
 	    std::cerr << logMsg << std::endl;
 	    delete [] logMsg;
 
+		system("pause");
 	    exit( EXIT_FAILURE );
 	}
 
@@ -86,6 +88,7 @@ InitShader(const char* vShaderFile, const char* fShaderFile)
 	std::cerr << logMsg << std::endl;
 	delete [] logMsg;
 
+	system("pause");
 	exit( EXIT_FAILURE );
     }
 
