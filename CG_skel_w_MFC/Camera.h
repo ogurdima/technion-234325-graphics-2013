@@ -41,7 +41,7 @@ public:
 	inline vec3 Eye() { return vec3(eye.x, eye.y, eye.z); }
 	inline vec3 At() { return vec3(at.x, at.y, at.z);  }
 	inline vec3 Up() { 
-		return vec3(up.x, up.y, up.z); 
+		return vec3(up.x, up.y, up.z);
 	}
 	inline float Right() { return right; }
 	inline float Left() { return left; }

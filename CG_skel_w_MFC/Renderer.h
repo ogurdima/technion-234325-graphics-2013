@@ -44,9 +44,12 @@ class Renderer
 
 	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
 	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1) );
+	void DrawLine(vec3 p1, vec3 p2, Rgb col = Rgb(1,1,1) );
 	void PlotPixel(int x, int y, Rgb color = Rgb(1,1,1));
-	float ScaleFactor();
+	vec2 ScaleFactor();
 	mat4 FinalProjection();
+	mat4 TMProjection();
+	bool clip(vec3& v1, vec3& v2);
 
 public:
 	Renderer();
@@ -85,6 +88,7 @@ public:
 	void DrawLine3D(vec3 v1, vec3 v2, Rgb col = Rgb(1,1,1));
 	//pixel
 	
+	void DrawVisibleBoundary();
 
 	//--------------------------------------------------------------------
 	// Camera stuff
