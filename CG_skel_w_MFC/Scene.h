@@ -36,6 +36,7 @@ public:
 	void loadOBJModel(string fileName);
 	void Clean();
 	void AddCamera(Camera c);
+	void AddMeshModel(MeshModel m );
 	
 	void SetActiveModelAnchor();
 	vector<vec3> getAnchoredModelCoordinates();

@@ -83,7 +83,7 @@ void MeshModel::draw(Renderer * r, Rgb color)
 	{
 		drawBoundingBox(r);
 	}
-	if (_drawVN)
+	if (_drawVN && _normals.size() > 0)
 	{
 		r->DrawLineSegments(transformNormals(0.1), Rgb(1,1,1), 0.4);
 	}
@@ -126,7 +126,7 @@ vector<Vertex> MeshModel::transformNormals(float len)
 	{
 		for (int i = 0; i < 3; i++) // Assuming all faces are constructed with 3 verticies
 		{
-			if(it->vn[i] == 0) // normal is not defined for vertex
+			if(it->vn[i] <= 0) // normal is not defined for vertex
 				continue;
 			vec4 normalStart = _world_transform * _vertices[it->v[i] - 1];
 			vec4 normalEnd = normalStart + len * normalize(_normal_transform * _normals[it->vn[i] - 1]);
@@ -228,6 +228,9 @@ void MeshModel::drawBoundingBox(Renderer * r, Rgb color)
 	vector<Vertex> rims;
 
 	//Hello shitcode!
+
+
+
 
 	rims.clear();
 	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],min[Y],min[Z],1) );

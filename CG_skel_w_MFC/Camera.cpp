@@ -74,7 +74,7 @@ mat4 Camera::Projection()
 	switch (lensMode)
 	{
 	case ORTHO:
-		return Scale(2/(right - left), 2/(top - bottom), 2/(zFar - zNear)) *  Translate(-(right+left)/2,-(top  + bottom)/2, -(zFar + zNear)/2);
+		return Scale(2/(right - left), 2/(top - bottom), 2/(zNear - zFar)) *  Translate(-(right+left)/2,-(top  + bottom)/2, (zFar + zNear)/2);
 	case FRUSTUM:
 		return mat4(	(2*zNear/(right - left)), 0, (right + left)/(right - left), 0,
 						0, 2*zNear/(top - bottom), (top + bottom)/(top - bottom),0,

@@ -194,3 +194,10 @@ bool Scene::ToggleShowWorldFrame()
 	drawWorldFrame = ! drawWorldFrame;
 	return oldval;
 }
+
+void Scene::AddMeshModel(MeshModel m )
+{
+	MeshModel* mm = new MeshModel(m);
+	models.push_back(mm);
+	activeModel = models.size() - 1;
+}
