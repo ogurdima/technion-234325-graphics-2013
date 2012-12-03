@@ -115,27 +115,37 @@ void Renderer::DrawVisibleBoundary()
 void Renderer::Draw(vector<Vertex>& vertices, Rgb color)
 {
 	mat4 finalProjection = FinalProjection();
+	vec2 sf = ScaleFactor();
+	mat4 fp = m_camera->Projection() * m_camera->Transformation();
+	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
+
 	vector<Vertex>::iterator it = vertices.begin();
 	while (it != vertices.end())
 	{
-		Vertex v1 = finalProjection * ( *it++);
-		Vertex v2 = finalProjection * ( *it++);
-		Vertex v3 = finalProjection * ( *it++);
+		Vertex v1 = fp * ( *it++);
+		Vertex v2 = fp * ( *it++);
+		Vertex v3 = fp * ( *it++);
 		
 		vec3 p1 = vec3(v1.x/v1.w, v1.y/v1.w, v1.z/v1.w);
 		vec3 p2 = vec3(v2.x/v2.w, v2.y/v2.w, v2.z/v2.w);
 		if (clip(p1, p2)) {
-			DrawLine(p1, p2, color);
+			vec4 s1 = sp * vec4(p1,1);
+			vec4 s2 = sp * vec4(p2,1);
+			DrawLine(s1, s2, color);
 		}
 		p1 = vec3(v1.x/v1.w, v1.y/v1.w, v1.z/v1.w);
 		p2 = vec3(v3.x/v3.w, v3.y/v3.w, v3.z/v3.w);
 		if (clip(p1, p2)) {
-			DrawLine(p1, p2, color);
+			vec4 s1 = sp * vec4(p1,1);
+			vec4 s2 = sp * vec4(p2,1);
+			DrawLine(s1, s2, color);
 		}
 		p1 = vec3(v2.x/v2.w, v2.y/v2.w, v2.z/v2.w);
 		p2 = vec3(v3.x/v3.w, v3.y/v3.w, v3.z/v3.w);
 		if (clip(p1, p2)) {
-			DrawLine(p1, p2, color);
+			vec4 s1 = sp * vec4(p1,1);
+			vec4 s2 = sp * vec4(p2,1);
+			DrawLine(s1, s2, color);
 		}
 
 	}
@@ -152,10 +162,85 @@ void Renderer::Draw(vector<Vertex>& vertices, Rgb color)
 
 bool Renderer::clip(vec3& v1, vec3& v2)
 {
+	// x
+	if( (v1.x > 1 && v2.x > 1) || (v1.x < -1 && v2.x < -1) )
+		return false;
 
+	if( v1.x != v2.x && !( v1.x >= -1 && v1.x <= 1 && v2.x >= -1 && v2.x <= 1) )
+	{
+		if(v1.x > v2.x)
+		{
+			vec3 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.x < -1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( -1 - v1.x) / k. x;
+			v1 = v1 + t * k;
+		}
+		if(v2.x > 1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( 1 - v1.x) / k. x;
+			v2 = v1 + t * k;
+		}
+	}
 
+	// y
+	if( (v1.y > 1 && v2.y > 1) || (v1.y < -1 && v2.y < -1) )
+		return false;
+	if( v1.y != v2.y && !( v1.y >= -1 && v1.y <= 1 && v2.y >= -1 && v2.y <= 1) )
+	{
+		if(v1.y > v2.y)
+		{
+			vec3 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.y < -1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( -1 - v1.y) / k. y;
+			v1 = v1 + t * k;
+		}
+		if(v2.y > 1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( 1 - v1.y) / k. y;
+			v2 = v1 + t * k;
+		}
+	}
+
+	// z
+	if( (v1.z > 1 && v2.z > 1) || (v1.z < -1 && v2.z < -1) )
+		return false;
+	if( v1.z != v2.z && !( v1.z >= -1 && v1.z <= 1 && v2.z >= -1 && v2.z <= 1) )
+	{
+		if(v1.z > v2.z)
+		{
+			vec3 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.z < -1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( -1 - v1.z) / k. z;
+			v1 = v1 + t * k;
+		}
+		if(v2.z > 1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( 1 - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+	}
 	return true;
 }
+
+
 
 void Renderer::DrawLineSegments(vector<vec4>& segmentList, Rgb color)
 {
@@ -258,8 +343,10 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 	}
 }
 
-void Renderer::DrawLine(vec3 p1, vec3 p2, Rgb col)
+void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col)
 {
+	p1 = p1 / p1.w;
+	p2 = p2 / p2.w;
 	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col);
 }
 
