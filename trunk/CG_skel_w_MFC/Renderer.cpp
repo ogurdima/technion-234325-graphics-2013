@@ -114,11 +114,7 @@ void Renderer::DrawVisibleBoundary()
 
 void Renderer::Draw(vector<Vertex>& vertices, Rgb color)
 {
-	mat4 finalProjection = FinalProjection();
-	vec2 sf = ScaleFactor();
 	mat4 fp = m_camera->Projection() * m_camera->Transformation();
-	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
-
 	vector<Vertex>::iterator it = vertices.begin();
 	while (it != vertices.end())
 	{
@@ -126,37 +122,21 @@ void Renderer::Draw(vector<Vertex>& vertices, Rgb color)
 		Vertex v2 = fp * ( *it++);
 		Vertex v3 = fp * ( *it++);
 		
-		vec3 p1 = vec3(v1.x/v1.w, v1.y/v1.w, v1.z/v1.w);
-		vec3 p2 = vec3(v2.x/v2.w, v2.y/v2.w, v2.z/v2.w);
+		vec4 p1 = v1;
+		vec4 p2 = v2;
 		if (clip(p1, p2)) {
-			vec4 s1 = sp * vec4(p1,1);
-			vec4 s2 = sp * vec4(p2,1);
-			DrawLine(s1, s2, color);
+			DrawLine(p1, p2, color);
 		}
-		p1 = vec3(v1.x/v1.w, v1.y/v1.w, v1.z/v1.w);
-		p2 = vec3(v3.x/v3.w, v3.y/v3.w, v3.z/v3.w);
+		p1 = v1;
+		p2 = v3;
 		if (clip(p1, p2)) {
-			vec4 s1 = sp * vec4(p1,1);
-			vec4 s2 = sp * vec4(p2,1);
-			DrawLine(s1, s2, color);
+			DrawLine(p1, p2, color);
 		}
-		p1 = vec3(v2.x/v2.w, v2.y/v2.w, v2.z/v2.w);
-		p2 = vec3(v3.x/v3.w, v3.y/v3.w, v3.z/v3.w);
+		p1 = v3;
+		p2 = v2;
 		if (clip(p1, p2)) {
-			vec4 s1 = sp * vec4(p1,1);
-			vec4 s2 = sp * vec4(p2,1);
-			DrawLine(s1, s2, color);
+			DrawLine(p1, p2, color);
 		}
-
-	}
-
-	for(int i = 0; i+3 <= vertices.size()  ; i+=3)
-	{
-		Vertex v1 = vertices.at(i);
-		Vertex v2 = vertices.at(i+1);
-		Vertex v3 = vertices.at(i+2);
-		
-		DrawTriangle2D(	vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), vec2(v3.x/v3.w,v3.y/v3.w), color);
 	}
 }
 
@@ -240,55 +220,77 @@ bool Renderer::clip(vec3& v1, vec3& v2)
 	return true;
 }
 
-
+bool Renderer::clip(vec4& v1, vec4& v2)
+{
+	vec3 vv1 = vec3(v1.x,v1.y, v1.z) / v1.w;
+	vec3 vv2 = vec3(v2.x,v2.y, v2.z) / v2.w;
+	bool res = clip(vv1, vv2);
+	if( res )
+	{
+		v1 = vec4(vv1, 1);
+		v2 = vec4(vv2, 1);
+	}
+	return res;
+}
 
 void Renderer::DrawLineSegments(vector<vec4>& segmentList, Rgb color, float transparency)
 {
 	if (transparency > 1) transparency = 1;
 	if (transparency < 0) transparency = 0;
-	mat4 finalProjection = FinalProjection();
-	for(vector<vec4>::iterator it = segmentList.begin();   it != segmentList.end(); it++) 
+	
+	mat4 fp = m_camera->Projection() * m_camera->Transformation();
+	vector<Vertex>::iterator it = segmentList.begin();
+	while (it != segmentList.end())
 	{
-		vec4 v = finalProjection * (*it);
-		*it = v;
-	}
-	for(int i = 0; i+2 <= segmentList.size(); i+=2)
-	{
-		vec4 p1 = segmentList.at(i);
-		vec4 p2 =  segmentList.at(i+1);
-		DrawLine( vec2(p1.x/p1.w,p1.y/p1.w), vec2(p2.x/p2.w,p2.y/p2.w), color, transparency );
-		bool OK = true;
+		vec4 v1 = fp * ( *it++);
+		vec4 v2 = fp * ( *it++);
+		if (clip(v1, v2)) {
+			DrawLine(v1, v2, color, transparency);
+		}
 	}
 }
 
 void Renderer::DrawPolyline(vector<Vertex>& vertices, Rgb color)
 {
-	mat4 finalProjection =FinalProjection();
-	for(vector<Vertex>::iterator it = vertices.begin();   it != vertices.end(); it++) 
+	if(vertices.size() < 2 )
+		return;
+	mat4 fp = m_camera->Projection() * m_camera->Transformation();
+	vector<Vertex>::iterator it = vertices.begin();
+	vec4 v1 = fp * ( *it++);
+	vec4 v2 = fp * ( *it++);
+	while (it != vertices.end())
 	{
-		vec4 v = finalProjection * (*it);
-		*it = v;
+		vec4 p1 = v1;
+		vec4 p2 = v2;
+		if (clip(p1, p2)) {
+			DrawLine(p1, p2, color);
+		}
+		v1 = v2;
+		v2 = fp * ( *it++);
 	}
-	for(int i = 0; i+1 < vertices.size(); i++)
-	{
-		Vertex v1 = vertices.at(i);
-		Vertex v2 = vertices.at(i+1);
-		DrawLine(vec2(v1.x/v1.w,v1.y/v1.w), vec2(v2.x/v2.w,v2.y/v2.w), color);
+	if (clip(v1, v2)) {
+		DrawLine(v1, v2, color);
 	}
+
 }
 
 void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
-	vec2 p1 = ProjectPoint( vec4(v1, 1) );
-	vec2 p2 = ProjectPoint( vec4(v2, 1) );
-	DrawLine(p1, p2, col);
+	mat4 fp = m_camera->Projection() * m_camera->Transformation();
+	vec4 p1 = fp * vec4(v1,1);
+	vec4 p2 = fp * vec4(v2,1);
+	if (clip(p1, p2)) 
+	{
+		DrawLine(p1, p2, col);
+	}
+
 }
 
-inline void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col)
-{
-	DrawLine(v1,v2, col);
-	DrawLine(v1,v3, col);
-	DrawLine(v2,v3, col);
-}
+//inline void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col)
+//{
+//	DrawLine(v1,v2, col);
+//	DrawLine(v1,v3, col);
+//	DrawLine(v2,v3, col);
+//}
 
 //--------------------------------------------------------------------------
 // Bresenham
@@ -347,6 +349,10 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col, float transparency)
 
 void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col, float transparency)
 {
+	vec2 sf = ScaleFactor();
+	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
+	p1 = sp * p1;
+	p2 = sp * p2;
 	p1 = p1 / p1.w;
 	p2 = p2 / p2.w;
 	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col, transparency);
@@ -377,19 +383,19 @@ void Renderer::SetCamera(Camera* c)
 	m_camera = c;
 }
 
-inline vec2 Renderer::ProjectPoint(vec3 p)
-{
-	return ProjectPoint(vec4(p, 1));
-}
-
-inline vec2 Renderer::ProjectPoint(vec4 p)
-{
-	if (NULL == m_camera)
-		return vec2(0,0);
-	mat4 finalProjection = FinalProjection();
-	vec4 projected = finalProjection * p;
-	return vec2(projected.x/projected.w, projected.y/projected.w);
-}
+//inline vec2 Renderer::ProjectPoint(vec3 p)
+//{
+//	return ProjectPoint(vec4(p, 1));
+//}
+//
+//inline vec2 Renderer::ProjectPoint(vec4 p)
+//{
+//	if (NULL == m_camera)
+//		return vec2(0,0);
+//	mat4 finalProjection = FinalProjection();
+//	vec4 projected = finalProjection * p;
+//	return vec2(projected.x/projected.w, projected.y/projected.w);
+//}
 
 vec3 Renderer::ObjectToCamera(vec4 p) {
 	if (NULL == m_camera)

@@ -23,6 +23,7 @@
 #include "Renderer.h"
 #include <string>
 #include "InputDialog.h"
+#include "PrimMeshModel.h"
 
 #define BUFFER_OFFSET( offset )   ((GLvoid*) (offset))
 
@@ -35,6 +36,8 @@
 #define MAIN_ADD_MODEL					6
 #define MAIN_RENDER_CAMERAS				7
 #define MAIN_SHOW_WORLD_FRAME			8
+#define MAIN_ADD_PRIMITIVE				9
+
 
 #define MODEL_SHOW_VERTEX_NORMALS		20
 #define MODEL_SHOW_FACE_NORMALS			21
@@ -419,6 +422,10 @@ void mainMenu(int id)
 		scene->ToggleShowWorldFrame();
 		glutPostRedisplay();
 		break;
+	case MAIN_ADD_PRIMITIVE:
+		scene->AddMeshModel( PrimMeshModel());
+		glutPostRedisplay();
+		break;
 	}
 }
 
@@ -565,6 +572,7 @@ void initMenu()
 
 	glutAddMenuEntry("Add Camera",MAIN_ADD_CAMERA);
 	glutAddSubMenu("Active Camera", activeCameraMenuId);
+	glutAddMenuEntry("Add primitive", MAIN_ADD_PRIMITIVE);
 
 
 	
@@ -621,8 +629,8 @@ int my_main( int argc, char **argv )
 	Camera* ac = scene->ActiveCam();
 	if (ac != NULL) {
 		ac->LookAt(eye, at, up);
-		ac->Frustum(leftView, rightView, bottom, top, zNear, zFar);
-		//ac->Ortho(leftView, rightView, bottom, top, zNear, zFar);
+		//ac->Frustum(leftView, rightView, bottom, top, zNear, zFar);
+		ac->Ortho(leftView, rightView, bottom, top, zNear, zFar);
 	}
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks

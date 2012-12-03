@@ -28,7 +28,12 @@ protected :
 	void CalculateFaceNormals();
 
 public:
-	MeshModel() {
+	MeshModel() :
+	_drawBB(false),
+	_drawVN(false),
+	_drawFN(false),
+	_drawMF(false)
+	{
 		_world_transform = Identity4();
 		_normal_transform = Identity4();
 	}
@@ -40,6 +45,10 @@ public:
 		_vertices = rhs._vertices;
 		_normals = rhs._normals;
 		_faceNormals = rhs._faceNormals;
+		_drawVN = rhs._drawVN;
+		_drawFN = rhs._drawFN;
+		_drawBB = rhs._drawBB;
+		_drawMF = rhs._drawMF;
 	}
 
 	vector<Vertex> transformVertices();

@@ -50,6 +50,7 @@ class Renderer
 	mat4 FinalProjection();
 	mat4 TMProjection();
 	bool clip(vec3& v1, vec3& v2);
+	bool clip(vec4& v1, vec4& v2);
 
 public:
 	Renderer();
