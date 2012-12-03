@@ -43,9 +43,9 @@ class Renderer
 
 
 	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
-	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1) );
-	void DrawLine(vec4 p1, vec4 p2, Rgb col = Rgb(1,1,1) );
-	void PlotPixel(int x, int y, Rgb color = Rgb(1,1,1));
+	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1), float transparency = 1 );
+	void DrawLine(vec4 p1, vec4 p2, Rgb col = Rgb(1,1,1), float transparency = 1 );
+	void PlotPixel(int x, int y, Rgb color = Rgb(1,1,1), float transparency = 1 );
 	vec2 ScaleFactor();
 	mat4 FinalProjection();
 	mat4 TMProjection();
@@ -81,7 +81,7 @@ public:
 	void DrawTriangles(vector<vec3>* vertices, const vector<vec3>* normals=NULL); // need to implement
 	void Draw(vector<Vertex>& vertices, Rgb color = Rgb(1,1,1) );
 	//line segments
-	void DrawLineSegments(vector<vec4>& segments, Rgb color = Rgb(1,1,1));
+	void DrawLineSegments(vector<vec4>& segments, Rgb color = Rgb(1,1,1), float transparency = 1);
 	//polyline
 	void DrawPolyline(vector<Vertex>& vertices, Rgb color = Rgb(1,1,1) );
 	//lines

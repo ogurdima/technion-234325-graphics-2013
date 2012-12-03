@@ -43,16 +43,14 @@ public:
 	}
 
 	vector<Vertex> transformVertices();
-	vector<vec4> transformNormals(float len );
-	vector<Vertex> transformFaceNormals();
+	vector<vec4> transformNormals(float len = 1);
+	vector<Vertex> transformFaceNormals(float len = 1);
 
 	vector<Vertex> transformVertices(vector<Vertex> inModelCoords);
 	MeshModel(string fileName);
 	~MeshModel(void);
 	void loadFile(string fileName);
 	void virtual draw(Renderer * r, Rgb color = Rgb(0.7,0.7,0.7) );
-	void virtual drawNormals(Renderer * r, float len, Rgb color = Rgb(0.7,0.7,0.7) );
-
 	
 	
 	void Rotate(mat4 m);
