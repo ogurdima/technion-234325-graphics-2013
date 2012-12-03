@@ -231,9 +231,11 @@ void keyboard( unsigned char key, int x, int y )
 	case 'm':
 		scene->ToggleActiveModel();
 		glutPostRedisplay();
+		break;
 	case 'c':
 		scene->ToggleActiveCamera();
 		glutPostRedisplay();
+		break;
 	}
 	
 	

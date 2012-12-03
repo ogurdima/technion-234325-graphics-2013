@@ -242,8 +242,10 @@ bool Renderer::clip(vec3& v1, vec3& v2)
 
 
 
-void Renderer::DrawLineSegments(vector<vec4>& segmentList, Rgb color)
+void Renderer::DrawLineSegments(vector<vec4>& segmentList, Rgb color, float transparency)
 {
+	if (transparency > 1) transparency = 1;
+	if (transparency < 0) transparency = 0;
 	mat4 finalProjection = FinalProjection();
 	for(vector<vec4>::iterator it = segmentList.begin();   it != segmentList.end(); it++) 
 	{
@@ -254,7 +256,7 @@ void Renderer::DrawLineSegments(vector<vec4>& segmentList, Rgb color)
 	{
 		vec4 p1 = segmentList.at(i);
 		vec4 p2 =  segmentList.at(i+1);
-		DrawLine( vec2(p1.x/p1.w,p1.y/p1.w), vec2(p2.x/p2.w,p2.y/p2.w), color );
+		DrawLine( vec2(p1.x/p1.w,p1.y/p1.w), vec2(p2.x/p2.w,p2.y/p2.w), color, transparency );
 		bool OK = true;
 	}
 }
@@ -291,7 +293,7 @@ inline void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col)
 //--------------------------------------------------------------------------
 // Bresenham
 //--------------------------------------------------------------------------
-void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
+void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col, float transparency)
 {
 	int x1 = (int)p1.x;
 	int x2 = (int)p2.x;
@@ -328,11 +330,11 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 	{
 		if(steep)
 		{
-			PlotPixel(y,x, col);
+			PlotPixel(y,x, col, transparency);
 		}
 		else
 		{
-			PlotPixel(x,y, col);
+			PlotPixel(x,y, col, transparency);
 		}
 		e -= dy;
 		if(e < 0)
@@ -343,21 +345,27 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 	}
 }
 
-void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col)
+void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col, float transparency)
 {
 	p1 = p1 / p1.w;
 	p2 = p2 / p2.w;
-	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col);
+	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col, transparency);
 }
 
 //--------------------------------------------------------------------------
 // Safely plot pixel in the given integer coordinates of the given color
 //--------------------------------------------------------------------------
-inline void Renderer::PlotPixel(int x, int y, Rgb color)
+inline void Renderer::PlotPixel(int x, int y, Rgb color, float transparency)
 {
 	if (x < 0 || x >= m_width || y < 0 || y >= m_height)
 		return;
-	m_outBuffer[INDEX(m_width,x,y,0)]=color.r;	m_outBuffer[INDEX(m_width,x,y,1)]=color.g;	m_outBuffer[INDEX(m_width,x,y,2)]=color.b;
+	float oldr = m_outBuffer[INDEX(m_width,x,y,0)];
+	float oldg = m_outBuffer[INDEX(m_width,x,y,1)];
+	float oldb = m_outBuffer[INDEX(m_width,x,y,2)];
+	float r = transparency * color.r + (1 - transparency) * oldr;
+	float g = transparency * color.g + (1 - transparency) * oldg;
+	float b = transparency * color.b + (1 - transparency) * oldb;
+	m_outBuffer[INDEX(m_width,x,y,0)]=r;	m_outBuffer[INDEX(m_width,x,y,1)]=g;	m_outBuffer[INDEX(m_width,x,y,2)]=b;
 }
 
 //--------------------------------------------------------------------------

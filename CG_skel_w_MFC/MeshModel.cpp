@@ -85,12 +85,12 @@ void MeshModel::draw(Renderer * r, Rgb color)
 	}
 	if (_drawVN)
 	{
-		r->DrawLineSegments(transformNormals(0.1));
+		r->DrawLineSegments(transformNormals(0.1), Rgb(1,1,1), 0.4);
 	}
 	if (_drawFN)
 	{
 		//compute face normals and draw them
-		r->DrawLineSegments(transformFaceNormals());
+		r->DrawLineSegments(transformFaceNormals(0.1), Rgb(1,1,1), 0.4);
 	}
 	if (_drawMF)
 	{
@@ -100,14 +100,6 @@ void MeshModel::draw(Renderer * r, Rgb color)
 		r->DrawLine3D(o, fr[1], Rgb(0.5,0.5,1));
 		r->DrawLine3D(o, fr[2], Rgb(0.5,0.5,1));
 	}
-}
-
-	
-
-
-void MeshModel::drawNormals(Renderer * r,float len, Rgb color)
-{
-	
 }
 
 vector<Vertex> MeshModel::transformVertices()
@@ -137,7 +129,7 @@ vector<Vertex> MeshModel::transformNormals(float len)
 			if(it->vn[i] == 0) // normal is not defined for vertex
 				continue;
 			vec4 normalStart = _world_transform * _vertices[it->v[i] - 1];
-			vec4 normalEnd = normalStart + (_normal_transform * _normals[it->vn[i] - 1]);
+			vec4 normalEnd = normalStart + len * normalize(_normal_transform * _normals[it->vn[i] - 1]);
 			retVal.push_back( normalStart ); // push vertex
 			retVal.push_back( normalEnd ); // push normal endpoint
 		}
@@ -145,7 +137,7 @@ vector<Vertex> MeshModel::transformNormals(float len)
 	return retVal;
 }
 
-vector<Vertex> MeshModel::transformFaceNormals() 
+vector<Vertex> MeshModel::transformFaceNormals(float len) 
 {
 	vector<Vertex> origNormalList;
 	for (int i = 0; i < _faces.size(); i++) 
@@ -155,7 +147,7 @@ vector<Vertex> MeshModel::transformFaceNormals()
 		vec4 normalStart = (_vertices[f.v[0] - 1] + _vertices[f.v[1] - 1] + _vertices[f.v[2] - 1]) / 3;
 		// Starting from here we are in world frame
 		normalStart = _world_transform * normalStart;
-		vec4 normalEnd = normalStart + (_normal_transform * n);
+		vec4 normalEnd = normalStart + len * normalize(_normal_transform * n);
 		origNormalList.push_back(normalStart);
 		origNormalList.push_back(normalEnd);
 	}
@@ -171,7 +163,6 @@ vector<Vertex> MeshModel::transformVertices(vector<Vertex> inModelCoords)
 	}
 	return inModelCoords; // it is actually now in world coordinates
 }
-
 
 void MeshModel::Rotate(mat4 m)
 {
@@ -268,7 +259,6 @@ void MeshModel::drawBoundingBox(Renderer * r, Rgb color)
 	rims = transformVertices(rims);
 	r->DrawPolyline(rims, color);
 }
-
 
 bool MeshModel::ToggleShowFaceNormals()
 {
