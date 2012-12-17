@@ -24,6 +24,7 @@
 #include <string>
 #include "InputDialog.h"
 #include "PrimMeshModel.h"
+#include "MColorDialog.h"
 
 #define BUFFER_OFFSET( offset )   ((GLvoid*) (offset))
 
@@ -37,6 +38,7 @@
 #define MAIN_RENDER_CAMERAS				7
 #define MAIN_SHOW_WORLD_FRAME			8
 #define MAIN_ADD_PRIMITIVE				9
+#define MAIN_TEST_DIALOG				10
 
 
 #define MODEL_SHOW_VERTEX_NORMALS		20
@@ -426,6 +428,14 @@ void mainMenu(int id)
 		scene->AddMeshModel( PrimMeshModel());
 		glutPostRedisplay();
 		break;
+	case MAIN_TEST_DIALOG:
+		MColorDialog d;
+		d.m_clr_diffuse.r = 42;
+		d.m_clr_diffuse.g = 24;
+		d.m_clr_diffuse.b = 13;
+		d.DoModal();
+		// get new color from m_clr_diffuse and so on
+		break;
 	}
 }
 
@@ -573,6 +583,8 @@ void initMenu()
 	glutAddMenuEntry("Add Camera",MAIN_ADD_CAMERA);
 	glutAddSubMenu("Active Camera", activeCameraMenuId);
 	glutAddMenuEntry("Add primitive", MAIN_ADD_PRIMITIVE);
+
+	glutAddMenuEntry("Test Dialog", MAIN_TEST_DIALOG);
 
 
 	
