@@ -10,6 +10,7 @@ typedef struct {
 	int b;
 } Dlgrgb;
 
+typedef enum {DIFFUSE, EMMUSIVE, SPECULAR} ColorType;
 
 class MColorDialog : public CDialog
 {
@@ -26,8 +27,10 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
 
-	void getDiffuseColors();
-	void setDiffuseColors();
+	
+	void colorDataToVar(ColorType t);
+	void colorDataToWidget(ColorType t);
+	void setColorPointers(ColorType t, CMFCColorButton** w, Dlgrgb** v);
 
 	DECLARE_MESSAGE_MAP()
 public:
@@ -38,4 +41,6 @@ public:
 
 
 	Dlgrgb m_clr_diffuse;
+	Dlgrgb m_clr_emussive;
+	Dlgrgb m_clr_specular;
 };
