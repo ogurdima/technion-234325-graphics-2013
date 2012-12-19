@@ -223,7 +223,17 @@ void reshape( int width, int height )
 	float windowAR = (float) width / (float) height;
 	float x = abs(ac->Left()) + abs(ac->Right());
 	float y = x / windowAR;
-	scene->ActiveCam()->Frustum(-x/2, x/2, -y/2, y/2, ac->ZNear(), ac->ZFar());
+	switch (ac->getLensMode())
+	{
+		case ORTHO:
+			ac->Frustum(-x/2, x/2, -y/2, y/2, ac->ZNear(), ac->ZFar());
+			break;
+		case PERSPECTIVE:
+		case FRUSTUM:
+			ac->Frustum(-x/2, x/2, -y/2, y/2, ac->ZNear(), ac->ZFar());
+			break;
+	}
+	
 	glutPostRedisplay();
 }
 
@@ -617,7 +627,7 @@ int my_main( int argc, char **argv )
 
 
 
-	renderer = new Renderer(800,800);
+	renderer = new Renderer(800,800, Rgb(0.86, 0.86, 0.78));
 	scene = new Scene(renderer);
 	Camera c = Camera();
 	float p = 3;

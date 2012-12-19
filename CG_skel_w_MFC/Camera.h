@@ -3,9 +3,11 @@
 #include "vec.h"
 #include "mat.h"
 
+enum LensMode { ORTHO, PERSPECTIVE, FRUSTUM };
+
 class Camera
 {
-	enum LensMode { ORTHO, PERSPECTIVE, FRUSTUM};
+	
 
 	LensMode lensMode;
 
@@ -21,8 +23,7 @@ class Camera
 
 public:
 	Camera();
-	void setTransformation(const mat4& transform);
-	
+
 	void LookAt(const vec3& eye, const vec3& at, const vec3& up ) {
 		LookAt(vec4(eye, 0), vec4(at, 0), vec4(up,0) );
 	}
@@ -36,8 +37,9 @@ public:
 		const float zNear, const float zFar);
 	void Zoom(float zoomFactor);
 	mat4 Projection();
-	mat4 Transformation();
+	mat4 View();
 
+	inline LensMode getLensMode() { return lensMode; }
 	inline vec3 Eye() { return vec3(eye.x, eye.y, eye.z); }
 	inline vec3 At() { return vec3(at.x, at.y, at.z);  }
 	inline vec3 Up() { 

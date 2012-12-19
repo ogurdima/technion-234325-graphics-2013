@@ -13,10 +13,6 @@ Camera::Camera() :
 	Ortho(-1,1,-1,1,-1,1);
 }
 
-void Camera::setTransformation(const mat4& transform)
-{
-}
-
 void Camera::LookAt(const vec4& eye, const vec4& at, const vec4& up )
 {
 	this->eye = eye;
@@ -76,10 +72,6 @@ mat4 Camera::Projection()
 	case ORTHO:
 		return Scale(2/(right - left), 2/(top - bottom), 2/(zNear - zFar)) *  Translate(-(right+left)/2,-(top  + bottom)/2, (zFar + zNear)/2);
 	case FRUSTUM:
-		return mat4(	(2*zNear/(right - left)), 0, (right + left)/(right - left), 0,
-						0, 2*zNear/(top - bottom), (top + bottom)/(top - bottom),0,
-						0,0, -(zFar + zNear)/(zFar - zNear), -2*zFar*zNear/(zFar - zNear),
-						0,0,-1,0);
 	case PERSPECTIVE:
 		return mat4(	(2*zNear/(right - left)), 0, (right + left)/(right - left), 0,
 						0, 2*zNear/(top - bottom), (top + bottom)/(top - bottom),0,
@@ -88,7 +80,7 @@ mat4 Camera::Projection()
 	}
 }
 
-mat4 Camera::Transformation()
+mat4 Camera::View()
 {
 	vec4 n = normalize( eye - at);
 	vec4 u = vec4(normalize(cross(up,n)), 0);

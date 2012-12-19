@@ -68,7 +68,6 @@ void Scene::draw()
 		drawWorldAxes();
 	}
 
-	//m_renderer->DrawVisibleBoundary();
 
 	for (int i = 0; i < models.size(); i++) {
 		Model* model = models[i];
@@ -103,7 +102,7 @@ void Scene::draw()
 			segments.push_back(top);
 			segments.push_back(bot);
 
-			m_renderer->DrawLineSegments(segments, Rgb(1, 0, 0));
+			m_renderer->DrawNgons(segments, 2, Rgb(1, 0, 0));
 		}
 	}
 	

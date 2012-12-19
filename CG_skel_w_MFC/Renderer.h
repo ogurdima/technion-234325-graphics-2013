@@ -31,6 +31,7 @@ class Renderer
 	float *m_zbuffer;	// width*height
 	int m_width, m_height;
 	Camera * m_camera;
+	Rgb m_bg;
 
 	//////////////////////////////
 	// openGL stuff. Don't touch.
@@ -41,20 +42,19 @@ class Renderer
 	void InitOpenGLRendering();
 	//////////////////////////////
 
+	
 
 	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
-	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1), float transparency = 1 );
-	void DrawLine(vec4 p1, vec4 p2, Rgb col = Rgb(1,1,1), float transparency = 1 );
-	void PlotPixel(int x, int y, Rgb color = Rgb(1,1,1), float transparency = 1 );
+	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1));
+	void DrawLine(vec4 p1, vec4 p2, Rgb col = Rgb(1,1,1));
+	void PlotPixel(int x, int y, Rgb color = Rgb(1,1,1));
 	vec2 ScaleFactor();
-	mat4 FinalProjection();
-	mat4 TMProjection();
 	bool clip(vec3& v1, vec3& v2);
 	bool clip(vec4& v1, vec4& v2);
 
 public:
-	Renderer();
-	Renderer(int width, int height);
+	Renderer(Rgb bg = Rgb(1,1,1));
+	Renderer(int width, int height, Rgb bg = Rgb(1,1,1));
 	~Renderer(void);
 	void Init();
 	//--------------------------------------------------------------------
@@ -68,27 +68,14 @@ public:
 	void ClearDepthBuffer();
 
 	//--------------------------------------------------------------------
-	// Transformation stuff
-	//--------------------------------------------------------------------
-	vec2 ProjectPoint(vec3 p);
-	vec2 ProjectPoint(vec4 p);
-	vec3 ObjectToCamera(vec4 p);
-	
-
-	//--------------------------------------------------------------------
 	// Drawing stuff
 	//--------------------------------------------------------------------
-	//triangles
-	void DrawTriangles(vector<vec3>* vertices, const vector<vec3>* normals=NULL); // need to implement
-	void Draw(vector<Vertex>& vertices, Rgb color = Rgb(1,1,1) );
-	//line segments
-	void DrawLineSegments(vector<vec4>& segments, Rgb color = Rgb(1,1,1), float transparency = 1);
-	//polyline
-	void DrawPolyline(vector<Vertex>& vertices, Rgb color = Rgb(1,1,1) );
+	void DrawNgons(vector<Vertex>& vertices, int n, Rgb color = Rgb(1,1,1));
+	void DrawNgonsFast(vector<Vertex>& vertices, int n, Rgb color = Rgb(1,1,1));
+	void DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color = Rgb(1,1,1));
 	//lines
 	void DrawLine3D(vec3 v1, vec3 v2, Rgb col = Rgb(1,1,1));
-	//pixel
-	
+
 	void DrawVisibleBoundary();
 
 	//--------------------------------------------------------------------

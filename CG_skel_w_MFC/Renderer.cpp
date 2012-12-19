@@ -7,27 +7,28 @@
 
 #define INDEX(width,x,y,c) (x+y*width)*3+c
 
-bool clipAdv(vec4& v1, vec4& v2, float w);
 bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh);
 
-Renderer::Renderer() :
+Renderer::Renderer(Rgb bg) :
 m_width(512), 
 m_height(512), 
 m_outBuffer(NULL),
-m_zbuffer(NULL)
+m_zbuffer(NULL),
+m_bg(bg)
 {
 	InitOpenGLRendering();
 	CreateBuffers(512,512);
 }
 
-Renderer::Renderer(int width, int height) :
+Renderer::Renderer(int width, int height, Rgb bg) :
 m_width(width), 
 m_height(m_height), 
 m_outBuffer(NULL),
-m_zbuffer(NULL)
+m_zbuffer(NULL),
+m_bg(bg)
 {
 	InitOpenGLRendering();
-	CreateBuffers(width,height);
+	CreateBuffers(width, height);
 }
 
 Renderer::~Renderer(void)
@@ -44,6 +45,9 @@ Renderer::~Renderer(void)
 
 }
 
+//--------------------------------------------------------------------------
+// Buffers
+//--------------------------------------------------------------------------
 void Renderer::CreateBuffers(int width, int height)
 {
 	m_width=width;
@@ -54,37 +58,13 @@ void Renderer::CreateBuffers(int width, int height)
 		m_outBuffer = NULL;
 	}
 	m_outBuffer = new float[3*m_width*m_height];
+	FlushBuffer();
 }
 
 void Renderer::FlushBuffer()
 {
 	ClearColorBuffer();
-	//ClearDepthBuffer();
-}
-
-vec2 Renderer::ScaleFactor() 
-{
-	vec2 res;
-	float screenAR = (float) m_width / (float) m_height;
-	if (m_camera->Aspect() > screenAR)
-	{
-		res.x = m_width/2;
-		res.y = res.x / m_camera->Aspect();
-	}
-	else
-	{
-		res.y = m_height/2;
-		res.x = res.y * m_camera->Aspect();
-	}
-	return res;
-}
-
-inline mat4 Renderer::FinalProjection()
-{
-	//mat4 finalProjection = Scale( m_width/2, m_height/2, 0) * Translate(1,1,0) * m_camera->Projection() * m_camera->Transformation();
-	vec2 sf = ScaleFactor();
-	mat4 finalProjection =  Scale( sf.x , sf.y, 1)  * Translate(1,1,0) *  m_camera->Projection() * m_camera->Transformation();
-	return finalProjection;
+	ClearDepthBuffer();
 }
 
 void Renderer::ClearColorBuffer() 
@@ -93,7 +73,7 @@ void Renderer::ClearColorBuffer()
 	{
 		for (int j = 0; j < m_width; j++)
 		{
-			m_outBuffer[INDEX(m_width,j,i,0)]=0.75;	m_outBuffer[INDEX(m_width,j,i,1)]=0.75;	m_outBuffer[INDEX(m_width,j,i,2)]=0.7;
+			m_outBuffer[INDEX(m_width,j,i,0)]=m_bg.r;	m_outBuffer[INDEX(m_width,j,i,1)]=m_bg.g;	m_outBuffer[INDEX(m_width,j,i,2)]=m_bg.b;
 		}
 	}
 }
@@ -103,74 +83,103 @@ void Renderer::ClearDepthBuffer()
 	// clear it
 }
 
-void Renderer::DrawVisibleBoundary()
+//--------------------------------------------------------------------------
+// Drawing
+//--------------------------------------------------------------------------
+void Renderer::DrawNgons(vector<Vertex>& vertices, int n, Rgb color) 
 {
-	vec2 sf = ScaleFactor();
-	vec4 v1 = Scale( sf.x, sf.y, 0) * Translate(1,1,0) * vec4(-1,-1,0,1);
-	vec4 v2 = Scale( sf.x, sf.y, 0) * Translate(1,1,0) * vec4(-1,1,0,1);
-	vec4 v3 = Scale( sf.x, sf.y, 0) * Translate(1,1,0) * vec4(1,1,0,1);
-	vec4 v4 = Scale( sf.x, sf.y, 0) * Translate(1,1,0) * vec4(1,-1,0,1);
-	DrawLine(vec2(v1.x / v1.w, v1.y/ v1.w), vec2(v2.x / v2.w, v2.y/ v2.w) );
-	DrawLine(vec2(v3.x / v3.w, v3.y/ v3.w), vec2(v2.x / v2.w, v2.y/ v2.w) );
-	DrawLine(vec2(v3.x / v3.w, v3.y/ v3.w), vec2(v4.x / v4.w, v4.y/ v4.w) );
-	DrawLine(vec2(v1.x / v1.w, v1.y/ v1.w), vec2(v4.x / v4.w, v4.y/ v4.w) );
+	//DrawNgonsFast(vertices, n, color);
+	DrawNgonsSlow(vertices, n, color);
 }
 
-void Renderer::Draw(vector<Vertex>& vertices, Rgb color)
+void Renderer::DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color) 
 {
-	static int count = 1;
-	int c = 0;
-	mat4 projection = m_camera->Projection() ;
-	mat4 view = m_camera->Transformation();
-	float high = - m_camera->ZNear();
-	float low = - m_camera->ZFar();
-	vector<vec4> n = vertices;
-	for( vector<Vertex>::iterator it = n.begin(); it != n.end(); it++ )
+	if (n < 2) return;
+	mat4 projection = m_camera->Projection();
+	mat4 view = m_camera->View();
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	Vertex cur, next;
+	for (int i = 0; i < vertices.size(); i++)
 	{
-		*it = m_camera->Transformation() * *it;
-	}
-	vector<Vertex>::iterator it = vertices.begin();
-	while (it != vertices.end())
-	{
-		if(c++ > count) break;
-		vec4 v1 = view * ( *it++);
-		vec4 v2 = view * ( *it++);
-		vec4 v3 = view * ( *it++);
-
-		vec4 p1 = v1;
-		vec4 p2 = v2;
-		if (clipZ(p1,p2,low, high)) {
-			p1 = projection * p1;
-			p2 = projection * p2;
-			if( clip(p1,p2))
-			{
-				DrawLine(p1, p2, color);
-			}
-		}
-		p1 = v1;
-		p2 = v3;
-		if (clipZ(p1,p2,low, high)) {
-			p1 = projection * p1;
-			p2 = projection * p2;
-			if( clip(p1,p2))
-			{
-				DrawLine(p1, p2, color);
-			}
-		}
-		p1 = v3;
-		p2 = v2;
-		if (clipZ(p1,p2,low, high)) {
-			p1 = projection * p1;
-			p2 = projection * p2;
-			if( clip(p1,p2))
-			{
-				DrawLine(p1, p2, color);
+		if ( (i+1) % n == 0 && (i+1) >= n) //draw srarting from current n vertices back
+		{
+			int startIdx = i-n+1;
+			for (int j = 0; j < n; j++) {
+				// cur and next are copied by value - the array does not change
+				cur = view * vertices[startIdx + j];
+				next = view * vertices[startIdx + ((j+1)%n)];
+				// cur and next from here are in camera coordinates
+				if ( clipZ(cur, next, zLow, zHigh) ) 
+				{
+					// clipZ (maybe) changed values of cur and next, now they are between zNear and zFar
+					cur = projection * cur;
+					next = projection * next;
+					// cur and next from here are projected after they were clipped by Z
+					if( clip(cur, next) )
+					{
+						// clip (maybe) changed values of cur and next, now they are entirely inside canonic view volume, we can draw them
+						DrawLine(cur, next, color);
+					}
+				}
 			}
 		}
 	}
-	count++;
+
 }
 
+void Renderer::DrawNgonsFast(vector<Vertex>& vertices, int n, Rgb color) 
+{
+	if (n < 2) return;
+	mat4 projection = m_camera->Projection();
+	mat4 view = m_camera->View();
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	Vertex p1, p2;
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		vertices[i] = view * vertices[i];
+		if ( (i+1) % n == 0 && (i+1) >= n) //draw srarting from current n vertices back
+		{
+			int startIdx = i-n+1;
+			for (int j = 0; j < n; j++) {
+				// cur and next are references to the actual array elements
+				// these elements have allready in camera coordinates
+				Vertex& cur = vertices[startIdx + j];
+				Vertex& next = vertices[startIdx + ((j+1)%n)];
+				// cur and next from here are in camera coordinates
+				if ( clipZ(cur, next, zLow, zHigh) ) 
+				{
+					// clipZ (maybe) changed values of cur and next, now they are between zNear and zFar
+					p1 = projection * cur;
+					p2 = projection * next;
+					// p1 and p2 are copies of cur and next after projection
+					if( clip(p1, p2) )
+					{
+						// clip (maybe) changed values of cur and next, now they are entirely inside canonic view volume, we can draw them
+						DrawLine(p1, p2, color);
+					}
+				}
+			}
+		}
+	}
+
+}
+
+void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
+	mat4 fp = m_camera->Projection() * m_camera->View();
+	vec4 p1 = fp * vec4(v1,1);
+	vec4 p2 = fp * vec4(v2,1);
+	if (clip(p1, p2)) 
+	{
+		DrawLine(p1, p2, col);
+	}
+
+}
+
+//--------------------------------------------------------------------------
+// Clipping
+//--------------------------------------------------------------------------
 bool Renderer::clip(vec3& v1, vec3& v2)
 {
 	// x
@@ -265,93 +274,6 @@ bool Renderer::clip(vec4& v1, vec4& v2)
 	return res;
 }
 
-
-bool clipAdv(vec4& v1, vec4& v2, float w)
-{
-	// x
-	if( (v1.x > w && v2.x > w) || (v1.x < -w && v2.x < -w) )
-		return false;
-
-	if( v1.x != v2.x && !( v1.x >= -w && v1.x <= w && v2.x >= -w && v2.x <= w) )
-	{
-		if(v1.x > v2.x)
-		{
-			vec4 tmp = v1;
-			v1 = v2;
-			v2 = tmp;
-		}
-		if(v1.x < -w)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( -w - v1.x) / k. x;
-			v1 = v1 + t * k;
-		}
-		if(v2.x > w)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( w - v1.x) / k. x;
-			v2 = v1 + t * k;
-		}
-	}
-
-	// y
-	if( (v1.y > w && v2.y > w) || (v1.y < -w && v2.y < -w) )
-		return false;
-	if( v1.y != v2.y && !( v1.y >= -w && v1.y <= w && v2.y >= -w && v2.y <= w) )
-	{
-		if(v1.y > v2.y)
-		{
-			vec4 tmp = v1;
-			v1 = v2;
-			v2 = tmp;
-		}
-		if(v1.y < -w)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( -w - v1.y) / k. y;
-		v1 = v1 + t * k;
-		}
-		if(v2.y > w)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( w - v1.y) / k. y;
-			v2 = v1 + t * k;
-		}
-	}
-
-	// z
-	if( (v1.z > w && v2.z > w) || (v1.z < -w && v2.z < -w) )
-		return false;
-	if( v1.z != v2.z && !( v1.z >= -w && v1.z <= w && v2.z >= -w && v2.z <= w) )
-	{
-		if(v1.z > v2.z)
-		{
-			vec4 tmp = v1;
-			v1 = v2;
-			v2 = tmp;
-		}
-		if(v1.z < -w)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( -w - v1.z) / k. z;
-			v1 = v1 + t * k;
-		}
-		if(v2.z > w)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( w - v1.z) / k. z;
-			v2 = v1 + t * k;
-		}
-	}
-	return true;
-}
-
 bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh)
 {
 	v1 = v1 / v1.w;
@@ -385,69 +307,10 @@ bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh)
 	return true;
 }
 
-void Renderer::DrawLineSegments(vector<vec4>& segmentList, Rgb color, float transparency)
-{
-	if (transparency > 1) transparency = 1;
-	if (transparency < 0) transparency = 0;
-	
-	mat4 fp = m_camera->Projection() * m_camera->Transformation();
-	vector<Vertex>::iterator it = segmentList.begin();
-	while (it != segmentList.end())
-	{
-		vec4 v1 = fp * ( *it++);
-		vec4 v2 = fp * ( *it++);
-		if (clip(v1, v2)) {
-			DrawLine(v1, v2, color, transparency);
-		}
-	}
-}
-
-void Renderer::DrawPolyline(vector<Vertex>& vertices, Rgb color)
-{
-	if(vertices.size() < 2 )
-		return;
-	mat4 fp = m_camera->Projection() * m_camera->Transformation();
-	vector<Vertex>::iterator it = vertices.begin();
-	vec4 v1 = fp * ( *it++);
-	vec4 v2 = fp * ( *it++);
-	while (it != vertices.end())
-	{
-		vec4 p1 = v1;
-		vec4 p2 = v2;
-		if (clip(p1, p2)) {
-			DrawLine(p1, p2, color);
-		}
-		v1 = v2;
-		v2 = fp * ( *it++);
-	}
-	if (clip(v1, v2)) {
-		DrawLine(v1, v2, color);
-	}
-
-}
-
-void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
-	mat4 fp = m_camera->Projection() * m_camera->Transformation();
-	vec4 p1 = fp * vec4(v1,1);
-	vec4 p2 = fp * vec4(v2,1);
-	if (clip(p1, p2)) 
-	{
-		DrawLine(p1, p2, col);
-	}
-
-}
-
-//inline void Renderer::DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col)
-//{
-//	DrawLine(v1,v2, col);
-//	DrawLine(v1,v3, col);
-//	DrawLine(v2,v3, col);
-//}
-
 //--------------------------------------------------------------------------
 // Bresenham
 //--------------------------------------------------------------------------
-void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col, float transparency)
+void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 {
 	int x1 = (int)p1.x;
 	int x2 = (int)p2.x;
@@ -484,11 +347,11 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col, float transparency)
 	{
 		if(steep)
 		{
-			PlotPixel(y,x, col, transparency);
+			PlotPixel(y,x, col);
 		}
 		else
 		{
-			PlotPixel(x,y, col, transparency);
+			PlotPixel(x,y, col);
 		}
 		e -= dy;
 		if(e < 0)
@@ -499,7 +362,34 @@ void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col, float transparency)
 	}
 }
 
-void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col, float transparency)
+//--------------------------------------------------------------------------
+// Helps to transform from view plane to device coordinates
+//--------------------------------------------------------------------------
+vec2 Renderer::ScaleFactor() 
+{
+	vec2 res;
+	res.x = m_width/2;
+	res.y = m_height/2;
+	return res;
+	
+	float screenAR = (float) m_width / (float) m_height;
+	if (m_camera->Aspect() > screenAR)
+	{
+		res.x = m_width/2;
+		res.y = res.x / m_camera->Aspect();
+	}
+	else
+	{
+		res.y = m_height/2;
+		res.x = res.y * m_camera->Aspect();
+	}
+	return res;
+}
+
+//--------------------------------------------------------------------------
+// Bresenham wrapper for vec4. 
+//--------------------------------------------------------------------------
+void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col)
 {
 	vec2 sf = ScaleFactor();
 	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
@@ -507,54 +397,22 @@ void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col, float transparency)
 	p2 = sp * p2;
 	p1 = p1 / p1.w;
 	p2 = p2 / p2.w;
-	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col, transparency);
+	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col);
 }
 
 //--------------------------------------------------------------------------
 // Safely plot pixel in the given integer coordinates of the given color
 //--------------------------------------------------------------------------
-inline void Renderer::PlotPixel(int x, int y, Rgb color, float transparency)
+inline void Renderer::PlotPixel(int x, int y, Rgb color)
 {
 	if (x < 0 || x >= m_width || y < 0 || y >= m_height)
 		return;
-	float oldr = m_outBuffer[INDEX(m_width,x,y,0)];
-	float oldg = m_outBuffer[INDEX(m_width,x,y,1)];
-	float oldb = m_outBuffer[INDEX(m_width,x,y,2)];
-	float r = transparency * color.r + (1 - transparency) * oldr;
-	float g = transparency * color.g + (1 - transparency) * oldg;
-	float b = transparency * color.b + (1 - transparency) * oldb;
-	m_outBuffer[INDEX(m_width,x,y,0)]=r;	m_outBuffer[INDEX(m_width,x,y,1)]=g;	m_outBuffer[INDEX(m_width,x,y,2)]=b;
+	m_outBuffer[INDEX(m_width,x,y,0)]=color.r;	m_outBuffer[INDEX(m_width,x,y,1)]=color.g;	m_outBuffer[INDEX(m_width,x,y,2)]=color.b;
 }
-
-//--------------------------------------------------------------------------
-// Transformation stuff
-//--------------------------------------------------------------------------
 
 void Renderer::SetCamera(Camera* c)
 {
 	m_camera = c;
-}
-
-//inline vec2 Renderer::ProjectPoint(vec3 p)
-//{
-//	return ProjectPoint(vec4(p, 1));
-//}
-//
-//inline vec2 Renderer::ProjectPoint(vec4 p)
-//{
-//	if (NULL == m_camera)
-//		return vec2(0,0);
-//	mat4 finalProjection = FinalProjection();
-//	vec4 projected = finalProjection * p;
-//	return vec2(projected.x/projected.w, projected.y/projected.w);
-//}
-
-vec3 Renderer::ObjectToCamera(vec4 p) {
-	if (NULL == m_camera)
-		return vec3(0,0,0);
-	mat4 cameraTransformation = m_camera->Transformation();
-	vec4 inCameraCoords = cameraTransformation * p;
-	return vec3(inCameraCoords.x/inCameraCoords.w, inCameraCoords.y/inCameraCoords.w, inCameraCoords.z/inCameraCoords.w);
 }
 
 
