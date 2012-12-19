@@ -223,7 +223,7 @@ void reshape( int width, int height )
 	float windowAR = (float) width / (float) height;
 	float x = abs(ac->Left()) + abs(ac->Right());
 	float y = x / windowAR;
-	//scene->ActiveCam()->Frustum(-x/2, x/2, -y/2, y/2, ac->ZNear(), ac->ZFar());
+	scene->ActiveCam()->Frustum(-x/2, x/2, -y/2, y/2, ac->ZNear(), ac->ZFar());
 	glutPostRedisplay();
 }
 
@@ -242,8 +242,6 @@ void keyboard( unsigned char key, int x, int y )
 		glutPostRedisplay();
 		break;
 	}
-	
-	
 }
 
 void mouse(int button, int state, int x, int y)

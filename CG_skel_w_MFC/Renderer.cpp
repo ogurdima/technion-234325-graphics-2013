@@ -3,8 +3,12 @@
 #include "CG_skel_w_MFC.h"
 #include "InitShader.h"
 #include "GL\freeglut.h"
+#include <assert.h>
 
 #define INDEX(width,x,y,c) (x+y*width)*3+c
+
+bool clipAdv(vec4& v1, vec4& v2, float w);
+bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh);
 
 Renderer::Renderer() :
 m_width(512), 
@@ -89,7 +93,7 @@ void Renderer::ClearColorBuffer()
 	{
 		for (int j = 0; j < m_width; j++)
 		{
-			m_outBuffer[INDEX(m_width,j,i,0)]=0;	m_outBuffer[INDEX(m_width,j,i,1)]=0;	m_outBuffer[INDEX(m_width,j,i,2)]=0;
+			m_outBuffer[INDEX(m_width,j,i,0)]=0.75;	m_outBuffer[INDEX(m_width,j,i,1)]=0.75;	m_outBuffer[INDEX(m_width,j,i,2)]=0.7;
 		}
 	}
 }
@@ -114,30 +118,57 @@ void Renderer::DrawVisibleBoundary()
 
 void Renderer::Draw(vector<Vertex>& vertices, Rgb color)
 {
-	mat4 fp = m_camera->Projection() * m_camera->Transformation();
+	static int count = 1;
+	int c = 0;
+	mat4 projection = m_camera->Projection() ;
+	mat4 view = m_camera->Transformation();
+	float high = - m_camera->ZNear();
+	float low = - m_camera->ZFar();
+	vector<vec4> n = vertices;
+	for( vector<Vertex>::iterator it = n.begin(); it != n.end(); it++ )
+	{
+		*it = m_camera->Transformation() * *it;
+	}
 	vector<Vertex>::iterator it = vertices.begin();
 	while (it != vertices.end())
 	{
-		Vertex v1 = fp * ( *it++);
-		Vertex v2 = fp * ( *it++);
-		Vertex v3 = fp * ( *it++);
-		
+		if(c++ > count) break;
+		vec4 v1 = view * ( *it++);
+		vec4 v2 = view * ( *it++);
+		vec4 v3 = view * ( *it++);
+
 		vec4 p1 = v1;
 		vec4 p2 = v2;
-		if (clip(p1, p2)) {
-			DrawLine(p1, p2, color);
+		if (clipZ(p1,p2,low, high)) {
+			p1 = projection * p1;
+			p2 = projection * p2;
+			if( clip(p1,p2))
+			{
+				DrawLine(p1, p2, color);
+			}
 		}
 		p1 = v1;
 		p2 = v3;
-		if (clip(p1, p2)) {
-			DrawLine(p1, p2, color);
+		if (clipZ(p1,p2,low, high)) {
+			p1 = projection * p1;
+			p2 = projection * p2;
+			if( clip(p1,p2))
+			{
+				DrawLine(p1, p2, color);
+			}
 		}
 		p1 = v3;
 		p2 = v2;
-		if (clip(p1, p2)) {
-			DrawLine(p1, p2, color);
+		if (clipZ(p1,p2,low, high)) {
+			p1 = projection * p1;
+			p2 = projection * p2;
+			if( clip(p1,p2))
+			{
+				DrawLine(p1, p2, color);
+			}
 		}
 	}
+	count++;
 }
 
 bool Renderer::clip(vec3& v1, vec3& v2)
@@ -183,7 +214,7 @@ bool Renderer::clip(vec3& v1, vec3& v2)
 		{
 			vec3 k = v2 - v1;
 			float t = ( -1 - v1.y) / k. y;
-			v1 = v1 + t * k;
+		v1 = v1 + t * k;
 		}
 		if(v2.y > 1)
 		{
@@ -222,6 +253,7 @@ bool Renderer::clip(vec3& v1, vec3& v2)
 
 bool Renderer::clip(vec4& v1, vec4& v2)
 {
+	assert(v1.w != 0 && v2.w != 0);
 	vec3 vv1 = vec3(v1.x,v1.y, v1.z) / v1.w;
 	vec3 vv2 = vec3(v2.x,v2.y, v2.z) / v2.w;
 	bool res = clip(vv1, vv2);
@@ -231,6 +263,126 @@ bool Renderer::clip(vec4& v1, vec4& v2)
 		v2 = vec4(vv2, 1);
 	}
 	return res;
+}
+
+
+bool clipAdv(vec4& v1, vec4& v2, float w)
+{
+	// x
+	if( (v1.x > w && v2.x > w) || (v1.x < -w && v2.x < -w) )
+		return false;
+
+	if( v1.x != v2.x && !( v1.x >= -w && v1.x <= w && v2.x >= -w && v2.x <= w) )
+	{
+		if(v1.x > v2.x)
+		{
+			vec4 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.x < -w)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( -w - v1.x) / k. x;
+			v1 = v1 + t * k;
+		}
+		if(v2.x > w)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( w - v1.x) / k. x;
+			v2 = v1 + t * k;
+		}
+	}
+
+	// y
+	if( (v1.y > w && v2.y > w) || (v1.y < -w && v2.y < -w) )
+		return false;
+	if( v1.y != v2.y && !( v1.y >= -w && v1.y <= w && v2.y >= -w && v2.y <= w) )
+	{
+		if(v1.y > v2.y)
+		{
+			vec4 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.y < -w)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( -w - v1.y) / k. y;
+		v1 = v1 + t * k;
+		}
+		if(v2.y > w)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( w - v1.y) / k. y;
+			v2 = v1 + t * k;
+		}
+	}
+
+	// z
+	if( (v1.z > w && v2.z > w) || (v1.z < -w && v2.z < -w) )
+		return false;
+	if( v1.z != v2.z && !( v1.z >= -w && v1.z <= w && v2.z >= -w && v2.z <= w) )
+	{
+		if(v1.z > v2.z)
+		{
+			vec4 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.z < -w)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( -w - v1.z) / k. z;
+			v1 = v1 + t * k;
+		}
+		if(v2.z > w)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( w - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+	}
+	return true;
+}
+
+bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh)
+{
+	v1 = v1 / v1.w;
+	v2 = v2 / v2.w;
+
+	if( (v1.z > zHigh && v2.z > zHigh) || (v1.z < zLow && v2.z < zLow) )
+		return false;
+	if( v1.z != v2.z && !( v1.z >= zLow && v1.z <= zHigh && v2.z >= zLow && v2.z <= zHigh) )
+	{
+		if(v1.z > v2.z)
+		{
+			vec4 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.z < zLow)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zLow - v1.z) / k. z;
+			v1 = v1 + t * k;
+		}
+		if(v2.z > zHigh)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zHigh - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+	}
+	return true;
 }
 
 void Renderer::DrawLineSegments(vector<vec4>& segmentList, Rgb color, float transparency)

@@ -68,7 +68,7 @@ void Scene::draw()
 		drawWorldAxes();
 	}
 
-	m_renderer->DrawVisibleBoundary();
+	//m_renderer->DrawVisibleBoundary();
 
 	for (int i = 0; i < models.size(); i++) {
 		Model* model = models[i];
