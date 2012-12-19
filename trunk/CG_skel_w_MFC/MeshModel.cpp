@@ -78,19 +78,19 @@ void MeshModel::loadFile(string fileName)
 void MeshModel::draw(Renderer * r, Rgb color)
 {
 	vector<Vertex> vp = transformVertices();
-	r->Draw(vp, color);
+	r->DrawNgons(vp, 3, color);
 	if (_drawBB) 
 	{
 		drawBoundingBox(r);
 	}
 	if (_drawVN && _normals.size() > 0)
 	{
-		r->DrawLineSegments(transformNormals(0.1), Rgb(1,1,1), 0.4);
+		r->DrawNgons(transformNormals(0.1), 2, Rgb(0.31,0.58,0.93));
 	}
 	if (_drawFN)
 	{
 		//compute face normals and draw them
-		r->DrawLineSegments(transformFaceNormals(0.1), Rgb(1,1,1), 0.4);
+		r->DrawNgons(transformFaceNormals(0.1), 2, Rgb(0.85,0.60,0.60));
 	}
 	if (_drawMF)
 	{
@@ -233,34 +233,34 @@ void MeshModel::drawBoundingBox(Renderer * r, Rgb color)
 
 
 	rims.clear();
-	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],min[Y],min[Z],1) );
+	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); 
 	rims = transformVertices(rims);
-	r->DrawPolyline(rims, color);
+	r->DrawNgons(rims, rims.size(), color);
 
 	rims.clear();
-	rims.push_back( Vertex(min[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],max[Z],1) );
+	rims.push_back( Vertex(min[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) );
 	rims = transformVertices(rims);
-	r->DrawPolyline(rims, color);
+	r->DrawNgons(rims, rims.size(), color);
 
 	rims.clear();
-	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],min[Z],1) );
+	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],max[Z],1) );
 	rims = transformVertices(rims);
-	r->DrawPolyline(rims, color);
+	r->DrawNgons(rims, rims.size(), color);
 
 	rims.clear();
-	rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) );
+	rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) );
 	rims = transformVertices(rims);
-	r->DrawPolyline(rims, color);
+	r->DrawNgons(rims, rims.size(), color);
 
 	rims.clear();
-	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],min[Z],1) );
+	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],max[Z],1) );
 	rims = transformVertices(rims);
-	r->DrawPolyline(rims, color);
+	r->DrawNgons(rims, rims.size(), color);
 
 	rims.clear();
-	rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) );
+	rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) );
 	rims = transformVertices(rims);
-	r->DrawPolyline(rims, color);
+	r->DrawNgons(rims, rims.size(), color);
 }
 
 bool MeshModel::ToggleShowFaceNormals()
