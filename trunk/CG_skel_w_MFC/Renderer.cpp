@@ -145,6 +145,589 @@ void Renderer::DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color)
 	}
 }
 
+//--------------------------------------------------------------------------
+// Clipping
+//--------------------------------------------------------------------------
+bool Renderer::clip(vec3& v1, vec3& v2)
+{
+	// x
+	if( (v1.x > 1 && v2.x > 1) || (v1.x < -1 && v2.x < -1) )
+		return false;
+
+	if( v1.x != v2.x && !( v1.x >= -1 && v1.x <= 1 && v2.x >= -1 && v2.x <= 1) )
+	{
+		if(v1.x > v2.x)
+		{
+			vec3 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.x < -1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( -1 - v1.x) / k. x;
+			v1 = v1 + t * k;
+		}
+		if(v2.x > 1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( 1 - v1.x) / k. x;
+			v2 = v1 + t * k;
+		}
+	}
+
+	// y
+	if( (v1.y > 1 && v2.y > 1) || (v1.y < -1 && v2.y < -1) )
+		return false;
+	if( v1.y != v2.y && !( v1.y >= -1 && v1.y <= 1 && v2.y >= -1 && v2.y <= 1) )
+	{
+		if(v1.y > v2.y)
+		{
+			vec3 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.y < -1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( -1 - v1.y) / k. y;
+			v1 = v1 + t * k;
+		}
+		if(v2.y > 1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( 1 - v1.y) / k. y;
+			v2 = v1 + t * k;
+		}
+	}
+
+	// z
+	if( (v1.z > 1 && v2.z > 1) || (v1.z < -1 && v2.z < -1) )
+		return false;
+	if( v1.z != v2.z && !( v1.z >= -1 && v1.z <= 1 && v2.z >= -1 && v2.z <= 1) )
+	{
+		if(v1.z > v2.z)
+		{
+			vec3 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.z < -1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( -1 - v1.z) / k. z;
+			v1 = v1 + t * k;
+		}
+		if(v2.z > 1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( 1 - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+	}
+	return true;
+}
+
+bool Renderer::clip(vec4& v1, vec4& v2)
+{
+	assert(v1.w != 0 && v2.w != 0);
+	vec3 vv1 = vec3(v1.x,v1.y, v1.z) / v1.w;
+	vec3 vv2 = vec3(v2.x,v2.y, v2.z) / v2.w;
+	bool res = clip(vv1, vv2);
+	if( res )
+	{
+		v1 = vec4(vv1, 1);
+		v2 = vec4(vv2, 1);
+	}
+	return res;
+}
+
+bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh)
+{
+	v1 = v1 / v1.w;
+	v2 = v2 / v2.w;
+
+	if( (v1.z > zHigh && v2.z > zHigh) || (v1.z < zLow && v2.z < zLow) )
+		return false;
+	if( v1.z != v2.z && !( v1.z >= zLow && v1.z <= zHigh && v2.z >= zLow && v2.z <= zHigh) )
+	{
+		
+		if(v1.z < zLow)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zLow - v1.z) / k. z;
+			v1 = v1 + t * k;
+
+		}
+		if(v2.z > zHigh)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zHigh - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+
+		if(v1.z > zHigh)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zHigh - v1.z) / k. z;
+			v1 = v1 + t * k;
+
+		}
+		if(v2.z < zLow)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zLow - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+	}
+	return true;
+}
+
+//--------------------------------------------------------------------------
+// Bresenham
+//--------------------------------------------------------------------------
+void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
+{
+	int x1 = (int)p1.x;
+	int x2 = (int)p2.x;
+	int y1 = (int)p1.y;
+	int y2 = (int)p2.y;
+
+	if (	((x1 < 0 || x1 > m_width) || (y1 < 0 || y1 > m_height)) &&
+		((x2 < 0 || x2 > m_width) || (y2 < 0 || y2 > m_height))	)
+	{
+		return;
+	}
+
+	bool steep = abs(y2 - y1) > abs(x2 - x1);
+
+	if(steep)
+	{
+		swap(x1,y1);
+		swap(x2,y2);
+	}
+	if(x1 > x2)
+	{
+		swap(x1,x2);
+		swap(y1,y2);
+	}
+
+	int dx = x2 - x1;
+	int dy = abs(y2 - y1);
+
+	int e =  dx/2;
+	int y = y1;
+	int yStep = (y1 < y2) ? 1 : -1;
+
+	for(int x = x1; x <= x2; ++x)
+	{
+		if(steep)
+		{
+			PlotPixel(y,x, col);
+		}
+		else
+		{
+			PlotPixel(x,y, col);
+		}
+		e -= dy;
+		if(e < 0)
+		{
+			e += dx;
+			y += yStep;
+		}
+	}
+}
+
+//--------------------------------------------------------------------------
+// Helps to transform from view plane to device coordinates
+//--------------------------------------------------------------------------
+vec2 Renderer::ScaleFactor() 
+{
+	vec2 res;
+	res.x = m_width/2;
+	res.y = m_height/2;
+	return res;
+
+	float screenAR = (float) m_width / (float) m_height;
+	if (m_camera->Aspect() > screenAR)
+	{
+		res.x = m_width/2;
+		res.y = res.x / m_camera->Aspect();
+	}
+	else
+	{
+		res.y = m_height/2;
+		res.x = res.y * m_camera->Aspect();
+	}
+	return res;
+}
+
+//--------------------------------------------------------------------------
+// Bresenham wrapper for vec4. 
+//--------------------------------------------------------------------------
+void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col)
+{
+	vec2 sf = ScaleFactor();
+	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0);
+	p1 = sp * p1;
+	p2 = sp * p2;
+	p1 = p1 / p1.w;
+	p2 = p2 / p2.w;
+	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col);
+}
+
+//--------------------------------------------------------------------------
+// Safely plot pixel in the given integer coordinates of the given color
+//--------------------------------------------------------------------------
+inline void Renderer::PlotPixel(int x, int y, Rgb color)
+{
+	if (x < 0 || x >= m_width || y < 0 || y >= m_height)
+		return;
+	m_outBuffer[INDEX(m_width,x,y,0)]=color.r;	m_outBuffer[INDEX(m_width,x,y,1)]=color.g;	m_outBuffer[INDEX(m_width,x,y,2)]=color.b;
+}
+
+void Renderer::SetCamera(Camera* c)
+{
+	m_camera = c;
+}
+
+// New
+void Renderer::DDrawTriangles(vector<Vertex>& vertices)
+{
+	mat4 projection = m_camera->Projection();
+	mat4 view = m_camera->View();
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	Vertex cur, next;
+	
+	for (int i = 0; i < vertices.size(); i+=3)
+	{
+		Vertex v1 = view * vertices[i];
+		Vertex v2 = view * vertices[i+1];
+		Vertex v3 = view * vertices[i+2];
+		vector<Vertex> poly;
+		vector<Rgb> colors;
+
+		vec4 p1,p2;
+		p1 = v1;
+		p2 = v2;
+		
+		if(clipZ(p1,p2,zLow,zHigh))
+		{
+			if (! (v1.z < zHigh && v1.z > zLow) ) // if not inside
+			{
+				poly.push_back(p1);
+			}
+			poly.push_back(p2);
+		}
+		p1 = v2;
+		p2 = v3;
+		if(clipZ(p1,p2,zLow,zHigh))
+		{
+			if (! (v2.z < zHigh && v2.z > zLow) ) // if not inside
+			{
+				poly.push_back(p1);
+			}
+			poly.push_back(p2);
+		}
+		p1 = v3;
+		p2 = v1;
+		if(clipZ(p1,p2,zLow,zHigh))
+		{
+			if (! (v3.z < zHigh && v3.z > zLow) ) // if not inside
+			{
+				poly.push_back(p1);
+			}
+			poly.push_back(p2);
+		}
+		for(int i = 0; i < poly.size(); i ++)
+		{
+			colors.push_back(Rgb(((double)i)/poly.size(), 0, 0));
+		}
+		RasterizePolygon(poly,colors);
+		
+		//fullTriangle(v1,v2,v3);
+	}
+}
+
+inline float interpolate(float t, float a, float b)
+{
+	return a + t * (b - a);
+}
+
+inline Rgb interpolate(float t, Rgb a, Rgb b)
+{
+	return Rgb(  a.r + t * (b.r - a.r),  a.g + t * (b.g - a.g), a.b + t * (b.b - a.b) );
+}
+
+Vertex Renderer::projectedToDisplay(Vertex v)
+{
+	vec2 sf = ScaleFactor();
+	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
+	v = sp * v;
+	v = v / v.w;
+	return v;
+}
+
+void Renderer::RasterizePolygon(vector<Vertex>& poly, vector<Rgb>& colors)
+{
+	mat4 projection = m_camera->Projection();
+	vector<Vertex> screen;
+	int ymin = m_height;
+	int ymax = 0;
+	for(int i = 0; i < poly.size(); ++i)
+	{
+		Vertex v = projectedToDisplay(projection * poly[i]);
+		v.z = poly[i].z;
+		ymin = min(ymin, (int)v.y);
+		ymax = max(ymax, (int)v.y);
+		screen.push_back(v);
+	}
+
+	ymin = max(0, ymin);
+	ymax = min(m_height, ymax);
+
+	// ymin is the first scanline now, ymax is the last
+
+	for (int y = ymin ; y <= ymax ; y++) 
+	{
+		Vertex l, r;
+		Rgb lc(1,1,1), rc(1,1,1);
+		l.x = m_width;
+		r.x = 0;
+		for (int i = 0; i < screen.size(); i++) 
+		{
+			int j = (i+1) % screen.size();
+			if ((screen[i].y > y) != (screen[j].y > y)) // if two vertices are on diffrent sides of the scanline
+			{
+				float t = ((float)y - screen[i].y)  / (screen[j].y - screen[i].y);
+				int x = (int) interpolate(t, screen[i].x, screen[j].x);
+
+				if (x < l.x)
+				{
+					lc = interpolate(t, colors[i], colors[j]);
+					l.x = x;
+					l.y = y;
+					l.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+				if (x >= r.x)
+				{
+					rc = interpolate(t, colors[i], colors[j]);
+					r.x = x;
+					r.y = y;
+					r.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+			}
+		}
+
+		int lb = max(0, (int)l.x);
+		int rb = min(m_width - 1, (int)r.x);
+
+		for (int x = lb; x <= rb; x++)
+		{
+			float t = ((float)x - l.x) / (r.x - l.x);
+			float z = interpolate(t, l.z, r.z);
+
+			if (z > m_zbuffer[y*m_width + x])
+			{
+				Rgb pixCol = interpolate(t, lc, rc);
+				PlotPixel(x, y, pixCol);
+				m_zbuffer[y*m_width + x] = z;
+			}
+		}
+	}
+}
+
+void Renderer::fullTriangle(Vertex v1, Vertex v2, Vertex v3)
+{
+	mat4 projection = m_camera->Projection();
+	vector<Vertex> poly, screen;
+	vector<Rgb> colors;
+	poly.push_back(v1); screen.push_back(projectedToDisplay(projection * v1)); colors.push_back(Rgb(1,0,0));
+	poly.push_back(v2); screen.push_back(projectedToDisplay(projection * v2)); colors.push_back(Rgb(0,1,0));
+	poly.push_back(v3); screen.push_back(projectedToDisplay(projection * v3)); colors.push_back(Rgb(0,0,1));
+
+
+
+	int ymin = m_height;
+	int ymax = 0;
+
+	for (int i = 0; i < screen.size(); i++) {
+		screen[i].z = poly[i].z;
+		ymin = min(ymin, (int)screen[i].y);
+		ymax = max(ymax, (int)screen[i].y);
+	}
+
+	ymin = max(0, ymin);
+	ymax = min(m_height, ymax);
+
+	CString tmp; tmp.Format("Ymin: %d, Ymax: %d\n", ymin, ymax);
+	::OutputDebugStringA(tmp);
+
+	// ymin is the first scanline now, ymax is the last
+
+	for (int y = ymin ; y <= ymax ; y++) 
+	{
+		Vertex l, r;
+		Rgb lc(1,1,1), rc(1,1,1);
+		l.x = m_width;
+		r.x = 0;
+		for (int i = 0; i < screen.size(); i++) 
+		{
+			int j = (i+1) % screen.size();
+			if ((screen[i].y > y) != (screen[j].y > y)) // if two vertices are on diffrent sides of the scanline
+			{
+				float t = ((float)y - screen[i].y)  / (screen[j].y - screen[i].y);
+				int x = (int) interpolate(t, screen[i].x, screen[j].x);
+
+				if (x < l.x)
+				{
+					lc = interpolate(t, colors[i], colors[j]);
+					l.x = x;
+					l.y = y;
+					l.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+				if (x >= r.x)
+				{
+					rc = interpolate(t, colors[i], colors[j]);
+					r.x = x;
+					r.y = y;
+					r.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+			}
+		}
+
+		int lb = max(0, (int)l.x);
+		int rb = min(m_width - 1, (int)r.x);
+
+		/*float t = ((float)lb - l.x) / (r.x - l.x);
+		float z = interpolate(t, l.z, r.z);
+
+		Rgb pixCol = interpolate(t, lc, rc);
+		PlotPixel(lb, y, pixCol);
+		m_zbuffer[y*m_width + lb] = z;*/
+
+		for (int x = lb; x <= rb; x++)
+		{
+			float t = ((float)x - l.x) / (r.x - l.x);
+			float z = interpolate(t, l.z, r.z);
+
+			if (z > m_zbuffer[y*m_width + x])
+			{
+				Rgb pixCol = interpolate(t, lc, rc);
+				PlotPixel(x, y, pixCol);
+				m_zbuffer[y*m_width + x] = z;
+			}
+		}
+
+
+	}
+
+	/*DrawLine(vec2(0, ymin), vec2(m_width, ymin), Rgb(0,0,0));
+	DrawLine(vec2(0, ymax), vec2(m_width, ymax), Rgb(0,1,0));
+
+	for(int i = 0; i < screen.size(); i++) {
+	int j  = (i + 1) % screen.size();
+	DrawLine(vec2(screen[i].x, screen[i].y), vec2(screen[j].x, screen[j].y), Rgb((double)i/2,0,0));
+	}
+	return;*/
+
+}
+
+#pragma region  // Don't touch.
+/////////////////////////////////////////////////////
+//OpenGL stuff. Don't touch.
+
+void Renderer::InitOpenGLRendering()
+{
+	int a = glGetError();
+	a = glGetError();
+	glGenTextures(1, &gScreenTex);
+	a = glGetError();
+	glGenVertexArrays(1, &gScreenVtc);
+	//GLuint buffer;
+	glBindVertexArray(gScreenVtc);
+	glGenBuffers(1, &gBuffer);
+	const GLfloat vtc[]={
+		-1, -1,
+		1, -1,
+		-1, 1,
+		-1, 1,
+		1, -1,
+		1, 1
+	};
+	const GLfloat tex[]={
+		0,0,
+		m_width,0,
+		0,m_height,
+		0,m_height,
+		m_width,0,
+		m_width,m_height};
+		glBindBuffer(GL_ARRAY_BUFFER, gBuffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vtc)+sizeof(tex), NULL, GL_STATIC_DRAW);
+		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(vtc), vtc);
+		glBufferSubData( GL_ARRAY_BUFFER, sizeof(vtc), sizeof(tex), tex);
+
+		GLuint program = InitShader( "vshader.glsl", "fshader.glsl" );
+		glUseProgram( program );
+		GLint  vPosition = glGetAttribLocation( program, "vPosition" );
+
+		glEnableVertexAttribArray( vPosition );
+		glVertexAttribPointer( vPosition, 2, GL_FLOAT, GL_FALSE, 0,
+			0 );
+
+		GLint  vTexCoord = glGetAttribLocation( program, "vTexCoord" );
+		glEnableVertexAttribArray( vTexCoord );
+		glVertexAttribPointer( vTexCoord, 2, GL_FLOAT, GL_FALSE, 0,
+			(GLvoid *) sizeof(vtc) );
+		glUniform1i( glGetUniformLocation(program, "texture"), 0 );
+}
+
+void Renderer::CreateOpenGLBuffer()
+{
+	glActiveTexture(GL_TEXTURE0);
+	const GLfloat vtc[]={
+		-1, -1,
+		1, -1,
+		-1, 1,
+		-1, 1,
+		1, -1,
+		1, 1
+	};
+	const GLfloat tex[]={
+		0,0,
+		m_width,0,
+		0,m_height,
+		0,m_height,
+		m_width,0,
+		m_width,m_height};
+		glBindBuffer(GL_ARRAY_BUFFER, gBuffer);
+		glBufferSubData( GL_ARRAY_BUFFER, sizeof(vtc), sizeof(tex), tex);
+		glBindTexture(GL_TEXTURE_RECTANGLE, gScreenTex);
+		glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGB8, m_width, m_height, 0, GL_RGB, GL_FLOAT, NULL);
+		glViewport(0, 0, m_width, m_height);
+}
+
+void Renderer::SwapBuffers()
+{
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_RECTANGLE, gScreenTex);
+	glTexSubImage2D(GL_TEXTURE_RECTANGLE, 0, 0, 0, m_width, m_height, GL_RGB, GL_FLOAT, m_outBuffer);
+	//glGenerateMipmap(GL_TEXTURE_RECTANGLE);
+
+	glBindVertexArray(gScreenVtc);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glutSwapBuffers();
+	FlushBuffer();
+}
+#pragma endregion
+
+// don't work - nah fuck 14 hours 
+#pragma region
 void foo(vec4& v1, vec4& v2, vec4& v3)
 {
 	if(v1.y < v2.y || (v1.y == v2.y && v1.x > v2.x))
@@ -630,579 +1213,5 @@ void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
 		DrawLine(p1, p2, col);
 	}
 
-}
-
-//--------------------------------------------------------------------------
-// Clipping
-//--------------------------------------------------------------------------
-bool Renderer::clip(vec3& v1, vec3& v2)
-{
-	// x
-	if( (v1.x > 1 && v2.x > 1) || (v1.x < -1 && v2.x < -1) )
-		return false;
-
-	if( v1.x != v2.x && !( v1.x >= -1 && v1.x <= 1 && v2.x >= -1 && v2.x <= 1) )
-	{
-		if(v1.x > v2.x)
-		{
-			vec3 tmp = v1;
-			v1 = v2;
-			v2 = tmp;
-		}
-		if(v1.x < -1)
-		{
-			vec3 k = v2 - v1;
-			float t = ( -1 - v1.x) / k. x;
-			v1 = v1 + t * k;
-		}
-		if(v2.x > 1)
-		{
-			vec3 k = v2 - v1;
-			float t = ( 1 - v1.x) / k. x;
-			v2 = v1 + t * k;
-		}
-	}
-
-	// y
-	if( (v1.y > 1 && v2.y > 1) || (v1.y < -1 && v2.y < -1) )
-		return false;
-	if( v1.y != v2.y && !( v1.y >= -1 && v1.y <= 1 && v2.y >= -1 && v2.y <= 1) )
-	{
-		if(v1.y > v2.y)
-		{
-			vec3 tmp = v1;
-			v1 = v2;
-			v2 = tmp;
-		}
-		if(v1.y < -1)
-		{
-			vec3 k = v2 - v1;
-			float t = ( -1 - v1.y) / k. y;
-			v1 = v1 + t * k;
-		}
-		if(v2.y > 1)
-		{
-			vec3 k = v2 - v1;
-			float t = ( 1 - v1.y) / k. y;
-			v2 = v1 + t * k;
-		}
-	}
-
-	// z
-	if( (v1.z > 1 && v2.z > 1) || (v1.z < -1 && v2.z < -1) )
-		return false;
-	if( v1.z != v2.z && !( v1.z >= -1 && v1.z <= 1 && v2.z >= -1 && v2.z <= 1) )
-	{
-		if(v1.z > v2.z)
-		{
-			vec3 tmp = v1;
-			v1 = v2;
-			v2 = tmp;
-		}
-		if(v1.z < -1)
-		{
-			vec3 k = v2 - v1;
-			float t = ( -1 - v1.z) / k. z;
-			v1 = v1 + t * k;
-		}
-		if(v2.z > 1)
-		{
-			vec3 k = v2 - v1;
-			float t = ( 1 - v1.z) / k. z;
-			v2 = v1 + t * k;
-		}
-	}
-	return true;
-}
-
-bool Renderer::clip(vec4& v1, vec4& v2)
-{
-	assert(v1.w != 0 && v2.w != 0);
-	vec3 vv1 = vec3(v1.x,v1.y, v1.z) / v1.w;
-	vec3 vv2 = vec3(v2.x,v2.y, v2.z) / v2.w;
-	bool res = clip(vv1, vv2);
-	if( res )
-	{
-		v1 = vec4(vv1, 1);
-		v2 = vec4(vv2, 1);
-	}
-	return res;
-}
-
-bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh)
-{
-	v1 = v1 / v1.w;
-	v2 = v2 / v2.w;
-
-	if( (v1.z > zHigh && v2.z > zHigh) || (v1.z < zLow && v2.z < zLow) )
-		return false;
-	if( v1.z != v2.z && !( v1.z >= zLow && v1.z <= zHigh && v2.z >= zLow && v2.z <= zHigh) )
-	{
-		if(v1.z > v2.z)
-		{
-			vec4 tmp = v1;
-			v1 = v2;
-			v2 = tmp;
-		}
-		if(v1.z < zLow)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( zLow - v1.z) / k. z;
-			v1 = v1 + t * k;
-		}
-		if(v2.z > zHigh)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( zHigh - v1.z) / k. z;
-			v2 = v1 + t * k;
-		}
-	}
-	return true;
-}
-
-//--------------------------------------------------------------------------
-// Bresenham
-//--------------------------------------------------------------------------
-void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
-{
-	int x1 = (int)p1.x;
-	int x2 = (int)p2.x;
-	int y1 = (int)p1.y;
-	int y2 = (int)p2.y;
-
-	if (	((x1 < 0 || x1 > m_width) || (y1 < 0 || y1 > m_height)) &&
-		((x2 < 0 || x2 > m_width) || (y2 < 0 || y2 > m_height))	)
-	{
-		return;
-	}
-
-	bool steep = abs(y2 - y1) > abs(x2 - x1);
-
-	if(steep)
-	{
-		swap(x1,y1);
-		swap(x2,y2);
-	}
-	if(x1 > x2)
-	{
-		swap(x1,x2);
-		swap(y1,y2);
-	}
-
-	int dx = x2 - x1;
-	int dy = abs(y2 - y1);
-
-	int e =  dx/2;
-	int y = y1;
-	int yStep = (y1 < y2) ? 1 : -1;
-
-	for(int x = x1; x <= x2; ++x)
-	{
-		if(steep)
-		{
-			PlotPixel(y,x, col);
-		}
-		else
-		{
-			PlotPixel(x,y, col);
-		}
-		e -= dy;
-		if(e < 0)
-		{
-			e += dx;
-			y += yStep;
-		}
-	}
-}
-
-//--------------------------------------------------------------------------
-// Helps to transform from view plane to device coordinates
-//--------------------------------------------------------------------------
-vec2 Renderer::ScaleFactor() 
-{
-	vec2 res;
-	res.x = m_width/2;
-	res.y = m_height/2;
-	return res;
-
-	float screenAR = (float) m_width / (float) m_height;
-	if (m_camera->Aspect() > screenAR)
-	{
-		res.x = m_width/2;
-		res.y = res.x / m_camera->Aspect();
-	}
-	else
-	{
-		res.y = m_height/2;
-		res.x = res.y * m_camera->Aspect();
-	}
-	return res;
-}
-
-//--------------------------------------------------------------------------
-// Bresenham wrapper for vec4. 
-//--------------------------------------------------------------------------
-void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col)
-{
-	vec2 sf = ScaleFactor();
-	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0);
-	p1 = sp * p1;
-	p2 = sp * p2;
-	p1 = p1 / p1.w;
-	p2 = p2 / p2.w;
-	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col);
-}
-
-//--------------------------------------------------------------------------
-// Safely plot pixel in the given integer coordinates of the given color
-//--------------------------------------------------------------------------
-inline void Renderer::PlotPixel(int x, int y, Rgb color)
-{
-	if (x < 0 || x >= m_width || y < 0 || y >= m_height)
-		return;
-	m_outBuffer[INDEX(m_width,x,y,0)]=color.r;	m_outBuffer[INDEX(m_width,x,y,1)]=color.g;	m_outBuffer[INDEX(m_width,x,y,2)]=color.b;
-}
-
-void Renderer::SetCamera(Camera* c)
-{
-	m_camera = c;
-}
-
-// New
-void Renderer::DDrawTriangles(vector<Vertex>& vertices)
-{
-	mat4 projection = m_camera->Projection();
-	mat4 view = m_camera->View();
-	float zHigh = -m_camera->ZNear();
-	float zLow = -m_camera->ZFar();
-	Vertex cur, next;
-	
-	for (int i = 0; i < vertices.size(); i+=3)
-	{
-		Vertex v1 = view * vertices[i];
-		Vertex v2 = view * vertices[i+1];
-		Vertex v3 = view * vertices[i+2];
-		vector<Vertex> poly;
-		vector<Rgb> colors;
-
-		vec4 p1,p2;
-		p1 = v1;
-		p2 = v2;
-		
-		if(clipZ(p1,p2,zLow,zHigh))
-		{
-			if (! (v1.z < zHigh && v1.z > zLow) ) // if not inside
-			{
-				poly.push_back(p1);
-			}
-			poly.push_back(p2);
-		}
-		p1 = v2;
-		p2 = v3;
-		if(clipZ(p1,p2,zLow,zHigh))
-		{
-			if (! (v2.z < zHigh && v2.z > zLow) ) // if not inside
-			{
-				poly.push_back(p1);
-			}
-			poly.push_back(p2);
-		}
-		p1 = v3;
-		p2 = v1;
-		if(clipZ(p1,p2,zLow,zHigh))
-		{
-			if (! (v3.z < zHigh && v3.z > zLow) ) // if not inside
-			{
-				poly.push_back(p1);
-			}
-			poly.push_back(p2);
-		}
-		for(int i = 0; i < poly.size(); i ++)
-		{
-			colors.push_back(Rgb(((double)i)/poly.size(), 0, 0));
-		}
-		RasterizePolygon(poly,colors);
-		
-		//fullTriangle(v1,v2,v3);
-	}
-}
-
-inline float interpolate(float t, float a, float b)
-{
-	return a + t * (b - a);
-}
-
-inline Rgb interpolate(float t, Rgb a, Rgb b)
-{
-	return Rgb(  a.r + t * (b.r - a.r),  a.g + t * (b.g - a.g), a.b + t * (b.b - a.b) );
-}
-
-Vertex Renderer::projectedToDisplay(Vertex v)
-{
-	vec2 sf = ScaleFactor();
-	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
-	v = sp * v;
-	v = v / v.w;
-	return v;
-}
-
-void Renderer::RasterizePolygon(vector<Vertex>& poly, vector<Rgb>& colors)
-{
-	mat4 projection = m_camera->Projection();
-	vector<Vertex> screen;
-	int ymin = m_height;
-	int ymax = 0;
-	for(int i = 0; i < poly.size(); ++i)
-	{
-		Vertex v = projectedToDisplay(projection * poly[i]);
-		v.z = poly[i].z;
-		ymin = min(ymin, (int)v.y);
-		ymax = max(ymax, (int)v.y);
-		screen.push_back(v);
-	}
-
-	ymin = max(0, ymin);
-	ymax = min(m_height, ymax);
-
-	// ymin is the first scanline now, ymax is the last
-
-	for (int y = ymin ; y <= ymax ; y++) 
-	{
-		Vertex l, r;
-		Rgb lc(1,1,1), rc(1,1,1);
-		l.x = m_width;
-		r.x = 0;
-		for (int i = 0; i < screen.size(); i++) 
-		{
-			int j = (i+1) % screen.size();
-			if ((screen[i].y > y) != (screen[j].y > y)) // if two vertices are on diffrent sides of the scanline
-			{
-				float t = ((float)y - screen[i].y)  / (screen[j].y - screen[i].y);
-				int x = (int) interpolate(t, screen[i].x, screen[j].x);
-
-				if (x < l.x)
-				{
-					lc = interpolate(t, colors[i], colors[j]);
-					l.x = x;
-					l.y = y;
-					l.z = interpolate(t, screen[i].z, screen[j].z);
-				}
-				if (x >= r.x)
-				{
-					rc = interpolate(t, colors[i], colors[j]);
-					r.x = x;
-					r.y = y;
-					r.z = interpolate(t, screen[i].z, screen[j].z);
-				}
-			}
-		}
-
-		int lb = max(0, (int)l.x);
-		int rb = min(m_width - 1, (int)r.x);
-
-		for (int x = lb; x <= rb; x++)
-		{
-			float t = ((float)x - l.x) / (r.x - l.x);
-			float z = interpolate(t, l.z, r.z);
-
-			if (z > m_zbuffer[y*m_width + x])
-			{
-				Rgb pixCol = interpolate(t, lc, rc);
-				PlotPixel(x, y, pixCol);
-				m_zbuffer[y*m_width + x] = z;
-			}
-		}
-	}
-	for(int i = 0; i < screen.size(); i++)
-	{
-		int j = (i+1) % screen.size();
-		DrawLine(vec2(screen[i].x,screen[i].y),vec2(screen[j].x,screen[j].y),Rgb(0,1,0));
-	}
-}
-
-void Renderer::fullTriangle(Vertex v1, Vertex v2, Vertex v3)
-{
-	mat4 projection = m_camera->Projection();
-	vector<Vertex> poly, screen;
-	vector<Rgb> colors;
-	poly.push_back(v1); screen.push_back(projectedToDisplay(projection * v1)); colors.push_back(Rgb(1,0,0));
-	poly.push_back(v2); screen.push_back(projectedToDisplay(projection * v2)); colors.push_back(Rgb(0,1,0));
-	poly.push_back(v3); screen.push_back(projectedToDisplay(projection * v3)); colors.push_back(Rgb(0,0,1));
-
-
-
-	int ymin = m_height;
-	int ymax = 0;
-
-	for (int i = 0; i < screen.size(); i++) {
-		screen[i].z = poly[i].z;
-		ymin = min(ymin, (int)screen[i].y);
-		ymax = max(ymax, (int)screen[i].y);
-	}
-
-	ymin = max(0, ymin);
-	ymax = min(m_height, ymax);
-
-	CString tmp; tmp.Format("Ymin: %d, Ymax: %d\n", ymin, ymax);
-	::OutputDebugStringA(tmp);
-
-	// ymin is the first scanline now, ymax is the last
-
-	for (int y = ymin ; y <= ymax ; y++) 
-	{
-		Vertex l, r;
-		Rgb lc(1,1,1), rc(1,1,1);
-		l.x = m_width;
-		r.x = 0;
-		for (int i = 0; i < screen.size(); i++) 
-		{
-			int j = (i+1) % screen.size();
-			if ((screen[i].y > y) != (screen[j].y > y)) // if two vertices are on diffrent sides of the scanline
-			{
-				float t = ((float)y - screen[i].y)  / (screen[j].y - screen[i].y);
-				int x = (int) interpolate(t, screen[i].x, screen[j].x);
-
-				if (x < l.x)
-				{
-					lc = interpolate(t, colors[i], colors[j]);
-					l.x = x;
-					l.y = y;
-					l.z = interpolate(t, screen[i].z, screen[j].z);
-				}
-				if (x >= r.x)
-				{
-					rc = interpolate(t, colors[i], colors[j]);
-					r.x = x;
-					r.y = y;
-					r.z = interpolate(t, screen[i].z, screen[j].z);
-				}
-			}
-		}
-
-		int lb = max(0, (int)l.x);
-		int rb = min(m_width - 1, (int)r.x);
-
-		/*float t = ((float)lb - l.x) / (r.x - l.x);
-		float z = interpolate(t, l.z, r.z);
-
-		Rgb pixCol = interpolate(t, lc, rc);
-		PlotPixel(lb, y, pixCol);
-		m_zbuffer[y*m_width + lb] = z;*/
-
-		for (int x = lb; x <= rb; x++)
-		{
-			float t = ((float)x - l.x) / (r.x - l.x);
-			float z = interpolate(t, l.z, r.z);
-
-			if (z > m_zbuffer[y*m_width + x])
-			{
-				Rgb pixCol = interpolate(t, lc, rc);
-				PlotPixel(x, y, pixCol);
-				m_zbuffer[y*m_width + x] = z;
-			}
-		}
-
-
-	}
-
-	/*DrawLine(vec2(0, ymin), vec2(m_width, ymin), Rgb(0,0,0));
-	DrawLine(vec2(0, ymax), vec2(m_width, ymax), Rgb(0,1,0));
-
-	for(int i = 0; i < screen.size(); i++) {
-	int j  = (i + 1) % screen.size();
-	DrawLine(vec2(screen[i].x, screen[i].y), vec2(screen[j].x, screen[j].y), Rgb((double)i/2,0,0));
-	}
-	return;*/
-
-}
-
-
-#pragma region  // Don't touch.
-/////////////////////////////////////////////////////
-//OpenGL stuff. Don't touch.
-
-void Renderer::InitOpenGLRendering()
-{
-	int a = glGetError();
-	a = glGetError();
-	glGenTextures(1, &gScreenTex);
-	a = glGetError();
-	glGenVertexArrays(1, &gScreenVtc);
-	//GLuint buffer;
-	glBindVertexArray(gScreenVtc);
-	glGenBuffers(1, &gBuffer);
-	const GLfloat vtc[]={
-		-1, -1,
-		1, -1,
-		-1, 1,
-		-1, 1,
-		1, -1,
-		1, 1
-	};
-	const GLfloat tex[]={
-		0,0,
-		m_width,0,
-		0,m_height,
-		0,m_height,
-		m_width,0,
-		m_width,m_height};
-		glBindBuffer(GL_ARRAY_BUFFER, gBuffer);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vtc)+sizeof(tex), NULL, GL_STATIC_DRAW);
-		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(vtc), vtc);
-		glBufferSubData( GL_ARRAY_BUFFER, sizeof(vtc), sizeof(tex), tex);
-
-		GLuint program = InitShader( "vshader.glsl", "fshader.glsl" );
-		glUseProgram( program );
-		GLint  vPosition = glGetAttribLocation( program, "vPosition" );
-
-		glEnableVertexAttribArray( vPosition );
-		glVertexAttribPointer( vPosition, 2, GL_FLOAT, GL_FALSE, 0,
-			0 );
-
-		GLint  vTexCoord = glGetAttribLocation( program, "vTexCoord" );
-		glEnableVertexAttribArray( vTexCoord );
-		glVertexAttribPointer( vTexCoord, 2, GL_FLOAT, GL_FALSE, 0,
-			(GLvoid *) sizeof(vtc) );
-		glUniform1i( glGetUniformLocation(program, "texture"), 0 );
-}
-
-void Renderer::CreateOpenGLBuffer()
-{
-	glActiveTexture(GL_TEXTURE0);
-	const GLfloat vtc[]={
-		-1, -1,
-		1, -1,
-		-1, 1,
-		-1, 1,
-		1, -1,
-		1, 1
-	};
-	const GLfloat tex[]={
-		0,0,
-		m_width,0,
-		0,m_height,
-		0,m_height,
-		m_width,0,
-		m_width,m_height};
-		glBindBuffer(GL_ARRAY_BUFFER, gBuffer);
-		glBufferSubData( GL_ARRAY_BUFFER, sizeof(vtc), sizeof(tex), tex);
-		glBindTexture(GL_TEXTURE_RECTANGLE, gScreenTex);
-		glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGB8, m_width, m_height, 0, GL_RGB, GL_FLOAT, NULL);
-		glViewport(0, 0, m_width, m_height);
-}
-
-void Renderer::SwapBuffers()
-{
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_RECTANGLE, gScreenTex);
-	glTexSubImage2D(GL_TEXTURE_RECTANGLE, 0, 0, 0, m_width, m_height, GL_RGB, GL_FLOAT, m_outBuffer);
-	//glGenerateMipmap(GL_TEXTURE_RECTANGLE);
-
-	glBindVertexArray(gScreenVtc);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glutSwapBuffers();
-	FlushBuffer();
 }
 #pragma endregion

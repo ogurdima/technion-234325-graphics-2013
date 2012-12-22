@@ -98,6 +98,7 @@
     <ClCompile Include="CG_skel_w_MFC.cpp" />
     <ClCompile Include="InitShader.cpp" />
     <ClCompile Include="InputDialog.cpp" />
+    <ClCompile Include="Light.cpp" />
     <ClCompile Include="MColorDialog.cpp" />
     <ClCompile Include="MeshModel.cpp" />
     <ClCompile Include="PrimMeshModel.cpp" />
@@ -114,6 +115,7 @@
     <ClInclude Include="Face.h" />
     <ClInclude Include="InitShader.h" />
     <ClInclude Include="InputDialog.h" />
+    <ClInclude Include="Light.h" />
     <ClInclude Include="mat.h" />
     <ClInclude Include="MColorDialog.h" />
     <ClInclude Include="MeshModel.h" />
@@ -121,6 +123,7 @@
     <ClInclude Include="PrimMeshModel.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="Rgb.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
