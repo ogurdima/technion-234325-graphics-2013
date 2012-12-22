@@ -16,7 +16,7 @@ PrimMeshModel::PrimMeshModel(void)
 	_faces.push_back(fb);
 
 	
-	fb.v[0] = 2;
+	/*fb.v[0] = 2;
 	fb.v[1] = 3;
 	fb.v[2] = 4;
 	_faces.push_back(fb);
@@ -31,7 +31,7 @@ PrimMeshModel::PrimMeshModel(void)
 	fb.v[0] = 1;
 	fb.v[1] = 4;
 	fb.v[2] = 3;
-	_faces.push_back(fb);
+	_faces.push_back(fb);*/
 
 	CalculateFaceNormals();
 }
