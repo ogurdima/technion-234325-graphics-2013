@@ -37,6 +37,7 @@ public:
 	void Clean();
 	void AddCamera(Camera c);
 	void AddMeshModel(MeshModel m );
+	void AddLight(Light l);
 	
 	void SetActiveModelAnchor();
 	vector<vec3> getAnchoredModelCoordinates();

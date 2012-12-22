@@ -75,9 +75,9 @@ void MColorDialog::colorDataToVar(ColorType t)
 	Dlgrgb* clrVar = NULL;
 	setColorPointers(t, &clrWidget, &clrVar);
 	COLORREF clr = clrWidget->GetColor();
-	clrVar->r = GetRValue(clr);
-	clrVar->g = GetGValue(clr);
-	clrVar->b = GetBValue(clr);
+	clrVar->r = ((double)GetRValue(clr))/255;
+	clrVar->g = ((double)GetGValue(clr))/255;
+	clrVar->b = ((double)GetBValue(clr))/255;
 }
 
 void MColorDialog::colorDataToWidget(ColorType t)

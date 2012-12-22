@@ -7,10 +7,10 @@
 #include "Camera.h"
 #include "Vertex.h"
 #include "Rgb.h"
+#include "Light.h"
 #include "MaterialColor.h"
 
 using namespace std;
-
 
 
 class Renderer
@@ -21,6 +21,9 @@ class Renderer
 	Camera * m_camera;
 	Rgb m_bg;
 	int* contourX;
+	vector<Light*> m_lights;
+
+	int m_specularPower;
 
 	//////////////////////////////
 	// openGL stuff. Don't touch.
@@ -31,6 +34,8 @@ class Renderer
 	void InitOpenGLRendering();
 	//////////////////////////////
 
+
+	
 	
 
 	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
@@ -46,6 +51,7 @@ public:
 	Renderer(int width, int height, Rgb bg = Rgb(1,1,1));
 	~Renderer(void);
 	void Init();
+	void SetLights(vector<Light*> lights);
 	//--------------------------------------------------------------------
 	// Buffer stuff
 	//--------------------------------------------------------------------
