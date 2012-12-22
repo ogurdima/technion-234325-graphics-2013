@@ -16,6 +16,14 @@ struct Rgb {
 		b = _b/max;
 	}
 
+	Rgb operator+(const Rgb& rhs) {
+		return Rgb(r+rhs.r, g+rhs.g, b+rhs.b);
+	}
+
+	Rgb operator*(float f) {
+		return Rgb(r*f, g*f, b*f);
+	}
+
 	float r;
 	float g;
 	float b;

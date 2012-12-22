@@ -480,19 +480,21 @@ void menuActiveModel(int id)
 		break;
 	case MODEL_SET_DEFAULT_COLOR:
 		{
-			/*MColorDialog d;
+			MColorDialog d;
 			MaterialColor cp = m->GetDefaultColor();
 			d.m_clr_diffuse = cp.diffuse;
-			d.m_clr_emussive = cp.emissive;
+			d.m_clr_emissive = cp.emissive;
 			d.m_clr_specular = cp.specular;
+			d.m_clr_ambient = cp.ambient;
 
 			if(IDOK == d.DoModal())
 			{
 				cp.diffuse = d.m_clr_diffuse;
-				cp.emissive = d.m_clr_emussive;
+				cp.emissive = d.m_clr_emissive;
 				cp.specular = d.m_clr_specular;
+				cp.ambient = d.m_clr_ambient;
 				m->SetDefaultColor(cp);
-			}*/
+			}
 		}
 	}
 	glutPostRedisplay();
@@ -585,6 +587,7 @@ void initMenu()
 	glutAddMenuEntry("Show Bounding Box", MODEL_SHOW_BOUNDING_BOX);
 	glutAddMenuEntry("Show Model Frame", MODEL_SHOW_FRAME);
 	glutAddMenuEntry("Nonuniform Scale", MODEL_NON_UNIFORM_SCALE);
+	glutAddMenuEntry("Set Model Color", MODEL_SET_DEFAULT_COLOR);
 	
 
 	int lensMenu = glutCreateMenu(menuLens);

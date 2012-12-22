@@ -19,12 +19,15 @@ MColorDialog::MColorDialog(CWnd* pParent /*=NULL*/)
 
 BOOL MColorDialog::OnInitDialog()
 {
+	//UpdateData(TRUE);
     CDialog::OnInitDialog();
     SetWindowText("Pick a Color");
 
 	colorDataToWidget(DIFFUSE);
+	colorDataToWidget(EMISSIVE);
+	colorDataToWidget(SPECULAR);
 
-	UpdateData(FALSE);
+	
     return TRUE;
 }
 
@@ -37,8 +40,12 @@ void MColorDialog::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_CLR_DIFFUSE, m_diffuse);
-	DDX_Control(pDX, IDC_CLR_EMMUSIVE, m_emmusive);
+	DDX_Control(pDX, IDC_CLR_EMISSIVE, m_emissive);
 	DDX_Control(pDX, IDC_CLR_SPECULAR, m_specular);
+	colorDataToVar(DIFFUSE);
+	colorDataToVar(EMISSIVE);
+	colorDataToVar(SPECULAR);
+	DDX_Control(pDX, IDC_CLR_AMBIENT, m_ambient);
 }
 
 
@@ -78,9 +85,9 @@ void MColorDialog::colorDataToWidget(ColorType t)
 	CMFCColorButton* clrWidget = NULL;
 	Dlgrgb* clrVar = NULL;
 	setColorPointers(t, &clrWidget, &clrVar);
-	byte br = (clrVar->r % 256);
-	byte bg = (clrVar->g % 256);
-	byte bb = (clrVar->b % 256);
+	byte br = ((int)clrVar->r * 256);
+	byte bg = ((int)clrVar->g * 256);
+	byte bb = ((int)clrVar->b * 256);
 	COLORREF clr = RGB(br, bg, bb);
 	clrWidget->SetColor(clr);
 }
@@ -95,14 +102,17 @@ void MColorDialog::setColorPointers(ColorType t, CMFCColorButton** w, Dlgrgb** v
 			clrWidget = &m_diffuse;
 			clrVar = &m_clr_diffuse;
 			break;
-		case EMMUSIVE:
-			clrWidget = &m_emmusive;
-			clrVar = &m_clr_emussive;
+		case EMISSIVE:
+			clrWidget = &m_emissive;
+			clrVar = &m_clr_emissive;
 			break;
 		case SPECULAR:
 			clrWidget = &m_specular;
 			clrVar = &m_clr_specular;
 			break;
+		case AMBIENT:
+			clrWidget = &m_ambient;
+			clrVar = &m_clr_ambient;
 	}
 	*w = clrWidget;
 	*v = clrVar;
