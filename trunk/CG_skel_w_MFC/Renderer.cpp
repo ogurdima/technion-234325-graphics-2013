@@ -433,14 +433,18 @@ void Renderer::DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultCol
 				if(light->lightSource == POINT_S)
 				{
 					vec4 incomingRay = normalize(m - lloc);
-					vec4 reflectedRay = incomingRay - 2 * n * dot(incomingRay, n);
-					float coss = dot(n, normalize(m - lloc));
-					if(coss > 0)
+					vec4 reflectedRay =  2 * n * dot(incomingRay, n) - incomingRay;
+					float coss = dot(n, incomingRay);
+					if(coss < 0)
 					{
 						c += (light->lightColor * coss) * defaultColor.diffuse; //diffuse
 						//V-2*N(V.N)
-						c += defaultColor.specular * pow(dot(normalize(reflectedRay), normalize(m - camLoc)), m_specularPower);
-						
+					}
+					float csss = dot(normalize(reflectedRay), normalize(camLoc - m));
+					if(csss > 0)
+					{
+						float powww = pow(csss, m_specularPower);
+						c += defaultColor.specular * powww;
 					}
 				}
 			}	
