@@ -117,6 +117,7 @@
     <ClInclude Include="InputDialog.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="mat.h" />
+    <ClInclude Include="MaterialColor.h" />
     <ClInclude Include="MColorDialog.h" />
     <ClInclude Include="MeshModel.h" />
     <ClInclude Include="Model.h" />
