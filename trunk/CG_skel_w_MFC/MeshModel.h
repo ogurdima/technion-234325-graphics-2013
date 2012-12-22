@@ -5,8 +5,10 @@
 #include "Face.h"
 #include "Model.h"
 #include <string>
+#include "Renderer.h"
 
 using namespace std;
+
 
 class MeshModel : public Model
 {
@@ -16,6 +18,9 @@ protected :
 	vector<Vertex> _vertices;
 	vector<vec4> _normals;
 	vector<vec4> _faceNormals;
+
+	vector<MaterialColor> _vertexColors;
+	MaterialColor _defaultColor;
 
 	mat4 _world_transform;
 	mat4 _normal_transform;
@@ -76,4 +81,6 @@ public:
 	bool ToggleShowVertexNormals();
 	bool ToggleShowModelFrame();
 
+	void SetDefaultColor(MaterialColor _c);
+	MaterialColor GetDefaultColor();
 };

@@ -7,6 +7,7 @@
 #include "Camera.h"
 #include "Vertex.h"
 #include "Rgb.h"
+#include "MaterialColor.h"
 
 using namespace std;
 
@@ -71,7 +72,7 @@ public:
 	// new
 	Vertex projectedToDisplay(Vertex v);
 	void fullTriangle(Vertex v1, Vertex v2, Vertex v3);
-	void DDrawTriangles(vector<Vertex>& vertices);
+	void DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultColor);
 	void RasterizePolygon(vector<Vertex>& poly, vector<Rgb>& colors);
 
 	//lines
