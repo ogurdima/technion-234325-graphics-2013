@@ -1,16 +1,12 @@
 #pragma once
 
-
+#include "Rgb.h"
 
 // MColorDialog dialog
 
-typedef struct {
-	int r;
-	int g;
-	int b;
-} Dlgrgb;
+typedef Rgb Dlgrgb;
 
-typedef enum {DIFFUSE, EMMUSIVE, SPECULAR} ColorType;
+typedef enum {DIFFUSE, EMISSIVE, SPECULAR, AMBIENT} ColorType;
 
 class MColorDialog : public CDialog
 {
@@ -36,11 +32,13 @@ protected:
 public:
 	afx_msg void OnBnClickedPreview();
 	CMFCColorButton m_diffuse;
-	CMFCColorButton m_emmusive;
+	CMFCColorButton m_emissive;
 	CMFCColorButton m_specular;
-
+	CMFCColorButton m_ambient;
 
 	Dlgrgb m_clr_diffuse;
-	Dlgrgb m_clr_emussive;
+	Dlgrgb m_clr_emissive;
 	Dlgrgb m_clr_specular;
+	Dlgrgb m_clr_ambient;
+	
 };

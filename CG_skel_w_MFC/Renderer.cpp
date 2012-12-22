@@ -446,7 +446,7 @@ void Renderer::DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultCol
 		}
 		for(int i = 0; i < poly.size(); i ++)
 		{
-			colors.push_back(Rgb(((double)i)/poly.size(), 0, 0));
+			colors.push_back(defaultColor.emissive + (defaultColor.ambient * 0.5));
 		}
 		RasterizePolygon(poly,colors);
 		

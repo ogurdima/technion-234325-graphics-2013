@@ -6,13 +6,16 @@
 #define IDD_COLOR_DIALOG                103
 #define IDD_INPUTDIALOG                 104
 #define IDC_PREVIEW                     1001
-#define IDC_CLR_EMMUSIVE                1002
+#define IDC_CLR_EMISSIVE                1002
 #define IDC_CLR_DIFFUSE                 1003
 #define IDC_MFCCOLORBUTTON3             1004
 #define IDC_CLR_SPECULAR                1004
 #define IDC_EMMUSEVE_CL                 1005
 #define IDC_DIFFUSE_CL                  1006
 #define IDC_SPECULAR_CL                 1007
+#define IDC_SPECULAR_CL2                1008
+#define IDC_CLR_SPECULAR2               1009
+#define IDC_CLR_AMBIENT                 1009
 
 // Next default values for new objects
 // 
