@@ -25,6 +25,7 @@
 #include "InputDialog.h"
 #include "PrimMeshModel.h"
 #include "MColorDialog.h"
+#include "MaterialColor.h"
 
 #define BUFFER_OFFSET( offset )   ((GLvoid*) (offset))
 
@@ -46,6 +47,7 @@
 #define MODEL_SHOW_BOUNDING_BOX			22
 #define MODEL_SHOW_FRAME				23
 #define MODEL_NON_UNIFORM_SCALE			24
+#define MODEL_SET_DEFAULT_COLOR			25
 
 #define CAMERA_SET_LOCATION				30
 #define CAMERA_SET_FOV					31
@@ -476,6 +478,22 @@ void menuActiveModel(int id)
 			}
 		}
 		break;
+	case MODEL_SET_DEFAULT_COLOR:
+		{
+			/*MColorDialog d;
+			MaterialColor cp = m->GetDefaultColor();
+			d.m_clr_diffuse = cp.diffuse;
+			d.m_clr_emussive = cp.emissive;
+			d.m_clr_specular = cp.specular;
+
+			if(IDOK == d.DoModal())
+			{
+				cp.diffuse = d.m_clr_diffuse;
+				cp.emissive = d.m_clr_emussive;
+				cp.specular = d.m_clr_specular;
+				m->SetDefaultColor(cp);
+			}*/
+		}
 	}
 	glutPostRedisplay();
 }

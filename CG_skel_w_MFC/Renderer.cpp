@@ -396,7 +396,7 @@ void Renderer::SetCamera(Camera* c)
 }
 
 // New
-void Renderer::DDrawTriangles(vector<Vertex>& vertices)
+void Renderer::DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultColor)
 {
 	mat4 projection = m_camera->Projection();
 	mat4 view = m_camera->View();

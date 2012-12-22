@@ -78,7 +78,7 @@ void MeshModel::loadFile(string fileName)
 void MeshModel::draw(Renderer * r, Rgb color)
 {
 	vector<Vertex> vp = transformVertices();
-	r->DDrawTriangles(vp);
+	r->DDrawTriangles(vp, _defaultColor);
 	//r->DrawNgons(vp,3,color);
 	if (_drawBB) 
 	{
@@ -304,4 +304,14 @@ void MeshModel::CalculateFaceNormals()
 		crs = normalize(vec4(cross(d1, d2), 0));
 		_faceNormals.push_back(crs);
 	}
+}
+
+MaterialColor MeshModel::GetDefaultColor()
+{
+	return _defaultColor;
+}
+
+void MeshModel::SetDefaultColor(MaterialColor _c)
+{
+	_defaultColor = _c;
 }
