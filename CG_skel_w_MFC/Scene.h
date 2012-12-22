@@ -7,9 +7,9 @@
 #include "Camera.h"
 #include "Model.h"
 #include "MeshModel.h"
+#include "Rgb.h"
+#include "Light.h"
 using namespace std;
-
-class Light {};
  
 
 class Scene 
