@@ -68,17 +68,10 @@ void Scene::draw()
 		drawWorldAxes();
 	}
 
-
+	m_renderer->SetLights(lights);
 	for (int i = 0; i < models.size(); i++) {
 		Model* model = models[i];
-		if (model == ActiveModel())
-		{
-			model->draw(m_renderer, Rgb(0,0.75,0));
-		}
-		else 
-		{
-			model->draw(m_renderer);
-		}
+		model->draw(m_renderer);
 	}
 
 	if (drawCameras) {
@@ -133,6 +126,12 @@ void Scene::AddCamera(Camera c)
 	m_renderer->SetCamera(cameras[activeCamera]);
 }
 
+void Scene::AddLight(Light l)
+{
+	Light* ll = new Light(l);
+	lights.push_back(ll);
+}
+
 void Scene::Clean()
 {
 	activeCamera = -1;
@@ -155,7 +154,7 @@ Camera* Scene::ActiveCam()
 	return cameras[activeCamera];
 }
 
-inline MeshModel* Scene::ActiveModel()
+MeshModel* Scene::ActiveModel()
 {
 	if(activeModel == -1  || models.size() <= activeModel)
 		return NULL;

@@ -6,7 +6,7 @@
 struct Rgb {
 	Rgb() : r(0), g(0), b(0) { }
 
-	Rgb(float _r, float _g, float _b) {
+	explicit Rgb(float _r, float _g, float _b) {
 		_r = abs(_r);
 		_g = abs(_g);
 		_b = abs(_b);
@@ -22,6 +22,17 @@ struct Rgb {
 
 	Rgb operator*(float f) {
 		return Rgb(r*f, g*f, b*f);
+	}
+
+	Rgb operator*(Rgb& rhs) {
+		return Rgb(r*rhs.r, g*rhs.g, b*rhs.b);
+	}
+
+	Rgb& operator+=(Rgb& rhs) {
+		r += rhs.r;
+		g+= rhs.g;
+		b+=rhs.b;
+		return *this;
 	}
 
 	float r;

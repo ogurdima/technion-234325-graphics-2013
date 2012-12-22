@@ -14,7 +14,8 @@ m_width(512),
 	m_height(512), 
 	m_outBuffer(NULL),
 	m_zbuffer(NULL),
-	m_bg(bg)
+	m_bg(bg),
+	m_specularPower(5)
 {
 	InitOpenGLRendering();
 	CreateBuffers(512,512);
@@ -26,7 +27,8 @@ m_width(width),
 	m_outBuffer(NULL),
 	m_zbuffer(NULL),
 	contourX(NULL),
-	m_bg(bg)
+	m_bg(bg),
+	m_specularPower(5)
 {
 	InitOpenGLRendering();
 	CreateBuffers(width, height);
@@ -406,11 +408,47 @@ void Renderer::DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultCol
 	
 	for (int i = 0; i < vertices.size(); i+=3)
 	{
-		Vertex v1 = view * vertices[i];
-		Vertex v2 = view * vertices[i+1];
-		Vertex v3 = view * vertices[i+2];
+		Vertex v1 = vertices[i];
+		Vertex v2 = vertices[i+1];
+		Vertex v3 = vertices[i+2];
 		vector<Vertex> poly;
 		vector<Rgb> colors;
+
+		// flat
+		vec4 camLoc = vec4(m_camera->Eye(),0);
+		vec4 n = vec4(normalize( cross(v2 - v1, v3 - v2)), 0);
+		vec4 m = vec4((v1.x  + v2.x + v3.x)/3,(v1.y  + v2.y + v3.y)/3,(v1.z  + v2.z + v3.z)/3, 0);
+		Rgb c;
+		c += defaultColor.emissive;
+		for(int i = 0; i < m_lights.size(); i++)
+		{
+			Light* light = m_lights[i];
+			vec4 lloc = light->location;
+			if(light->lightType == AMBIENT_L)
+			{
+				c += light->lightColor * defaultColor.ambient;
+			}
+			else if(light->lightType == REGULAR_L)
+			{
+				if(light->lightSource == POINT_S)
+				{
+					vec4 incomingRay = normalize(m - lloc);
+					vec4 reflectedRay = incomingRay - 2 * n * dot(incomingRay, n);
+					float coss = dot(n, normalize(m - lloc));
+					if(coss > 0)
+					{
+						c += (light->lightColor * coss) * defaultColor.diffuse; //diffuse
+						//V-2*N(V.N)
+						c += defaultColor.specular * pow(dot(normalize(reflectedRay), normalize(m - camLoc)), m_specularPower);
+						
+					}
+				}
+			}	
+		}
+
+		v1 = view * v1;
+		v2 = view * v2;
+		v3 = view * v3;
 
 		vec4 p1,p2;
 		p1 = v1;
@@ -446,7 +484,7 @@ void Renderer::DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultCol
 		}
 		for(int i = 0; i < poly.size(); i ++)
 		{
-			colors.push_back(defaultColor.emissive + (defaultColor.ambient * 0.5));
+			colors.push_back(c);
 		}
 		RasterizePolygon(poly,colors);
 		
@@ -638,6 +676,10 @@ void Renderer::fullTriangle(Vertex v1, Vertex v2, Vertex v3)
 
 }
 
+void Renderer::SetLights(vector<Light*> _lights)
+{
+	m_lights = _lights;
+}
 #pragma region  // Don't touch.
 /////////////////////////////////////////////////////
 //OpenGL stuff. Don't touch.

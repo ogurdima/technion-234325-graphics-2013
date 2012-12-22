@@ -673,6 +673,7 @@ int my_main( int argc, char **argv )
 		//ac->Frustum(leftView, rightView, bottom, top, zNear, zFar);
 		ac->Ortho(leftView, rightView, bottom, top, zNear, zFar);
 	}
+	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(7,7,7,0), Rgb(1,1,1)));
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
 	//----------------------------------------------------------------------------
