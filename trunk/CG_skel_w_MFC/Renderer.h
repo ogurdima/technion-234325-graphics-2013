@@ -32,6 +32,7 @@ class Renderer
 	int m_width, m_height;
 	Camera * m_camera;
 	Rgb m_bg;
+	int* contourX;
 
 	//////////////////////////////
 	// openGL stuff. Don't touch.
@@ -73,9 +74,21 @@ public:
 	void DrawNgons(vector<Vertex>& vertices, int n, Rgb color = Rgb(1,1,1));
 	void DrawNgonsFast(vector<Vertex>& vertices, int n, Rgb color = Rgb(1,1,1));
 	void DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color = Rgb(1,1,1));
+
+	void DrawTriangles(vector<Vertex>& vertices);
+	void DrawTriangle(vec4& v1, vec4& v2, vec4& v3);
+	void RasterizeTriangle(vec4 v1, vec4 v2, vec4 v3);
+	void ScanLeft(vec4 v1,vec4 v2,int* contourX );
+	void ScanRight(vec4 v1,vec4 v2,int* contourX );
+
+	// new
+	Vertex projectedToDisplay(Vertex v);
+	void fullTriangle(Vertex v1, Vertex v2, Vertex v3);
+	void DDrawTriangles(vector<Vertex>& vertices);
+	void RasterizePolygon(vector<Vertex>& poly, vector<Rgb>& colors);
+
 	//lines
 	void DrawLine3D(vec3 v1, vec3 v2, Rgb col = Rgb(1,1,1));
-
 	void DrawVisibleBoundary();
 
 	//--------------------------------------------------------------------

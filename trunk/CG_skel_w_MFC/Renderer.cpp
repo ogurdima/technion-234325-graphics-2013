@@ -11,10 +11,10 @@ bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh);
 
 Renderer::Renderer(Rgb bg) :
 m_width(512), 
-m_height(512), 
-m_outBuffer(NULL),
-m_zbuffer(NULL),
-m_bg(bg)
+	m_height(512), 
+	m_outBuffer(NULL),
+	m_zbuffer(NULL),
+	m_bg(bg)
 {
 	InitOpenGLRendering();
 	CreateBuffers(512,512);
@@ -22,10 +22,11 @@ m_bg(bg)
 
 Renderer::Renderer(int width, int height, Rgb bg) :
 m_width(width), 
-m_height(m_height), 
-m_outBuffer(NULL),
-m_zbuffer(NULL),
-m_bg(bg)
+	m_height(m_height), 
+	m_outBuffer(NULL),
+	m_zbuffer(NULL),
+	contourX(NULL),
+	m_bg(bg)
 {
 	InitOpenGLRendering();
 	CreateBuffers(width, height);
@@ -58,7 +59,28 @@ void Renderer::CreateBuffers(int width, int height)
 		m_outBuffer = NULL;
 	}
 	m_outBuffer = new float[3*m_width*m_height];
+	if (m_zbuffer != NULL) {
+		delete m_zbuffer;
+		m_zbuffer = NULL;
+	}
+	m_zbuffer = new float[m_width*m_height];
+	if (contourX != NULL) {
+		delete[] contourX;
+		contourX = NULL;
+	}
+	contourX = new int[m_height * 2];
 	FlushBuffer();
+}
+
+void Renderer::ClearDepthBuffer()
+{
+	for(int i=0; i<m_height; i++)
+	{
+		for (int j = 0; j < m_width; j++)
+		{
+			m_zbuffer[j + i*m_width] = -100500;
+		}
+	}
 }
 
 void Renderer::FlushBuffer()
@@ -76,11 +98,6 @@ void Renderer::ClearColorBuffer()
 			m_outBuffer[INDEX(m_width,j,i,0)]=m_bg.r;	m_outBuffer[INDEX(m_width,j,i,1)]=m_bg.g;	m_outBuffer[INDEX(m_width,j,i,2)]=m_bg.b;
 		}
 	}
-}
-
-void Renderer::ClearDepthBuffer()
-{
-	// clear it
 }
 
 //--------------------------------------------------------------------------
@@ -104,6 +121,7 @@ void Renderer::DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color)
 	{
 		if ( (i+1) % n == 0 && (i+1) >= n) //draw srarting from current n vertices back
 		{
+
 			int startIdx = i-n+1;
 			for (int j = 0; j < n; j++) {
 				// cur and next are copied by value - the array does not change
@@ -125,7 +143,444 @@ void Renderer::DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color)
 			}
 		}
 	}
+}
 
+void foo(vec4& v1, vec4& v2, vec4& v3)
+{
+	if(v1.y < v2.y || (v1.y == v2.y && v1.x > v2.x))
+	{
+		swap(v1,v2);
+	}
+	if(v1.y < v3.y || (v1.y == v3.y && v1.x > v3.x))
+	{
+		swap(v1,v3);
+	}
+	if(v2.x > v3.x)
+	{
+		swap(v2,v3);
+	}
+}
+
+void clipLowZ(vec4& v1,vec4& v2,float zLow)
+{
+	v1 = v1 / v1.w;
+	v2 = v2 / v2.w;
+
+	if(v1.z < zLow && v2.z < zLow)
+		return;
+	if( v1.z != v2.z && !( v1.z >= zLow && v2.z >= zLow) )
+	{
+		if(v1.z > v2.z)
+		{
+			vec4 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.z < zLow)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zLow - v1.z) / k. z;
+			v1 = v1 + t * k;
+		}
+	}
+}
+
+bool clipY(vec4& v1, vec4& v2, float yLow , float yHigh)
+{
+	v1 = v1 / v1.w;
+	v2 = v2 / v2.w;
+
+	if( (v1.y > yHigh && v2.y > yHigh) || (v1.y < yLow && v2.y < yLow) )
+		return false;
+	if( v1.y != v2.y && !( v1.y >= yLow && v1.y <= yHigh && v2.y >= yLow && v2.y <= yHigh) )
+	{
+		if(v1.y > v2.y)
+		{
+			vec4 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.y < yLow)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( yLow - v1.y) / k.y;
+			v1 = v1 + t * k;
+		}
+		if(v2.z > yHigh)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( yHigh - v1.y) / k.y;
+			v2 = v1 + t * k;
+		}
+	}
+	return true;
+}
+
+bool clipX(vec4& v1, vec4& v2, float xLow , float xHigh)
+{
+	v1 = v1 / v1.w;
+	v2 = v2 / v2.w;
+
+	if( (v1.x > xHigh && v2.x > xHigh) || (v1.x < xLow && v2.x < xLow) )
+		return false;
+	if( v1.x != v2.x && !( v1.x >= xLow && v1.x <= xHigh && v2.x >= xLow && v2.x <= xHigh) )
+	{
+		if(v1.x > v2.x)
+		{
+			vec4 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.x < xLow)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( xLow - v1.x) / k.x;
+			v1 = v1 + t * k;
+		}
+		if(v2.z > xHigh)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( xHigh - v1.x) / k.x;
+			v2 = v1 + t * k;
+		}
+	}
+	return true;
+}
+
+void Renderer::ScanRight(vec4 v1,vec4 v2,int* contourX )
+{
+	if(!clipY(v1,v2,0,m_height-1)) return;
+
+	int yMin = min(v1.y,v2.y);
+	int yMax = max(v1.y,v2.y);
+
+	if(v1.x < 0 && v2.x < 0)
+	{
+		for( int i = yMin; i <= yMax; i++)
+		{
+			contourX[m_height+i] = -1;
+		}
+		return;
+	}
+
+	if(v1.x > m_height - 1 && v2.x > m_height - 1)
+	{
+		for( int i = yMin; i <= yMax; i++)
+		{
+			contourX[m_height+i] = m_height - 1;
+		}
+		return;
+	}
+
+	clipX(v1,v2,0,m_width);
+	if( v1.y > v2.y)
+		swap(v1,v2);
+
+	int yMin2 = v1.y;
+	int yMax2 = v2.y;
+
+	if( yMax2 < yMax) 
+	{
+		int val = (int)v2.x;
+		if( val <= 1)
+			val = -1;
+		else if ( val >= m_width -2)
+			val = m_width - 1;
+		else
+			assert(0);
+		for( int i = yMax2; i <= yMax; i++)
+		{
+			contourX[m_height+i] = val;
+		}
+	}
+
+	if( yMin2 > yMin)
+	{
+		int val = (int)v1.x;
+		if( val <= 1)
+			val = -1;
+		else if ( val >= m_width -2)
+			val = m_width - 1;
+		else
+			assert(0);
+		for( int i = yMin; i <= yMin2; i++)
+		{
+			contourX[m_height+i] = val;
+		}
+	}
+
+	for( int i = yMin2; i <= yMax2; i++)
+	{
+		contourX[m_height+i] = 0;
+	}
+
+	int x1 = (int)v1.x;
+	int x2 = (int)v2.x;
+	int y1 = (int)v1.y;
+	int y2 = (int)v2.y;
+
+
+	bool steep = abs(y2 - y1) > abs(x2 - x1);
+
+	if(steep)
+	{
+		swap(x1,y1);
+		swap(x2,y2);
+	}
+	if(x1 > x2)
+	{
+		swap(x1,x2);
+		swap(y1,y2);
+	}
+
+	int dx = x2 - x1;
+	int dy = abs(y2 - y1);
+
+	int e =  dx/2;
+	int y = y1;
+	int yStep = (y1 < y2) ? 1 : -1;
+
+	for(int x = x1; x <= x2; ++x)
+	{
+		if(steep)
+		{
+			if( y > contourX[m_height+x]) 
+				contourX[m_height+x] = y;
+		}
+		else
+		{
+			if( x > contourX[m_height+y]) 
+				contourX[m_height+y] = x;
+		}
+		e -= dy;
+		if(e < 0)
+		{
+			e += dx;
+			y += yStep;
+		}
+	}
+}
+
+void Renderer::ScanLeft(vec4 v1,vec4 v2,int* contourX )
+{
+	if(!clipY(v1,v2,0,m_height-1)) return;
+
+	int yMin = min(v1.y,v2.y);
+	int yMax = max(v1.y,v2.y);
+
+	if(v1.x < 0 && v2.x < 0)
+	{
+		for( int i = yMin; i <= yMax; i++)
+		{
+			contourX[i] = 0;
+		}
+		return;
+	}
+
+	if(v1.x > m_height - 1 && v2.x > m_height - 1)
+	{
+		for( int i = yMin; i <= yMax; i++)
+		{
+			contourX[i] = m_height - 1;
+		}
+		return;
+	}
+
+	clipX(v1,v2,0,m_width-1);
+	if( v1.y > v2.y)
+		swap(v1,v2);
+
+	int yMin2 = v1.y;
+	int yMax2 = v2.y;
+
+	if( yMax2 < yMax) 
+	{
+		int val = (int)v1.x;
+		for( int i = yMax2; i <= yMax; i++)
+		{
+			contourX[i] = val;
+		}
+	}
+
+	if( yMin2 > yMin) 
+	{
+		int val = (int)v2.x;
+		for( int i = yMin; i <= yMin2; i++)
+		{
+			contourX[i] = val;
+		}
+	}
+
+	for( int i = yMin2; i <= yMax2; i++)
+	{
+		contourX[i] = m_height;
+	}
+
+	int x1 = (int)v1.x;
+	int x2 = (int)v2.x;
+	int y1 = (int)v1.y;
+	int y2 = (int)v2.y;
+
+
+	bool steep = abs(y2 - y1) > abs(x2 - x1);
+
+	if(steep)
+	{
+		swap(x1,y1);
+		swap(x2,y2);
+	}
+	if(x1 > x2)
+	{
+		swap(x1,x2);
+		swap(y1,y2);
+	}
+
+	int dx = x2 - x1;
+	int dy = abs(y2 - y1);
+
+	int e =  dx/2;
+	int y = y1;
+	int yStep = (y1 < y2) ? 1 : -1;
+
+	for(int x = x1; x <= x2; ++x)
+	{
+		if(steep)
+		{
+			if( y < contourX[x]) 
+				contourX[x] = y;
+		}
+		else
+		{
+			if( x < contourX[y]) 
+				contourX[y] = x;
+		}
+		e -= dy;
+		if(e < 0)
+		{
+			e += dx;
+			y += yStep;
+		}
+	}
+}
+
+void Renderer::RasterizeTriangle(vec4 v1, vec4 v2, vec4 v3)
+{
+	vec2 sf = ScaleFactor();
+	mat4 ft = Scale( sf.x , sf.y, 1) * Translate(1,1,0)  * m_camera->Projection();
+	v1 = ft * v1;
+	v2 = ft * v2;
+	v3 = ft * v3;
+
+	v1 = v1 / v1.w;
+	v2 = v2 / v2.w;
+	v3 = v3 / v3.w;
+
+	int xMin = min( min(v1.x, v2.x), v3.x);
+	int xMax = max( max(v1.x, v2.x), v3.x);
+	int yMin = min( min(v1.y, v2.y), v3.y);
+	int yMax = max( max(v1.y, v2.y), v3.y);
+
+	if( yMin > m_height || yMax < 0 || xMin > m_width || xMax < 0) return;
+
+	xMin = max( xMin, 0);
+	yMin = max( yMin, 0);
+	xMax = min( xMax, m_width);
+	yMax = min( yMax, m_height-1);
+
+	foo(v1,v2,v3);
+
+	vec3 crosProd = cross(vec3(v2.x,v2.y,0) - vec3(v1.x,v1.y,0), vec3(v3.x,v3.y,0) - vec3(v1.x,v1.y,0));
+
+	if(crosProd.z < 0)
+	{
+		swap(v2,v3);
+	}
+
+	if(v2.y > v3.y)
+	{
+		ScanLeft(v1,v2,contourX);
+		ScanLeft(v2,v3,contourX);
+		ScanRight(v1,v3,contourX);
+	}
+	else
+	{
+		ScanLeft(v1,v2,contourX);
+		ScanRight(v2,v3,contourX);
+		ScanRight(v1,v3,contourX);
+	}
+	for( int i = yMin; i <= yMax; ++i)
+	{
+		int right = contourX[m_height + i];
+		int left = contourX[i];
+		if(right > m_width - 1 || left < 0 || left > right) 
+			continue;
+		for(int j = left; j <= right; j++)
+			PlotPixel(j,i);
+		;
+	}
+}
+
+void Renderer::DrawTriangle(vec4& v1, vec4& v2, vec4& v3)
+{
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	v1 = v1 / v1.w;
+	v2 = v2 / v2.w;
+	v3 = v3 / v3.w;
+	int count = (v1.z < zLow) + (v2.z < zLow) + (v3.z < zLow);
+	if( count == 3) return;
+	else if( count == 2)
+	{
+		if(v3.z < zLow)
+			swap(v1,v3);
+		if(v3.z < zLow)
+			swap(v2,v3);
+		vec4 vv1 = v1;
+		vec4 vv2 = v3;
+		vec4 vv3 = v2;
+		vec4 vv4 = v3;
+		clipLowZ(vv1,vv2,zLow);
+		clipLowZ(vv3,vv4,zLow);
+		assert( vv2 == vv4);
+		RasterizeTriangle(vv1,vv3,vv2);
+	}
+	else if( count == 1)
+	{
+		if(v3.z < zLow)
+			swap(v1,v3);
+		if(v2.z < zLow)
+			swap(v2,v1);
+		vec4 vv1 = v1;
+		vec4 vv2 = v2;
+		vec4 vv3 = v1;
+		vec4 vv4 = v3;
+		clipLowZ(vv1,vv2,zLow);
+		clipLowZ(vv3,vv4,zLow);
+		RasterizeTriangle(vv1,vv2,vv4);
+		RasterizeTriangle(vv1,vv3,vv4);
+	}
+	else
+	{
+		RasterizeTriangle(v1,v2,v3);
+	}
+}
+
+void Renderer::DrawTriangles(vector<Vertex>& vertices)
+{
+	mat4 view = m_camera->View();
+	Vertex v1, v2, v3;
+	for (int i = 3; i <= vertices.size(); i+=3 )
+	{
+		v1 = view * vertices[i-3];
+		v2 = view * vertices[i-2];
+		v3 = view * vertices[i-1];
+		DrawTriangle(v1,v2,v3);
+	}
 }
 
 void Renderer::DrawNgonsFast(vector<Vertex>& vertices, int n, Rgb color) 
@@ -223,7 +678,7 @@ bool Renderer::clip(vec3& v1, vec3& v2)
 		{
 			vec3 k = v2 - v1;
 			float t = ( -1 - v1.y) / k. y;
-		v1 = v1 + t * k;
+			v1 = v1 + t * k;
 		}
 		if(v2.y > 1)
 		{
@@ -371,7 +826,7 @@ vec2 Renderer::ScaleFactor()
 	res.x = m_width/2;
 	res.y = m_height/2;
 	return res;
-	
+
 	float screenAR = (float) m_width / (float) m_height;
 	if (m_camera->Aspect() > screenAR)
 	{
@@ -392,7 +847,7 @@ vec2 Renderer::ScaleFactor()
 void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col)
 {
 	vec2 sf = ScaleFactor();
-	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
+	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0);
 	p1 = sp * p1;
 	p2 = sp * p2;
 	p1 = p1 / p1.w;
@@ -415,6 +870,253 @@ void Renderer::SetCamera(Camera* c)
 	m_camera = c;
 }
 
+// New
+void Renderer::DDrawTriangles(vector<Vertex>& vertices)
+{
+	mat4 projection = m_camera->Projection();
+	mat4 view = m_camera->View();
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	Vertex cur, next;
+	
+	for (int i = 0; i < vertices.size(); i+=3)
+	{
+		Vertex v1 = view * vertices[i];
+		Vertex v2 = view * vertices[i+1];
+		Vertex v3 = view * vertices[i+2];
+		vector<Vertex> poly;
+		vector<Rgb> colors;
+
+		vec4 p1,p2;
+		p1 = v1;
+		p2 = v2;
+		
+		if(clipZ(p1,p2,zLow,zHigh))
+		{
+			if (! (v1.z < zHigh && v1.z > zLow) ) // if not inside
+			{
+				poly.push_back(p1);
+			}
+			poly.push_back(p2);
+		}
+		p1 = v2;
+		p2 = v3;
+		if(clipZ(p1,p2,zLow,zHigh))
+		{
+			if (! (v2.z < zHigh && v2.z > zLow) ) // if not inside
+			{
+				poly.push_back(p1);
+			}
+			poly.push_back(p2);
+		}
+		p1 = v3;
+		p2 = v1;
+		if(clipZ(p1,p2,zLow,zHigh))
+		{
+			if (! (v3.z < zHigh && v3.z > zLow) ) // if not inside
+			{
+				poly.push_back(p1);
+			}
+			poly.push_back(p2);
+		}
+		for(int i = 0; i < poly.size(); i ++)
+		{
+			colors.push_back(Rgb(((double)i)/poly.size(), 0, 0));
+		}
+		RasterizePolygon(poly,colors);
+		
+		//fullTriangle(v1,v2,v3);
+	}
+}
+
+inline float interpolate(float t, float a, float b)
+{
+	return a + t * (b - a);
+}
+
+inline Rgb interpolate(float t, Rgb a, Rgb b)
+{
+	return Rgb(  a.r + t * (b.r - a.r),  a.g + t * (b.g - a.g), a.b + t * (b.b - a.b) );
+}
+
+Vertex Renderer::projectedToDisplay(Vertex v)
+{
+	vec2 sf = ScaleFactor();
+	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
+	v = sp * v;
+	v = v / v.w;
+	return v;
+}
+
+void Renderer::RasterizePolygon(vector<Vertex>& poly, vector<Rgb>& colors)
+{
+	mat4 projection = m_camera->Projection();
+	vector<Vertex> screen;
+	int ymin = m_height;
+	int ymax = 0;
+	for(int i = 0; i < poly.size(); ++i)
+	{
+		Vertex v = projectedToDisplay(projection * poly[i]);
+		v.z = poly[i].z;
+		ymin = min(ymin, (int)v.y);
+		ymax = max(ymax, (int)v.y);
+		screen.push_back(v);
+	}
+
+	ymin = max(0, ymin);
+	ymax = min(m_height, ymax);
+
+	// ymin is the first scanline now, ymax is the last
+
+	for (int y = ymin ; y <= ymax ; y++) 
+	{
+		Vertex l, r;
+		Rgb lc(1,1,1), rc(1,1,1);
+		l.x = m_width;
+		r.x = 0;
+		for (int i = 0; i < screen.size(); i++) 
+		{
+			int j = (i+1) % screen.size();
+			if ((screen[i].y > y) != (screen[j].y > y)) // if two vertices are on diffrent sides of the scanline
+			{
+				float t = ((float)y - screen[i].y)  / (screen[j].y - screen[i].y);
+				int x = (int) interpolate(t, screen[i].x, screen[j].x);
+
+				if (x < l.x)
+				{
+					lc = interpolate(t, colors[i], colors[j]);
+					l.x = x;
+					l.y = y;
+					l.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+				if (x >= r.x)
+				{
+					rc = interpolate(t, colors[i], colors[j]);
+					r.x = x;
+					r.y = y;
+					r.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+			}
+		}
+
+		int lb = max(0, (int)l.x);
+		int rb = min(m_width - 1, (int)r.x);
+
+		for (int x = lb; x <= rb; x++)
+		{
+			float t = ((float)x - l.x) / (r.x - l.x);
+			float z = interpolate(t, l.z, r.z);
+
+			if (z > m_zbuffer[y*m_width + x])
+			{
+				Rgb pixCol = interpolate(t, lc, rc);
+				PlotPixel(x, y, pixCol);
+				m_zbuffer[y*m_width + x] = z;
+			}
+		}
+	}
+	for(int i = 0; i < screen.size(); i++)
+	{
+		int j = (i+1) % screen.size();
+		DrawLine(vec2(screen[i].x,screen[i].y),vec2(screen[j].x,screen[j].y),Rgb(0,1,0));
+	}
+}
+
+void Renderer::fullTriangle(Vertex v1, Vertex v2, Vertex v3)
+{
+	mat4 projection = m_camera->Projection();
+	vector<Vertex> poly, screen;
+	vector<Rgb> colors;
+	poly.push_back(v1); screen.push_back(projectedToDisplay(projection * v1)); colors.push_back(Rgb(1,0,0));
+	poly.push_back(v2); screen.push_back(projectedToDisplay(projection * v2)); colors.push_back(Rgb(0,1,0));
+	poly.push_back(v3); screen.push_back(projectedToDisplay(projection * v3)); colors.push_back(Rgb(0,0,1));
+
+
+
+	int ymin = m_height;
+	int ymax = 0;
+
+	for (int i = 0; i < screen.size(); i++) {
+		screen[i].z = poly[i].z;
+		ymin = min(ymin, (int)screen[i].y);
+		ymax = max(ymax, (int)screen[i].y);
+	}
+
+	ymin = max(0, ymin);
+	ymax = min(m_height, ymax);
+
+	CString tmp; tmp.Format("Ymin: %d, Ymax: %d\n", ymin, ymax);
+	::OutputDebugStringA(tmp);
+
+	// ymin is the first scanline now, ymax is the last
+
+	for (int y = ymin ; y <= ymax ; y++) 
+	{
+		Vertex l, r;
+		Rgb lc(1,1,1), rc(1,1,1);
+		l.x = m_width;
+		r.x = 0;
+		for (int i = 0; i < screen.size(); i++) 
+		{
+			int j = (i+1) % screen.size();
+			if ((screen[i].y > y) != (screen[j].y > y)) // if two vertices are on diffrent sides of the scanline
+			{
+				float t = ((float)y - screen[i].y)  / (screen[j].y - screen[i].y);
+				int x = (int) interpolate(t, screen[i].x, screen[j].x);
+
+				if (x < l.x)
+				{
+					lc = interpolate(t, colors[i], colors[j]);
+					l.x = x;
+					l.y = y;
+					l.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+				if (x >= r.x)
+				{
+					rc = interpolate(t, colors[i], colors[j]);
+					r.x = x;
+					r.y = y;
+					r.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+			}
+		}
+
+		int lb = max(0, (int)l.x);
+		int rb = min(m_width - 1, (int)r.x);
+
+		/*float t = ((float)lb - l.x) / (r.x - l.x);
+		float z = interpolate(t, l.z, r.z);
+
+		Rgb pixCol = interpolate(t, lc, rc);
+		PlotPixel(lb, y, pixCol);
+		m_zbuffer[y*m_width + lb] = z;*/
+
+		for (int x = lb; x <= rb; x++)
+		{
+			float t = ((float)x - l.x) / (r.x - l.x);
+			float z = interpolate(t, l.z, r.z);
+
+			if (z > m_zbuffer[y*m_width + x])
+			{
+				Rgb pixCol = interpolate(t, lc, rc);
+				PlotPixel(x, y, pixCol);
+				m_zbuffer[y*m_width + x] = z;
+			}
+		}
+
+
+	}
+
+	/*DrawLine(vec2(0, ymin), vec2(m_width, ymin), Rgb(0,0,0));
+	DrawLine(vec2(0, ymax), vec2(m_width, ymax), Rgb(0,1,0));
+
+	for(int i = 0; i < screen.size(); i++) {
+	int j  = (i + 1) % screen.size();
+	DrawLine(vec2(screen[i].x, screen[i].y), vec2(screen[j].x, screen[j].y), Rgb((double)i/2,0,0));
+	}
+	return;*/
+
+}
 
 
 #pragma region  // Don't touch.

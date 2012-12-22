@@ -78,7 +78,8 @@ void MeshModel::loadFile(string fileName)
 void MeshModel::draw(Renderer * r, Rgb color)
 {
 	vector<Vertex> vp = transformVertices();
-	r->DrawNgons(vp, 3, color);
+	r->DDrawTriangles(vp);
+	//r->DrawNgons(vp,3,color);
 	if (_drawBB) 
 	{
 		drawBoundingBox(r);
