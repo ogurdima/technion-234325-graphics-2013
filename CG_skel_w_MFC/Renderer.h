@@ -12,6 +12,7 @@
 
 using namespace std;
 
+enum ShadingType {SHADING_FLAT, SHADING_GOURARD, SHADING_PHONG, SHADING_WIREFRAME };
 
 class Renderer
 {
@@ -22,8 +23,8 @@ class Renderer
 	Rgb m_bg;
 	int* contourX;
 	vector<Light*> m_lights;
-
 	int m_specularPower;
+	ShadingType m_shadingType;
 
 	//////////////////////////////
 	// openGL stuff. Don't touch.
@@ -36,7 +37,7 @@ class Renderer
 
 
 	
-	
+	Rgb GetColor(Vertex at, vec4 n, vec4 camLoc, MaterialColor material);
 
 	void DrawTriangle2D(vec2 v1, vec2 v2, vec2 v3, Rgb col = Rgb(1,1,1) );
 	void DrawLine(vec2 p1, vec2 p2, Rgb col = Rgb(1,1,1));
@@ -52,6 +53,7 @@ public:
 	~Renderer(void);
 	void Init();
 	void SetLights(vector<Light*> lights);
+	void SetShading(ShadingType t);
 	//--------------------------------------------------------------------
 	// Buffer stuff
 	//--------------------------------------------------------------------
@@ -78,8 +80,16 @@ public:
 	// new
 	Vertex projectedToDisplay(Vertex v);
 	void fullTriangle(Vertex v1, Vertex v2, Vertex v3);
-	void DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultColor);
-	void RasterizePolygon(vector<Vertex>& poly, vector<Rgb>& colors);
+	void DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultColor, vector<vec4>& vertexNormals = vector<vec4>(), vector<MaterialColor>& vertexColors = vector<MaterialColor>());
+	
+
+	void FlatRasterizePolygon(vector<Vertex>& poly, Rgb color);
+	void GouraudRasterizePolygon(vector<Vertex>& poly, vector<Rgb>& colors);
+	void PhongRasterizePolygon(vector<Vertex>& poly, vector<MaterialColor>& colors, vector<vec4>& normals);
+
+	void GetDrawablePoly(vector<Vertex>& vertices, vector<Vertex>& outPoly);
+	void GetDrawablePoly(vector<Vertex>& vertices, vector<Rgb>& colors, vector<Vertex>& outPoly, vector<Rgb>& outColors);
+	void GetDrawablePoly(vector<Vertex>& vertices, vector<MaterialColor>& colors, vector<vec4>& normals, vector<Vertex>& outPoly, vector<MaterialColor>& outColors, vector<vec4>& outNormals);
 
 	//lines
 	void DrawLine3D(vec3 v1, vec3 v2, Rgb col = Rgb(1,1,1));
@@ -89,4 +99,5 @@ public:
 	// Camera stuff
 	//--------------------------------------------------------------------
 	void SetCamera(Camera* c);
+
 };

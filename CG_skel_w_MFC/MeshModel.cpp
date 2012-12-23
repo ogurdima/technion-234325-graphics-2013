@@ -78,8 +78,16 @@ void MeshModel::loadFile(string fileName)
 void MeshModel::draw(Renderer * r, Rgb color)
 {
 	vector<Vertex> vp = transformVertices();
-	r->DDrawTriangles(vp, _defaultColor);
-	//r->DrawNgons(vp,3,color);
+	vector<vec4> normalPairs = transformNormals(1);
+	vector<vec4> normals;
+	if (normalPairs.size() != 0) {
+		for (int i = 0; i < normalPairs.size(); i+=2)
+		{
+			normals.push_back(  normalize(normalPairs[i+1] - normalPairs[i])  );
+		}
+	}
+	r->DDrawTriangles(vp, _defaultColor, normals);
+	//r->DrawNgons(vp,3,Rgb(0,1,0));
 	if (_drawBB) 
 	{
 		drawBoundingBox(r);

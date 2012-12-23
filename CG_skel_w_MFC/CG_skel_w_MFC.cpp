@@ -40,6 +40,7 @@
 #define MAIN_SHOW_WORLD_FRAME			8
 #define MAIN_ADD_PRIMITIVE				9
 #define MAIN_TEST_DIALOG				10
+#define MAIN_TOGGLE_SHADING				11
 
 
 #define MODEL_SHOW_VERTEX_NORMALS		20
@@ -58,6 +59,11 @@
 #define LENS_ORTHO						341
 #define LENS_PERSPECTIVE				342
 #define LENS_FRUSTUM					343
+
+#define MENU_SHADING_WIREFRAME			401
+#define MENU_SHADING_FLAT				402
+#define MENU_SHADING_GOURAUD			403
+#define MENU_SHADING_PHONG				404
 
 
 //----------------------------------------------------------------------------
@@ -579,6 +585,30 @@ void menuActiveCamera(int id)
 	glutPostRedisplay();
 }
 
+void menuRenderer(int id)
+{
+	switch (id)
+	{
+	case MENU_SHADING_WIREFRAME:
+		renderer->SetShading(SHADING_WIREFRAME);
+		break;
+
+	case MENU_SHADING_FLAT:
+		renderer->SetShading(SHADING_FLAT);
+		break;
+
+	case MENU_SHADING_GOURAUD:
+		renderer->SetShading(SHADING_GOURARD);
+		break;
+
+	case MENU_SHADING_PHONG:
+		renderer->SetShading(SHADING_PHONG);
+		break;
+	}
+
+	glutPostRedisplay();
+}
+
 void initMenu()
 {
 	int activeModelMenuId = glutCreateMenu(menuActiveModel);
@@ -600,6 +630,13 @@ void initMenu()
 	glutAddMenuEntry("Look At", CAMERA_SET_FOCUS_POINT);
 	glutAddMenuEntry("Focus on Active Model", CAMERA_FOCUS_ON_ACTIVE_MODEL);
 	glutAddSubMenu("Set lens type", lensMenu);
+
+	int rendererMenuId = glutCreateMenu(menuRenderer);
+	glutAddMenuEntry("Wireframe", MENU_SHADING_WIREFRAME);
+	glutAddMenuEntry("Flat", MENU_SHADING_FLAT);
+	glutAddMenuEntry("Gouraud", MENU_SHADING_GOURAUD);
+	glutAddMenuEntry("Phong", MENU_SHADING_PHONG);
+	
 	
 
 	glutCreateMenu(mainMenu);
@@ -612,8 +649,8 @@ void initMenu()
 	glutAddMenuEntry("Add Camera",MAIN_ADD_CAMERA);
 	glutAddSubMenu("Active Camera", activeCameraMenuId);
 	glutAddMenuEntry("Add primitive", MAIN_ADD_PRIMITIVE);
+	glutAddSubMenu("Renderer", rendererMenuId);
 
-	glutAddMenuEntry("Test Dialog", MAIN_TEST_DIALOG);
 
 
 	
@@ -660,8 +697,8 @@ int my_main( int argc, char **argv )
 	float rightView = 4;
 	float top = 3;
 	float bottom = -3;
-	float zNear = 2;
-	float zFar = 7;
+	float zNear = 0.5;
+	float zFar = 20;
 
 	//c->Ortho(-p,p,-p,p,-p,p);
 	//c->LookAt(vec4(3,3,4,0), vec4(3,0,4,0),vec4(0,1,0,0));
@@ -674,6 +711,7 @@ int my_main( int argc, char **argv )
 		ac->Ortho(leftView, rightView, bottom, top, zNear, zFar);
 	}
 	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(7,7,7,0), Rgb(1,1,1)));
+	renderer->SetShading(SHADING_GOURARD);
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
 	//----------------------------------------------------------------------------

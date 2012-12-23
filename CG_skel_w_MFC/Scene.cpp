@@ -74,6 +74,32 @@ void Scene::draw()
 		model->draw(m_renderer);
 	}
 
+	for (int i = 0; i < lights.size(); i++) {
+		Light* l = lights[i];
+		if (l->lightType != REGULAR_L || l->lightSource != POINT_S) {
+			continue;
+		}
+		float factor = 0.5;
+		Vertex cntr = l->location;
+		cntr.w = 1;
+		Vertex north = cntr + vec4(factor,0,0,0);
+		Vertex south = cntr - vec4(factor,0,0,0);
+		Vertex east = cntr + vec4(0,factor,0,0);
+		Vertex west = cntr - vec4(0,factor,0,0);
+		Vertex top = cntr + vec4(0,0,factor,0);
+		Vertex bot = cntr - vec4(0,0,factor,0);
+
+		vector<Vertex> segments;
+		segments.push_back(north);
+		segments.push_back(south);
+		segments.push_back(east);
+		segments.push_back(west);
+		segments.push_back(top);
+		segments.push_back(bot);
+
+		m_renderer->DrawNgons(segments, 2, Rgb(1, 1, 0));
+	}
+
 	if (drawCameras) {
 		for (int i = 0; i < cameras.size(); i++) {
 			Camera* c = cameras[i];
@@ -134,11 +160,11 @@ void Scene::AddLight(Light l)
 
 void Scene::Clean()
 {
-	activeCamera = -1;
-	activeLight = -1;
+	//activeCamera = -1;
+	//activeLight = -1;
 	activeModel = -1;
 	models.clear();
-	cameras.clear();
+	//cameras.clear();
 
 	m_renderer->SwapBuffers();
 }
