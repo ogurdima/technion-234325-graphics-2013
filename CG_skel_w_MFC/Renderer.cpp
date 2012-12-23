@@ -440,7 +440,7 @@ void Renderer::DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultCol
 						c += (light->lightColor * coss) * defaultColor.diffuse; //diffuse
 						//V-2*N(V.N)
 					}
-					float csss = dot(normalize(reflectedRay), normalize(camLoc - m));
+					float csss = dot(normalize(reflectedRay), normalize(m - camLoc));
 					if(csss > 0)
 					{
 						float powww = pow(csss, m_specularPower);
