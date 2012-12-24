@@ -2,15 +2,17 @@
 #include "Camera.h"
 
 Camera::Camera() :
-	eye(vec4(0,0,0,0)),
-	at(vec4(0,0,-1,0)),
-	up(vec4(0,1,0,0)),
-	aspect(1),
-	fovy(M_PI/2)
+	eye(vec4(-1,0,0,0)),
+	at(vec4(0,0,0,0)),
+	up(vec4(0,0,1,0)),
+	aspect(4/3),
+	fovy(M_PI/6),
+	zNear(0.2),
+	zFar(20),
+	cTransform(Identity4())
 {
-	cTransform = Identity4();
-	lensMode = FRUSTUM;
-	Ortho(-1,1,-1,1,-1,1);
+	LookAt(eye, at, up);
+	Perspective(fovy, aspect, zNear, zFar);
 }
 
 void Camera::LookAt(const vec4& eye, const vec4& at, const vec4& up )

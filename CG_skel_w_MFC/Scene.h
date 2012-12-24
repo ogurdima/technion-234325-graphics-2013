@@ -26,6 +26,7 @@ protected:
 	int activeCamera;
 	bool drawCameras;
 	bool drawWorldFrame;
+	bool drawLights;
 
 	
 
@@ -34,7 +35,7 @@ public:
 	~Scene();
 	Scene(Renderer *renderer);
 	void loadOBJModel(string fileName);
-	void Clean();
+	void RemoveGeometry();
 	void AddCamera(Camera c);
 	void AddMeshModel(MeshModel m );
 	void AddLight(Light l);
@@ -52,11 +53,15 @@ public:
 	void draw();
 	void drawWorldAxes();
 	void drawModelAxes(Model* m);
+	void DrawSnowflake(vec4 at, float len, Rgb col = Rgb(0,0,0));
+	void DrawLights();
+	void DrawCameras();
 	bool isLegal();
 	void ToggleActiveModel();
 	void ToggleActiveCamera();
 	bool ToggleShowCameras();
 	bool ToggleShowWorldFrame();
+	bool ToggleShowLights();
 
 	
 };

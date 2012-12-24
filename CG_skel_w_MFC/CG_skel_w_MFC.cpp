@@ -33,14 +33,13 @@
 #define MAIN_DEMO						1
 #define MAIN_ABOUT						2
 #define MAIN_TRY_DIALOG					3
-#define MAIN_CLEAN_SCENE				4
+#define MAIN_REMOVE_GEOMETRY			4
 #define MAIN_ADD_CAMERA					5
 #define MAIN_ADD_MODEL					6
 #define MAIN_RENDER_CAMERAS				7
 #define MAIN_SHOW_WORLD_FRAME			8
 #define MAIN_ADD_PRIMITIVE				9
-#define MAIN_TEST_DIALOG				10
-#define MAIN_TOGGLE_SHADING				11
+#define MAIN_RENDER_LIGHTS				10
 
 
 #define MODEL_SHOW_VERTEX_NORMALS		20
@@ -73,6 +72,7 @@ Scene *scene;
 Renderer *renderer;
 int last_x,last_y;
 bool lb_down, rb_down, mb_down, ctr_down, shift_down, alt_down;
+float smoothFactor;
 
 
 void parseElem(string cmd, float& zNear, float& zFar, float& top, float& bot, float& left, float& right, float& fovy, float& aspect) 
@@ -257,7 +257,14 @@ void keyboard( unsigned char key, int x, int y )
 		break;
 	case 'c':
 		scene->ToggleActiveCamera();
+		smoothFactor = (scene->ActiveCam()->Right() - scene->ActiveCam()->Left()) / 10;
 		glutPostRedisplay();
+		break;
+	case ',':
+		smoothFactor /= 2;
+		break;
+	case '.':
+		smoothFactor *= 2;
 		break;
 	}
 }
@@ -324,7 +331,8 @@ void motion(int x, int y)
 	last_y = y;
 	Camera* ac = scene->ActiveCam();
 	MeshModel* am = scene->ActiveModel();
-	if (NULL == ac || (dx ==0 && dy == 0) || am == NULL)
+
+	if (NULL == ac || (dx ==0 && dy == 0) || (am == NULL && alt_down))
 		return;
 	vec3 eye = ac->Eye();
 	vec3 up = ac->Up();
@@ -333,7 +341,6 @@ void motion(int x, int y)
 	vec3 visionAxis = (at - eye);
 	vec3 axis1 = normalize( cross( visionAxis, up ) );
 	vec3 axis2 = normalize( cross( axis1, visionAxis ) );
-	float smoothFactor = (ac->Right() - ac->Left()) / 50.0;
 	if (ctr_down && lb_down) {
 		float len = length(visionAxis);
 		eye += (-(dx * axis1) * smoothFactor);
@@ -409,8 +416,8 @@ void mainMenu(int id)
 
 	switch (id)
 	{
-	case MAIN_CLEAN_SCENE:
-		scene->Clean();
+	case MAIN_REMOVE_GEOMETRY:
+		scene->RemoveGeometry();
 		glutPostRedisplay();
 		break;
 	case MAIN_ADD_MODEL:
@@ -444,13 +451,8 @@ void mainMenu(int id)
 		scene->AddMeshModel( PrimMeshModel());
 		glutPostRedisplay();
 		break;
-	case MAIN_TEST_DIALOG:
-		MColorDialog d;
-		d.m_clr_diffuse.r = 42;
-		d.m_clr_diffuse.g = 24;
-		d.m_clr_diffuse.b = 13;
-		d.DoModal();
-		// get new color from m_clr_diffuse and so on
+	case MAIN_RENDER_LIGHTS:
+		scene->ToggleShowLights();
 		break;
 	}
 }
@@ -637,12 +639,11 @@ void initMenu()
 	glutAddMenuEntry("Gouraud", MENU_SHADING_GOURAUD);
 	glutAddMenuEntry("Phong", MENU_SHADING_PHONG);
 	
-	
-
 	glutCreateMenu(mainMenu);
 	glutAddMenuEntry("Show world frame",MAIN_SHOW_WORLD_FRAME);
 	glutAddMenuEntry("Render Cameras",MAIN_RENDER_CAMERAS);
-	glutAddMenuEntry("Clear Screen",MAIN_CLEAN_SCENE);
+	glutAddMenuEntry("Render Lights",MAIN_RENDER_LIGHTS);
+	glutAddMenuEntry("Remove all Models",MAIN_REMOVE_GEOMETRY);
 	glutAddMenuEntry("Add Model",MAIN_ADD_MODEL);
 	glutAddSubMenu("Active Model", activeModelMenuId);
 
@@ -650,14 +651,6 @@ void initMenu()
 	glutAddSubMenu("Active Camera", activeCameraMenuId);
 	glutAddMenuEntry("Add primitive", MAIN_ADD_PRIMITIVE);
 	glutAddSubMenu("Renderer", rendererMenuId);
-
-
-
-	
-
-	//glutAddMenuEntry("Demo",MAIN_DEMO);
-	//glutAddMenuEntry("Try Dialog",MAIN_TRY_DIALOG);
-	//glutAddMenuEntry("About",MAIN_ABOUT);
 
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
@@ -684,34 +677,39 @@ int my_main( int argc, char **argv )
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
 
-
-	renderer = new Renderer(800,800, Rgb(0.86, 0.86, 0.78));
-	scene = new Scene(renderer);
-	Camera c = Camera();
-	float p = 3;
-	
-	vec3 eye = vec3(3,3,3);
-	vec3 at = vec3(0,0,0);
-	vec3 up = vec3(0,1,0);
-	float leftView = -4;
-	float rightView = 4;
-	float top = 3;
-	float bottom = -3;
-	float zNear = 0.5;
-	float zFar = 20;
-
-	//c->Ortho(-p,p,-p,p,-p,p);
-	//c->LookAt(vec4(3,3,4,0), vec4(3,0,4,0),vec4(0,1,0,0));
-	//c->Frustum(-3,3,-3,3,2,8);
-	scene->AddCamera(c);
-	Camera* ac = scene->ActiveCam();
-	if (ac != NULL) {
-		ac->LookAt(eye, at, up);
-		//ac->Frustum(leftView, rightView, bottom, top, zNear, zFar);
-		ac->Ortho(leftView, rightView, bottom, top, zNear, zFar);
-	}
-	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(7,7,7,0), Rgb(1,1,1)));
+	//----------------------------------------------------------------------------
+	// Create initial renderer
+	//----------------------------------------------------------------------------
+	renderer = new Renderer(800,800, Rgb(0.95, 0.95, 0.95));
 	renderer->SetShading(SHADING_GOURARD);
+	
+	//----------------------------------------------------------------------------
+	// Create initial cameras
+	//----------------------------------------------------------------------------
+	Camera c1 = Camera(); // The default camera
+	c1.LookAt(vec3(0,5,0) , vec3(0,0,0) , vec3(0,0,1) );
+	c1.Ortho(-4, 4, -3, 3, 0.5, 20);
+	Camera c2 = Camera(); // One more
+	c2.LookAt(vec3(5,5,5) , vec3(0,0,0) , vec3(0,0,1) );
+	c2.Perspective(30, 4/3, 0.5, 20);
+
+	smoothFactor = (c1.Right() - c1.Left()) / 10.0;
+
+	//----------------------------------------------------------------------------
+	// Create initial scene
+	//----------------------------------------------------------------------------
+	scene = new Scene(renderer);
+
+	scene->AddCamera(c2);
+	scene->AddCamera(c1);
+	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(7,7,7,0), Rgb(1,1,1)));
+
+	scene->ToggleShowCameras();
+	scene->ToggleShowLights();
+	scene->ToggleShowWorldFrame();
+
+	
+	
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
 	//----------------------------------------------------------------------------

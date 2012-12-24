@@ -840,6 +840,9 @@ void Renderer::FlatRasterizePolygon(vector<Vertex>& poly, Rgb color)
 
 			if (z > m_zbuffer[y*m_width + x])
 			{
+				if (x == 0) {
+					bool ok = true;
+				}
 				PlotPixel(x, y, color);
 				m_zbuffer[y*m_width + x] = z;
 			}
@@ -1519,6 +1522,8 @@ void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
 	mat4 fp = m_camera->Projection() * m_camera->View();
 	vec4 p1 = fp * vec4(v1,1);
 	vec4 p2 = fp * vec4(v2,1);
+	if (abs(p1.w) < 0.001 || abs(p2.w) < 0.001)
+		return;
 	if (clip(p1, p2)) 
 	{
 		DrawLine(p1, p2, col);
