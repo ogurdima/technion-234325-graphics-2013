@@ -11,7 +11,8 @@ activeLight(-1),
 activeCamera(-1),
 m_renderer(NULL),
 drawCameras(false),
-drawWorldFrame(false)
+drawWorldFrame(false),
+drawLights(false)
 {
 
 }
@@ -22,7 +23,8 @@ activeModel(-1),
 activeLight(-1),
 activeCamera(-1),
 drawCameras(false),
-drawWorldFrame(false)
+drawWorldFrame(false),
+drawLights(false)
 {
 
 }
@@ -74,65 +76,81 @@ void Scene::draw()
 		model->draw(m_renderer);
 	}
 
-	for (int i = 0; i < lights.size(); i++) {
-		Light* l = lights[i];
-		if (l->lightType != REGULAR_L || l->lightSource != POINT_S) {
-			continue;
-		}
-		float factor = 0.5;
-		Vertex cntr = l->location;
-		cntr.w = 1;
-		Vertex north = cntr + vec4(factor,0,0,0);
-		Vertex south = cntr - vec4(factor,0,0,0);
-		Vertex east = cntr + vec4(0,factor,0,0);
-		Vertex west = cntr - vec4(0,factor,0,0);
-		Vertex top = cntr + vec4(0,0,factor,0);
-		Vertex bot = cntr - vec4(0,0,factor,0);
-
-		vector<Vertex> segments;
-		segments.push_back(north);
-		segments.push_back(south);
-		segments.push_back(east);
-		segments.push_back(west);
-		segments.push_back(top);
-		segments.push_back(bot);
-
-		m_renderer->DrawNgons(segments, 2, Rgb(1, 1, 0));
+	if (drawLights)
+	{
+		DrawLights();
 	}
-
-	if (drawCameras) {
-		for (int i = 0; i < cameras.size(); i++) {
-			Camera* c = cameras[i];
-			if (c == ActiveCam()) continue;
-			float factor = 0.2;
-			Vertex cntr = Vertex(c->Eye(), 1);
-			Vertex north = cntr + vec4(factor,0,0,0);
-			Vertex south = cntr - vec4(factor,0,0,0);
-			Vertex east = cntr + vec4(0,factor,0,0);
-			Vertex west = cntr - vec4(0,factor,0,0);
-			Vertex top = cntr + vec4(0,0,factor,0);
-			Vertex bot = cntr - vec4(0,0,factor,0);
-
-			vector<Vertex> segments;
-			segments.push_back(north);
-			segments.push_back(south);
-			segments.push_back(east);
-			segments.push_back(west);
-			segments.push_back(top);
-			segments.push_back(bot);
-
-			m_renderer->DrawNgons(segments, 2, Rgb(1, 0, 0));
-		}
+	if (drawCameras) 
+	{
+		DrawCameras();
 	}
 	
 	m_renderer->SwapBuffers();
 }
 
+void Scene::DrawSnowflake(vec4 at, float len, Rgb col)
+{
+	Vertex cntr = at;
+	Vertex north = cntr + vec4(len,0,0,0);
+	Vertex south = cntr - vec4(len,0,0,0);
+	Vertex east = cntr + vec4(0,len,0,0);
+	Vertex west = cntr - vec4(0,len,0,0);
+	Vertex top = cntr + vec4(0,0,len,0);
+	Vertex bot = cntr - vec4(0,0,len,0);
+
+	vector<Vertex> segments;
+	segments.push_back(north);
+	segments.push_back(south);
+	segments.push_back(east);
+	segments.push_back(west);
+	segments.push_back(top);
+	segments.push_back(bot);
+
+	m_renderer->DrawNgons(segments, 2, col);
+}
+
+void Scene::DrawCameras()
+{
+	for (int i = 0; i < cameras.size(); i++) {
+			Camera* c = cameras[i];
+			if (c == ActiveCam()) continue;
+			float factor = 0.3;
+			Vertex cntr = Vertex(c->Eye(), 1);
+			Vertex focusPt = Vertex(c->At(), 1);
+			DrawSnowflake(cntr, factor, Rgb(0,0,1));
+
+			vector<Vertex> segments;
+			segments.push_back(cntr);
+			segments.push_back((focusPt - cntr) * 3 * factor);
+			//m_renderer->DrawNgons(segments, 2, Rgb(0, 0, 1));
+		}
+}
+
+void Scene::DrawLights()
+{
+	for (int i = 0; i < lights.size(); i++) {
+		Light* l = lights[i];
+		if (l->lightType != REGULAR_L || l->lightSource != POINT_S) {
+			continue;
+		}
+		float factor = 0.4;
+		Vertex cntr = l->location;
+		cntr.w = 1;
+		DrawSnowflake(cntr, factor, Rgb(1,0.5,0));
+		
+		// Ray from each point ligt source to the camera focus point
+		vector<Vertex> segments;
+		segments.push_back(cntr);
+		segments.push_back(Vertex(ActiveCam()->At(), 1));
+		m_renderer->DrawNgons(segments, 2, Rgb(1, 0.5, 0));
+	}
+}
+
 void Scene::drawWorldAxes()
 {
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(3,0,0), Rgb(0.5, 0, 0) );
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,3,0), Rgb(0, 0.5, 0) );
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,0,3), Rgb(0, 0.5, 0.5) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(10,0,0), Rgb(0.6, 0, 0) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,10,0), Rgb(0, 0.6, 0) );
+	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,0,10), Rgb(0, 0, 0.6) );
 }
 
 void Scene::drawModelAxes(Model* m)
@@ -158,19 +176,15 @@ void Scene::AddLight(Light l)
 	lights.push_back(ll);
 }
 
-void Scene::Clean()
+void Scene::RemoveGeometry()
 {
-	//activeCamera = -1;
-	//activeLight = -1;
 	activeModel = -1;
 	models.clear();
-	//cameras.clear();
-
 	m_renderer->SwapBuffers();
 }
 
 bool Scene::isLegal() {
-	return (activeModel != -1 && activeCamera != -1 && models.size() > activeModel && cameras.size() > activeCamera);
+	return (activeCamera != -1  && cameras.size() > activeCamera);
 }
 
 Camera* Scene::ActiveCam()
@@ -216,6 +230,13 @@ bool Scene::ToggleShowWorldFrame()
 {
 	bool oldval = drawWorldFrame;
 	drawWorldFrame = ! drawWorldFrame;
+	return oldval;
+}
+
+bool Scene::ToggleShowLights()
+{
+	bool oldval = drawLights;
+	drawLights = !drawLights;
 	return oldval;
 }
 
