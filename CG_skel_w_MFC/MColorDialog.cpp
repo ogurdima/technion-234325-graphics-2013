@@ -13,16 +13,13 @@ IMPLEMENT_DYNAMIC(MColorDialog, CDialog)
 MColorDialog::MColorDialog(CWnd* pParent /*=NULL*/)
 	: CDialog(MColorDialog::IDD, pParent)
 {
-
 }
 
 
 BOOL MColorDialog::OnInitDialog()
 {
-	//UpdateData(TRUE);
     CDialog::OnInitDialog();
     SetWindowText("Pick a Color");
-
 	colorDataToWidget(DIFFUSE);
 	colorDataToWidget(EMISSIVE);
 	colorDataToWidget(SPECULAR);

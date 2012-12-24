@@ -494,7 +494,6 @@ void menuActiveModel(int id)
 			d.m_clr_emissive = cp.emissive;
 			d.m_clr_specular = cp.specular;
 			d.m_clr_ambient = cp.ambient;
-
 			if(IDOK == d.DoModal())
 			{
 				cp.diffuse = d.m_clr_diffuse;
@@ -702,7 +701,9 @@ int my_main( int argc, char **argv )
 
 	scene->AddCamera(c2);
 	scene->AddCamera(c1);
-	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(7,7,7,0), Rgb(1,1,1)));
+	//scene->AddLight(Light(REGULAR_L, POINT_S, vec4(7,7,7,0), Rgb(1,1,1)));
+	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), Rgb(1,1,1), vec4(0,0,-1,0)));
+	scene->AddLight(Light(AMBIENT_L, PARALLEL_S, vec4(0,0,0,0), Rgb(0.6,0,0), vec4(0,0,0,0)));
 
 	scene->ToggleShowCameras();
 	scene->ToggleShowLights();
