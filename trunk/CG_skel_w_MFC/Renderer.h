@@ -25,6 +25,13 @@ class Renderer
 	vector<Light*> m_lights;
 	int m_specularPower;
 	ShadingType m_shadingType;
+	Rgb m_fogColor;
+	bool m_fogEffect;
+	
+	float *m_colorBuf;
+	int m_bufW, m_bufH;
+	int m_aaX;
+
 
 	//////////////////////////////
 	// openGL stuff. Don't touch.
@@ -64,6 +71,9 @@ public:
 	void ClearColorBuffer();
 	void ClearDepthBuffer();
 
+	void SetAntiAliasing(int x);
+	void AliasBufToOutputBuf();
+
 	//--------------------------------------------------------------------
 	// Drawing stuff
 	//--------------------------------------------------------------------
@@ -80,8 +90,9 @@ public:
 	// new
 	Vertex projectedToDisplay(Vertex v);
 	void fullTriangle(Vertex v1, Vertex v2, Vertex v3);
-	void DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultColor, vector<vec4>& vertexNormals = vector<vec4>(), vector<MaterialColor>& vertexColors = vector<MaterialColor>());
+	void DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultColor, vector<vec4>& vertexNormals = vector<vec4>(), vector<MaterialColor> vertexColors = vector<MaterialColor>());
 	
+	void PlotPixel(int x, int y, float z, Rgb color);
 
 	void FlatRasterizePolygon(vector<Vertex>& poly, Rgb color);
 	void GouraudRasterizePolygon(vector<Vertex>& poly, vector<Rgb>& colors);

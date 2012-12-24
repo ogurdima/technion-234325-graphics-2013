@@ -13,10 +13,10 @@ public:
 	LightSource lightSource;
 	vec4 location;
 	Rgb lightColor;
+	vec4 direction;
 
 
-
-	Light(LightType _lightType, LightSource _lightSource, vec4 _location, Rgb _lightColor);
+	Light(LightType _lightType, LightSource _lightSource, vec4 _location, Rgb _lightColor, vec4 _direction);
 	Light(const Light& l);
 	~Light(void);
 };

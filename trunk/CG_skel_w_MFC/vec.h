@@ -13,6 +13,7 @@
 #include <cmath>
 #include "GL/glew.h"
 #define M_PI 3.14159265358979323846264338327
+#define M_EXP 2.718281828459
 struct vec2 {
 
     GLfloat  x;
