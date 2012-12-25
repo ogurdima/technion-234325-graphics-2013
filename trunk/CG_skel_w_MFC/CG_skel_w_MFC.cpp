@@ -26,48 +26,58 @@
 #include "PrimMeshModel.h"
 #include "MColorDialog.h"
 #include "MaterialColor.h"
+#include "ColorSelector.h"
 
 #define BUFFER_OFFSET( offset )   ((GLvoid*) (offset))
 
-#define FILE_OPEN						1
-#define MAIN_DEMO						1
-#define MAIN_ABOUT						2
-#define MAIN_TRY_DIALOG					3
-#define MAIN_REMOVE_GEOMETRY			4
-#define MAIN_ADD_CAMERA					5
-#define MAIN_ADD_MODEL					6
-#define MAIN_RENDER_CAMERAS				7
-#define MAIN_SHOW_WORLD_FRAME			8
-#define MAIN_ADD_PRIMITIVE				9
-#define MAIN_RENDER_LIGHTS				10
+#define MAIN_SHOW_WORLD_FRAME					1
+#define MAIN_RENDER_CAMERAS						2
+#define MAIN_RENDER_LIGHTS						3
+#define MAIN_REMOVE_GEOMETRY					4
+#define MAIN_REMOVE_CAMERAS						5
+#define MAIN_REMOVE_LIGHTS						6
+#define MAIN_ADD_CAMERA							7
+#define MAIN_ADD_MODEL							8
+#define MAIN_ADD_PRIMITIVE						9						
+#define MAIN_SET_BACKGROUND_COLOR				10						
 
 
-#define MODEL_SHOW_VERTEX_NORMALS		20
-#define MODEL_SHOW_FACE_NORMALS			21
-#define MODEL_SHOW_BOUNDING_BOX			22
-#define MODEL_SHOW_FRAME				23
-#define MODEL_NON_UNIFORM_SCALE			24
-#define MODEL_SET_DEFAULT_COLOR			25
+#define MODEL_SHOW_VERTEX_NORMALS				20
+#define MODEL_SHOW_FACE_NORMALS					21
+#define MODEL_SHOW_BOUNDING_BOX					22
+#define MODEL_SHOW_FRAME						23
+#define MODEL_NON_UNIFORM_SCALE					24
+#define MODEL_SET_MONOTON_COLOR					25
+#define MODEL_SET_RANDOM_COLOR					26
+#define MODEL_SET_PROGRESSIVE_COLOR				27
 
-#define CAMERA_SET_LOCATION				30
-#define CAMERA_SET_FOV					31
-#define CAMERA_SET_FOCUS_POINT			32
-#define CAMERA_FOCUS_ON_ACTIVE_MODEL	33
-#define CAMERA_SET_TYPE					34
+#define CAMERA_SET_LOCATION						30
+#define CAMERA_SET_FOV							31
+#define CAMERA_SET_FOCUS_POINT					32
+#define CAMERA_FOCUS_ON_ACTIVE_MODEL			33
+#define CAMERA_SET_TYPE							34
 
-#define LENS_ORTHO						341
-#define LENS_PERSPECTIVE				342
-#define LENS_FRUSTUM					343
+#define LENS_ORTHO								341
+#define LENS_PERSPECTIVE						342
+#define LENS_FRUSTUM							343
 
-#define MENU_SHADING_WIREFRAME			401
-#define MENU_SHADING_FLAT				402
-#define MENU_SHADING_GOURAUD			403
-#define MENU_SHADING_PHONG				404
+#define RENDERER_SHADING_WIREFRAME				401
+#define RENDERER_SHADING_FLAT					402
+#define RENDERER_SHADING_GOURAUD				403
+#define RENDERER_SHADING_PHONG					404
+#define RENDERER_SET_ANTIALIASING				405
+#define RENDERER_TOGGLE_FOG						406
+#define RENDERER_SET_FOG_COLOR					407
 
+#define LIGHT_AMBIENT							50
+#define LIGHT_POINT_SOURCE						51
+#define LIGHT_PARALLEL_SOURCE					52
 
+using namespace std;
 //----------------------------------------------------------------------------
 // Global variables
 //----------------------------------------------------------------------------
+CWinApp theApp;
 Scene *scene;
 Renderer *renderer;
 int last_x,last_y;
@@ -215,7 +225,6 @@ void parseFrustumCmd(string cmd)
 	parseFrustumCmd(after);
 }
 
-
 //----------------------------------------------------------------------------
 // Callbacks
 //----------------------------------------------------------------------------
@@ -234,7 +243,7 @@ void reshape( int width, int height )
 	switch (ac->getLensMode())
 	{
 		case ORTHO:
-			ac->Frustum(-x/2, x/2, -y/2, y/2, ac->ZNear(), ac->ZFar());
+			ac->Ortho(-x/2, x/2, -y/2, y/2, ac->ZNear(), ac->ZFar());
 			break;
 		case PERSPECTIVE:
 		case FRUSTUM:
@@ -247,6 +256,7 @@ void reshape( int width, int height )
 
 void keyboard( unsigned char key, int x, int y )
 {
+	Camera* ac = scene->ActiveCam();
 	switch ( key ) {
 	case 033:
 		exit( EXIT_SUCCESS );
@@ -266,7 +276,45 @@ void keyboard( unsigned char key, int x, int y )
 	case '.':
 		smoothFactor *= 2;
 		break;
+	case 'w': //nearer 
+		{
+			if (ac == NULL) break;
+			vec3 diff = ac->At() - ac->Eye();
+			if (length(diff) < 0.05) break;
+			vec3 newEye = ac->Eye() + 0.05 * diff;
+			vec3 newAt = ac->At() + 0.05 * diff;
+			ac->LookAt(newEye, newAt, ac->Up());
+		}
+		break;
+	case 's': //farther
+		{
+			if (ac == NULL) break;
+			vec3 diff = ac->At() - ac->Eye();
+			vec3 newEye = ac->Eye() - 0.05 * diff;
+			vec3 newAt = ac->At() - 0.05 * diff;
+			ac->LookAt(newEye, newAt, ac->Up());
+		}
+		break;
+	case 'a': // cursor left
+		{
+			if (ac == NULL) break;
+			vec3 diff = ac->At() - ac->Eye();
+			vec3 viewRight = cross(diff, ac->Up());
+			vec3 delta = - 0.05 * viewRight;
+			ac->LookAt(ac->Eye() + delta, ac->At() + delta, ac->Up());
+		}
+		break;
+	case 'd': // cursor right
+		{
+			if (ac == NULL) break;
+			vec3 diff = ac->At() - ac->Eye();
+			vec3 viewRight = cross(diff, ac->Up());
+			vec3 delta = 0.05 * viewRight;
+			ac->LookAt(ac->Eye() + delta, ac->At() + delta, ac->Up());
+		}
+		break;
 	}
+	glutPostRedisplay();
 }
 
 void mouse(int button, int state, int x, int y)
@@ -454,7 +502,24 @@ void mainMenu(int id)
 	case MAIN_RENDER_LIGHTS:
 		scene->ToggleShowLights();
 		break;
+	case MAIN_REMOVE_CAMERAS:
+		scene->RemoveCameras();
+		break;
+	case MAIN_REMOVE_LIGHTS:
+		scene->RemoveLights();
+		break;
+	case MAIN_SET_BACKGROUND_COLOR:
+		{
+			ColorSelector dlg;
+			if (IDOK == dlg.DoModal())
+			{
+				renderer->SetBackgroundColor(dlg.GetColor());
+			}
+		}
+		break;
 	}
+	glutPostRedisplay();
+
 }
 
 void menuActiveModel(int id)
@@ -486,7 +551,7 @@ void menuActiveModel(int id)
 			}
 		}
 		break;
-	case MODEL_SET_DEFAULT_COLOR:
+	case MODEL_SET_MONOTON_COLOR:
 		{
 			MColorDialog d;
 			MaterialColor cp = m->GetDefaultColor();
@@ -503,6 +568,17 @@ void menuActiveModel(int id)
 				m->SetDefaultColor(cp);
 			}
 		}
+		break;
+	case MODEL_SET_RANDOM_COLOR:
+		{
+			m->SetRandomColor();
+		}
+		break;
+	case MODEL_SET_PROGRESSIVE_COLOR:
+		{
+			m->SetProgressiveColor();
+		}
+		break;
 	}
 	glutPostRedisplay();
 }
@@ -581,8 +657,53 @@ void menuActiveCamera(int id)
 	case CAMERA_SET_TYPE:
 		break;
 	}
+	glutPostRedisplay();
+}
 
+void menuLight(int id)
+{
+	if (NULL == scene->ActiveCam())
+		return;
+	
+	switch (id)
+	{
+	case LIGHT_AMBIENT:
+		{
+			ColorSelector dlg;
+			if (IDOK == dlg.DoModal())
+			{
+				scene->AddLight( Light(AMBIENT_L, PARALLEL_S, vec4(0,0,0,0), dlg.GetColor(), vec4(0,0,0,0)));
+			}
+		}
+		break;
+	case LIGHT_PARALLEL_SOURCE:
+		{
+			CXyzDialog direction("Please specify a direction");
+			if (direction.DoModal() == IDOK) 
+			{
+				ColorSelector dlg;
+				if (IDOK == dlg.DoModal())
+				{
+					scene->AddLight( Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), dlg.GetColor(), vec4(direction.GetXYZ(),0) ));
+				}
+			}
+		}
+		break;
+	case LIGHT_POINT_SOURCE:
+		{
+			CXyzDialog position("Please specify a position");
+			if (position.DoModal() == IDOK) 
+			{
+				ColorSelector dlg;
+				if (IDOK == dlg.DoModal())
+				{
+					scene->AddLight( Light(REGULAR_L, POINT_S, vec4(position.GetXYZ(),0), dlg.GetColor(), vec4(0,0,0,0) ));
+				}
+			}
+		}
+		break;
 
+	}
 	glutPostRedisplay();
 }
 
@@ -590,22 +711,53 @@ void menuRenderer(int id)
 {
 	switch (id)
 	{
-	case MENU_SHADING_WIREFRAME:
+	case RENDERER_SHADING_WIREFRAME:
 		renderer->SetShading(SHADING_WIREFRAME);
 		break;
 
-	case MENU_SHADING_FLAT:
+	case RENDERER_SHADING_FLAT:
 		renderer->SetShading(SHADING_FLAT);
 		break;
 
-	case MENU_SHADING_GOURAUD:
+	case RENDERER_SHADING_GOURAUD:
 		renderer->SetShading(SHADING_GOURARD);
 		break;
 
-	case MENU_SHADING_PHONG:
+	case RENDERER_SHADING_PHONG:
 		renderer->SetShading(SHADING_PHONG);
 		break;
-	}
+
+	case RENDERER_SET_ANTIALIASING:
+		{
+			CCmdDialog cid;
+			if(IDOK ==  cid.DoModal())
+			{
+				string cmd = cid.GetCmd();
+				int res = atoi(cmd.data());
+				if(res >= 1)
+				{
+					renderer->SetAntiAliasing(res);
+				}
+			}
+		}
+		break;
+
+	case RENDERER_TOGGLE_FOG:
+		renderer->ToggleFog();
+		break;
+
+	case RENDERER_SET_FOG_COLOR:
+		{
+			ColorSelector dlg;
+			if (IDOK == dlg.DoModal())
+			{
+				renderer->SetFogColor(dlg.GetColor());
+			}
+		}
+		break;
+	}		
+
+
 
 	glutPostRedisplay();
 }
@@ -618,7 +770,9 @@ void initMenu()
 	glutAddMenuEntry("Show Bounding Box", MODEL_SHOW_BOUNDING_BOX);
 	glutAddMenuEntry("Show Model Frame", MODEL_SHOW_FRAME);
 	glutAddMenuEntry("Nonuniform Scale", MODEL_NON_UNIFORM_SCALE);
-	glutAddMenuEntry("Set Model Color", MODEL_SET_DEFAULT_COLOR);
+	glutAddMenuEntry("Set Monoton Color", MODEL_SET_MONOTON_COLOR);
+	glutAddMenuEntry("Set Random Color", MODEL_SET_RANDOM_COLOR);
+	glutAddMenuEntry("Set Progressive Color", MODEL_SET_PROGRESSIVE_COLOR);
 	
 
 	int lensMenu = glutCreateMenu(menuLens);
@@ -633,23 +787,44 @@ void initMenu()
 	glutAddSubMenu("Set lens type", lensMenu);
 
 	int rendererMenuId = glutCreateMenu(menuRenderer);
-	glutAddMenuEntry("Wireframe", MENU_SHADING_WIREFRAME);
-	glutAddMenuEntry("Flat", MENU_SHADING_FLAT);
-	glutAddMenuEntry("Gouraud", MENU_SHADING_GOURAUD);
-	glutAddMenuEntry("Phong", MENU_SHADING_PHONG);
+	glutAddMenuEntry("Wireframe",	RENDERER_SHADING_WIREFRAME);
+	glutAddMenuEntry("Flat",		RENDERER_SHADING_FLAT);
+	glutAddMenuEntry("Gouraud",		RENDERER_SHADING_GOURAUD);
+	glutAddMenuEntry("Phong",		RENDERER_SHADING_PHONG);
+	glutAddMenuEntry("Antialiasing", RENDERER_SET_ANTIALIASING);
+	glutAddMenuEntry("Toggle fog", RENDERER_TOGGLE_FOG);
+	glutAddMenuEntry("Set fog color", RENDERER_SET_FOG_COLOR);
 	
-	glutCreateMenu(mainMenu);
-	glutAddMenuEntry("Show world frame",MAIN_SHOW_WORLD_FRAME);
-	glutAddMenuEntry("Render Cameras",MAIN_RENDER_CAMERAS);
-	glutAddMenuEntry("Render Lights",MAIN_RENDER_LIGHTS);
-	glutAddMenuEntry("Remove all Models",MAIN_REMOVE_GEOMETRY);
-	glutAddMenuEntry("Add Model",MAIN_ADD_MODEL);
-	glutAddSubMenu("Active Model", activeModelMenuId);
+	int lightMenuId = glutCreateMenu(menuLight);
+	glutAddMenuEntry("Ambient",			LIGHT_AMBIENT);
+	glutAddMenuEntry("Poit source",		LIGHT_POINT_SOURCE);
+	glutAddMenuEntry("Parallel source",	LIGHT_PARALLEL_SOURCE);
 
-	glutAddMenuEntry("Add Camera",MAIN_ADD_CAMERA);
-	glutAddSubMenu("Active Camera", activeCameraMenuId);
-	glutAddMenuEntry("Add primitive", MAIN_ADD_PRIMITIVE);
-	glutAddSubMenu("Renderer", rendererMenuId);
+	glutCreateMenu(mainMenu);
+	glutAddMenuEntry("Show world frame",	MAIN_SHOW_WORLD_FRAME);
+
+	glutAddMenuEntry("Render Cameras",		MAIN_RENDER_CAMERAS);
+	glutAddMenuEntry("Render Lights",		MAIN_RENDER_LIGHTS);
+
+	glutAddMenuEntry("Remove all Models",	MAIN_REMOVE_GEOMETRY);
+	glutAddMenuEntry("Remove all Cameras",	MAIN_REMOVE_CAMERAS);
+	glutAddMenuEntry("Remove all Lights",	MAIN_REMOVE_LIGHTS);
+
+	glutAddMenuEntry("Add primitive",		MAIN_ADD_PRIMITIVE);
+	glutAddMenuEntry("Add Model",			MAIN_ADD_MODEL);
+	glutAddSubMenu("Active Model",			activeModelMenuId);
+
+	glutAddMenuEntry("Add Camera",			MAIN_ADD_CAMERA);
+	glutAddSubMenu("Active Camera",			activeCameraMenuId);
+
+	glutAddSubMenu("Add Light",			lightMenuId);
+	
+	glutAddSubMenu("Renderer",				rendererMenuId);
+	glutAddMenuEntry("Background Color",	MAIN_SET_BACKGROUND_COLOR);
+
+	
+				
+	
 
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
@@ -701,7 +876,7 @@ int my_main( int argc, char **argv )
 
 	scene->AddCamera(c2);
 	scene->AddCamera(c1);
-	//scene->AddLight(Light(REGULAR_L, POINT_S, vec4(7,7,7,0), Rgb(1,1,1)));
+	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(7,7,7,0), Rgb(1,1,1), vec4(1,1,1,1)));
 	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), Rgb(1,1,1), vec4(0,0,-1,0)));
 	scene->AddLight(Light(AMBIENT_L, PARALLEL_S, vec4(0,0,0,0), Rgb(0.6,0,0), vec4(0,0,0,0)));
 
@@ -727,10 +902,6 @@ int my_main( int argc, char **argv )
 	return 0;
 }
 
-CWinApp theApp;
-
-using namespace std;
-
 int main( int argc, char **argv )
 {
 	int nRetCode = 0;
@@ -749,5 +920,3 @@ int main( int argc, char **argv )
 
 	return nRetCode;
 }
-
-

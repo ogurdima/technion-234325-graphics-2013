@@ -96,6 +96,7 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CG_skel_w_MFC.cpp" />
+    <ClCompile Include="ColorSelector.cpp" />
     <ClCompile Include="InitShader.cpp" />
     <ClCompile Include="InputDialog.cpp" />
     <ClCompile Include="Light.cpp" />
@@ -112,6 +113,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CG_skel_w_MFC.h" />
+    <ClInclude Include="ColorSelector.h" />
     <ClInclude Include="Face.h" />
     <ClInclude Include="InitShader.h" />
     <ClInclude Include="InputDialog.h" />

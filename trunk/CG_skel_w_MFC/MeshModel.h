@@ -83,4 +83,7 @@ public:
 
 	void SetDefaultColor(MaterialColor _c);
 	MaterialColor GetDefaultColor();
+
+	void SetRandomColor();
+	void SetProgressiveColor();
 };

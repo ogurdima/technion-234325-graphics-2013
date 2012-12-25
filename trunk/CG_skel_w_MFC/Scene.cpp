@@ -148,18 +148,36 @@ void Scene::DrawLights()
 
 void Scene::drawWorldAxes()
 {
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(10,0,0), Rgb(0.6, 0, 0) );
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,10,0), Rgb(0, 0.6, 0) );
-	m_renderer->DrawLine3D(vec3(0,0,0), vec3(0,0,10), Rgb(0, 0, 0.6) );
+	vector<Vertex> axeses;
+	axeses.push_back(vec4(0,0,0,1));
+	axeses.push_back(vec4(10,0,0,1));
+	m_renderer->DrawNgons(axeses,2,Rgb(1,0,0));
+	axeses.clear();
+	axeses.push_back(vec4(0,0,0,1));
+	axeses.push_back(vec4(0,10,0,1));
+	m_renderer->DrawNgons(axeses,2,Rgb(0,1,0));
+	axeses.clear();
+	axeses.push_back(vec4(0,0,0,1));
+	axeses.push_back(vec4(0,0,10,1));
+	m_renderer->DrawNgons(axeses,2,Rgb(0,0,1));	
 }
 
 void Scene::drawModelAxes(Model* m)
 {
 	vector<vec3> modelAxes = m->coordinates();
 	vec3 modelOrigin = m->origin();
-	m_renderer->DrawLine3D(modelOrigin, modelAxes[0], Rgb(0.5,0.5,1));
-	m_renderer->DrawLine3D(modelOrigin, modelAxes[1], Rgb(0.5,0.5,1));
-	m_renderer->DrawLine3D(modelOrigin, modelAxes[2], Rgb(0.5,0.5,1));
+	vector<vec4> axeses;
+	axeses.push_back(vec4(modelOrigin,1));
+	axeses.push_back(vec4(modelAxes[0],1));
+	m_renderer->DrawNgons(axeses,2,Rgb(1,0,0));
+	axeses.clear();
+	axeses.push_back(vec4(modelOrigin,1));
+	axeses.push_back(vec4(modelAxes[1],1));
+	m_renderer->DrawNgons(axeses,2,Rgb(0,1,0));
+	axeses.clear();
+	axeses.push_back(Vertex(modelOrigin,1));
+	axeses.push_back(Vertex(modelAxes[2],1));
+	m_renderer->DrawNgons(axeses,2,Rgb(0,0,1));
 }
 
 void Scene::AddCamera(Camera c)
@@ -174,6 +192,20 @@ void Scene::AddLight(Light l)
 {
 	Light* ll = new Light(l);
 	lights.push_back(ll);
+}
+
+void Scene::RemoveLights()
+{
+	activeLight = -1;
+	lights.clear();
+	m_renderer->SwapBuffers();
+}
+
+void Scene::RemoveCameras()
+{
+	activeCamera = -1;
+	cameras.clear();
+	m_renderer->SwapBuffers();
 }
 
 void Scene::RemoveGeometry()
