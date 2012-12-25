@@ -26,8 +26,8 @@ class Renderer
 	int m_specularPower;
 	ShadingType m_shadingType;
 	Rgb m_fogColor;
+
 	bool m_fogEffect;
-	
 	float *m_colorBuf;
 	int m_bufW, m_bufH;
 	int m_aaX;
@@ -73,7 +73,9 @@ public:
 
 	void SetAntiAliasing(int x);
 	void AliasBufToOutputBuf();
-
+	void SetFogColor(Rgb col);
+	void ToggleFog();
+	inline void SetBackgroundColor(Rgb col) { m_bg = col; SwapBuffers(); }
 	//--------------------------------------------------------------------
 	// Drawing stuff
 	//--------------------------------------------------------------------

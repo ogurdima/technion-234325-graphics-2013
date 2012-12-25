@@ -86,7 +86,7 @@ void MeshModel::draw(Renderer * r, Rgb color)
 			normals.push_back(  normalize(normalPairs[i+1] - normalPairs[i])  );
 		}
 	}
-	r->DDrawTriangles(vp, _defaultColor, normals);
+	r->DDrawTriangles(vp, _defaultColor, normals, _vertexColors);
 	//r->DrawNgons(vp,3,Rgb(0,1,0));
 	if (_drawBB) 
 	{
@@ -315,5 +315,27 @@ MaterialColor MeshModel::GetDefaultColor()
 
 void MeshModel::SetDefaultColor(MaterialColor _c)
 {
+	_vertexColors.clear();
 	_defaultColor = _c;
+}
+
+void MeshModel::SetRandomColor()
+{
+	vector<Vertex> vertices = transformVertices();
+	srand(time(0));
+	_vertexColors.clear();
+	for(int i = 0; i < vertices.size(); ++i)
+	{
+		MaterialColor mc;
+		mc.ambient = Rgb(rand(), rand(), rand());
+		mc.emissive = Rgb(rand(), rand(), rand());
+		mc.diffuse = Rgb(rand(), rand(), rand());
+		mc.specular = Rgb(rand(), rand(), rand()); 
+		_vertexColors.push_back(mc);
+	}
+}
+
+void MeshModel::SetProgressiveColor()
+{
+
 }

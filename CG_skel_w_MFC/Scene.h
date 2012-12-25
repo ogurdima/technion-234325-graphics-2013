@@ -28,14 +28,14 @@ protected:
 	bool drawWorldFrame;
 	bool drawLights;
 
-	
-
 public:
 	Scene();
 	~Scene();
 	Scene(Renderer *renderer);
 	void loadOBJModel(string fileName);
 	void RemoveGeometry();
+	void RemoveCameras();
+	void RemoveLights();
 	void AddCamera(Camera c);
 	void AddMeshModel(MeshModel m );
 	void AddLight(Light l);

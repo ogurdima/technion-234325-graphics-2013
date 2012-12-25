@@ -7,24 +7,19 @@ enum LensMode { ORTHO, PERSPECTIVE, FRUSTUM };
 
 class Camera
 {
-	
-
 	LensMode lensMode;
 
-	vec4 eye;
-	vec4 at;
-	vec4 up;
+	vec4 eye, at, up;
 	float right, left, top, bottom, zNear, zFar, fovy,aspect;  
 
-	mat4 cTransform;
-	mat4 projection;
+	mat4 cTransform, projection;
 
 	void LookAt(const vec4& eye, const vec4& at, const vec4& up );
 
 public:
 	Camera();
 
-	void LookAt(const vec3& eye, const vec3& at, const vec3& up ) {
+	inline void LookAt(const vec3& eye, const vec3& at, const vec3& up ) {
 		LookAt(vec4(eye, 0), vec4(at, 0), vec4(up,0) );
 	}
 	void Ortho( const float left, const float right,
@@ -41,10 +36,8 @@ public:
 
 	inline LensMode getLensMode() { return lensMode; }
 	inline vec3 Eye() { return vec3(eye.x, eye.y, eye.z); }
-	inline vec3 At() { return vec3(at.x, at.y, at.z);  }
-	inline vec3 Up() { 
-		return vec3(up.x, up.y, up.z);
-	}
+	inline vec3 At() { return vec3(at.x, at.y, at.z); }
+	inline vec3 Up() { return vec3(up.x, up.y, up.z); }
 	inline float Right() { return right; }
 	inline float Left() { return left; }
 	inline float Top() { return top; }

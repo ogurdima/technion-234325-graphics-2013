@@ -7,8 +7,6 @@
 
 #define INDEX(width,x,y,c) (x+y*width)*3+c
 
-bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh);
-
 Renderer::Renderer(Rgb bg) :
 	m_width(512), 
 	m_height(512), 
@@ -65,11 +63,16 @@ Renderer::~Renderer(void)
 	}
 }
 
-
 void Renderer::SetAntiAliasing(int x)
 {
-	if (x != 1 && x != 2 && x != 4 && x != 8)
-		return;
+	if (m_aaX != 1 && m_colorBuf != NULL) 
+	{
+		delete[] m_colorBuf;
+		m_colorBuf = NULL;
+	}
+	else if (m_aaX == 1)
+		m_colorBuf = NULL;
+
 	m_aaX = x;
 	CreateBuffers(m_width, m_height);
 }
@@ -136,51 +139,6 @@ void Renderer::ClearColorBuffer()
 		for (int j = 0; j < m_bufW; j++)
 		{
 			m_colorBuf[INDEX(m_bufW,j,i,0)]=m_bg.r;	m_colorBuf[INDEX(m_bufW,j,i,1)]=m_bg.g;	m_colorBuf[INDEX(m_bufW,j,i,2)]=m_bg.b;
-		}
-	}
-}
-
-//--------------------------------------------------------------------------
-// Drawing
-//--------------------------------------------------------------------------
-void Renderer::DrawNgons(vector<Vertex>& vertices, int n, Rgb color) 
-{
-	//DrawNgonsFast(vertices, n, color);
-	DrawNgonsSlow(vertices, n, color);
-}
-
-void Renderer::DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color) 
-{
-	if (n < 2) return;
-	mat4 projection = m_camera->Projection();
-	mat4 view = m_camera->View();
-	float zHigh = -m_camera->ZNear();
-	float zLow = -m_camera->ZFar();
-	Vertex cur, next;
-	for (int i = 0; i < vertices.size(); i++)
-	{
-		if ( (i+1) % n == 0 && (i+1) >= n) //draw srarting from current n vertices back
-		{
-
-			int startIdx = i-n+1;
-			for (int j = 0; j < n; j++) {
-				// cur and next are copied by value - the array does not change
-				cur = view * vertices[startIdx + j];
-				next = view * vertices[startIdx + ((j+1)%n)];
-				// cur and next from here are in camera coordinates
-				if ( clipZ(cur, next, zLow, zHigh) ) 
-				{
-					// clipZ (maybe) changed values of cur and next, now they are between zNear and zFar
-					cur = projection * cur;
-					next = projection * next;
-					// cur and next from here are projected after they were clipped by Z
-					if( clip(cur, next) )
-					{
-						// clip (maybe) changed values of cur and next, now they are entirely inside canonic view volume, we can draw them
-						DrawLine(cur, next, color);
-					}
-				}
-			}
 		}
 	}
 }
@@ -325,6 +283,51 @@ bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh)
 		}
 	}
 	return true;
+}
+
+//--------------------------------------------------------------------------
+// Drawing
+//--------------------------------------------------------------------------
+void Renderer::DrawNgons(vector<Vertex>& vertices, int n, Rgb color) 
+{
+	//DrawNgonsFast(vertices, n, color);
+	DrawNgonsSlow(vertices, n, color);
+}
+
+void Renderer::DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color) 
+{
+	if (n < 2) return;
+	mat4 projection = m_camera->Projection();
+	mat4 view = m_camera->View();
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	Vertex cur, next;
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		if ( (i+1) % n == 0 && (i+1) >= n) //draw srarting from current n vertices back
+		{
+
+			int startIdx = i-n+1;
+			for (int j = 0; j < n; j++) {
+				// cur and next are copied by value - the array does not change
+				cur = view * vertices[startIdx + j];
+				next = view * vertices[startIdx + ((j+1)%n)];
+				// cur and next from here are in camera coordinates
+				if ( clipZ(cur, next, zLow, zHigh) ) 
+				{
+					// clipZ (maybe) changed values of cur and next, now they are between zNear and zFar
+					cur = projection * cur;
+					next = projection * next;
+					// cur and next from here are projected after they were clipped by Z
+					if( clip(cur, next) )
+					{
+						// clip (maybe) changed values of cur and next, now they are entirely inside canonic view volume, we can draw them
+						DrawLine(cur, next, color);
+					}
+				}
+			}
+		}
+	}
 }
 
 //--------------------------------------------------------------------------
@@ -609,19 +612,16 @@ void Renderer::DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultCol
 		DrawNgons(vertices, 3, Rgb(0,1,0));
 		return;
 	}
-	
-	if (m_shadingType != SHADING_FLAT)
+	bool deflt = vertexColors.size() != vertices.size();
+	if (deflt)
 	{
-		if ((vertexColors.size() != vertices.size()))
+		vertexColors.clear();
+		for (int j = 0; j < vertices.size(); j++)
 		{
-			vertexColors.clear();
-			for (int j = 0; j < vertices.size(); j++)
-			{
-				vertexColors.push_back(defaultColor);
-			}
+			vertexColors.push_back(defaultColor);
 		}
 	}
-
+	
 	for (int i = 0; i < vertices.size(); i+=3)
 	{
 		Vertex v1 = vertices[i];
@@ -638,9 +638,29 @@ void Renderer::DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultCol
 		// flat
 		if( m_shadingType == SHADING_FLAT)
 		{
+			
+			
+
 			vec4 n = vec4(normalize( cross(v2 - v1, v3 - v2)), 0);
 			vec4 m = vec4((v1.x  + v2.x + v3.x)/3,(v1.y  + v2.y + v3.y)/3,(v1.z  + v2.z + v3.z)/3, 0);
-			Rgb c = GetColor(m, n, camLoc, defaultColor);
+			Rgb c;
+			if(! deflt)
+			{
+				MaterialColor mc1 = vertexColors[i];
+				MaterialColor mc2 = vertexColors[i+1];
+				MaterialColor mc3 = vertexColors[i+2];
+				MaterialColor mc;
+				float f = 1.0 / 3.0;
+				mc.ambient = mc1.ambient*f + mc2.ambient*f + mc3.ambient*f;
+				mc.emissive = mc1.emissive*f + mc2.emissive*f + mc3.emissive*f;
+				mc.diffuse = mc1.diffuse*f+ mc2.diffuse*f + mc3.diffuse*f;
+				mc.specular = mc1.specular*f + mc2.specular*f + mc3.specular*f;
+				c = GetColor(m, n, camLoc, mc);
+			}
+			else
+			{
+				c = GetColor(m, n, camLoc, defaultColor);
+			}
 			GetDrawablePoly(pts,poly);
 			FlatRasterizePolygon(poly,c);
 		}
@@ -695,8 +715,8 @@ void Renderer::PlotPixel(int x, int y, float z, Rgb color)
 	{
 		if( m_fogEffect )
 		{
-			float f = 1 / max( 1.0, abs(z));
-			Rgb newPixCol = interpolate( f, m_fogColor, color);
+			float g = 1 / log(2 + abs(z));
+			Rgb newPixCol = interpolate( g, m_fogColor, color);
 			PlotPixel(x, y, newPixCol);
 		}
 		else
@@ -1015,6 +1035,16 @@ void Renderer::SetLights(vector<Light*> _lights)
 	m_lights = _lights;
 }
 
+void Renderer::SetFogColor(Rgb col)
+{
+	m_fogColor = col;
+}
+
+void Renderer::ToggleFog()
+{
+	m_fogEffect = !m_fogEffect;
+}
+
 #pragma region  // Don't touch.
 /////////////////////////////////////////////////////
 //OpenGL stuff. Don't touch.
@@ -1133,7 +1163,6 @@ void Renderer::SwapBuffers()
 }
 #pragma endregion
 
-// don't work - nah fuck 14 hours 
 #pragma region
 void foo(vec4& v1, vec4& v2, vec4& v3)
 {
@@ -1617,7 +1646,7 @@ void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
 	vec4 p2 = fp * vec4(v2,1);
 	if (abs(p1.w) < 0.001 || abs(p2.w) < 0.001)
 		return;
-	if (clip(p1, p2)) 
+	if (clip(p1, p2))
 	{
 		DrawLine(p1, p2, col);
 	}
