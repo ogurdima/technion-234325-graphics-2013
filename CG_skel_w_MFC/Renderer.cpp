@@ -454,6 +454,8 @@ Rgb Renderer::GetColor(Vertex at, vec4 n, vec4 camLoc, MaterialColor material)
 		vec4 incomingRay;
 		if(light->lightType == AMBIENT_L)
 		{
+			if(c.r > 0.95 && c.b > 0.95)
+				bool ok = true;
 			c += light->lightColor * material.ambient;
 			continue;
 		}
@@ -995,14 +997,6 @@ void Renderer::fullTriangle(Vertex v1, Vertex v2, Vertex v3)
 
 		int lb = max(0, (int)l.x);
 		int rb = min(m_bufW - 1, (int)r.x);
-
-		/*float t = ((float)lb - l.x) / (r.x - l.x);
-		float z = interpolate(t, l.z, r.z);
-
-		Rgb pixCol = interpolate(t, lc, rc);
-		PlotPixel(lb, y, pixCol);
-		m_zbuffer[y*m_bufW + lb] = z;*/
-
 		for (int x = lb; x <= rb; x++)
 		{
 			float t = ((float)x - l.x) / (r.x - l.x);
@@ -1015,19 +1009,7 @@ void Renderer::fullTriangle(Vertex v1, Vertex v2, Vertex v3)
 				m_zbuffer[y*m_bufW + x] = z;
 			}
 		}
-
-
 	}
-
-	/*DrawLine(vec2(0, ymin), vec2(m_bufW, ymin), Rgb(0,0,0));
-	DrawLine(vec2(0, ymax), vec2(m_bufW, ymax), Rgb(0,1,0));
-
-	for(int i = 0; i < screen.size(); i++) {
-	int j  = (i + 1) % screen.size();
-	DrawLine(vec2(screen[i].x, screen[i].y), vec2(screen[j].x, screen[j].y), Rgb((double)i/2,0,0));
-	}
-	return;*/
-
 }
 
 void Renderer::SetLights(vector<Light*> _lights)

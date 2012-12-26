@@ -32,6 +32,10 @@ struct Rgb {
 		r += rhs.r;
 		g+= rhs.g;
 		b+=rhs.b;
+		float max = max(1.0, max(r, max(g,b) ) );
+		r = r/max;
+		g = g/max;
+		b = b/max;
 		return *this;
 	}
 
