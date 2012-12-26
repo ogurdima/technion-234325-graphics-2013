@@ -23,7 +23,7 @@ BOOL MColorDialog::OnInitDialog()
 	colorDataToWidget(DIFFUSE);
 	colorDataToWidget(EMISSIVE);
 	colorDataToWidget(SPECULAR);
-
+	colorDataToWidget(AMBIENT);
 	
     return TRUE;
 }
@@ -39,10 +39,12 @@ void MColorDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CLR_DIFFUSE, m_diffuse);
 	DDX_Control(pDX, IDC_CLR_EMISSIVE, m_emissive);
 	DDX_Control(pDX, IDC_CLR_SPECULAR, m_specular);
+	DDX_Control(pDX, IDC_CLR_AMBIENT, m_ambient);
 	colorDataToVar(DIFFUSE);
 	colorDataToVar(EMISSIVE);
 	colorDataToVar(SPECULAR);
-	DDX_Control(pDX, IDC_CLR_AMBIENT, m_ambient);
+	colorDataToVar(AMBIENT);
+	
 }
 
 
