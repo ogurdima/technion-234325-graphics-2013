@@ -335,7 +335,54 @@ void MeshModel::SetRandomColor()
 	}
 }
 
+inline Rgb interpolate(float t, Rgb a, Rgb b)
+{
+	return Rgb(  a.r + t * (b.r - a.r),  a.g + t * (b.g - a.g), a.b + t * (b.b - a.b) );
+}
+
 void MeshModel::SetProgressiveColor()
 {
-
+	vector<Vertex> vertices = transformVertices();
+	_vertexColors.clear();
+	float yMin = vertices[0].y , yMax = vertices[0].y;
+	for(int i = 1; i < vertices.size(); ++i)
+	{
+		if(vertices[i].y < yMin)
+		{
+			yMin = vertices[i].y;
+		}
+		if(vertices[i].y > yMax)
+		{
+			yMax = vertices[i].y;
+		}
+	}
+	if( yMin >= yMax)
+	{
+		return;
+	}
+	float delta = yMax - yMin;
+	float med = (yMin + yMax) / 2;
+	for(int i = 0; i < vertices.size(); ++i )
+	{
+		float y = vertices[i].y;
+		float t1 = ( y - yMin)/ delta;
+		Rgb color = interpolate( t1, Rgb(1,0,0), Rgb(0,0,1));
+		float t2;
+		if( y < med)
+		{
+			t2 = (y - yMin) * 2 / delta;
+			
+		}
+		else
+		{
+			t2 = (yMax - y) * 2 / delta;
+		}
+		color += interpolate(t2, Rgb(0,0,0), Rgb(0,1,0));
+		MaterialColor mc;
+		mc.ambient = color;
+		mc.diffuse = color;
+		mc.emissive = color;
+		mc.specular = color;
+		_vertexColors.push_back(mc);
+	}
 }
