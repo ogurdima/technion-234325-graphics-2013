@@ -511,6 +511,7 @@ void mainMenu(int id)
 	case MAIN_SET_BACKGROUND_COLOR:
 		{
 			ColorSelector dlg;
+			dlg.SetColor(renderer->GetBackgroundColor());
 			if (IDOK == dlg.DoModal())
 			{
 				renderer->SetBackgroundColor(dlg.GetColor());
@@ -553,12 +554,9 @@ void menuActiveModel(int id)
 		break;
 	case MODEL_SET_MONOTON_COLOR:
 		{
-			MColorDialog d;
 			MaterialColor cp = m->GetDefaultColor();
-			d.m_clr_diffuse = cp.diffuse;
-			d.m_clr_emissive = cp.emissive;
-			d.m_clr_specular = cp.specular;
-			d.m_clr_ambient = cp.ambient;
+			MColorDialog d(cp.emissive, cp.diffuse, cp.specular, cp.ambient);
+
 			if(IDOK == d.DoModal())
 			{
 				cp.diffuse = d.m_clr_diffuse;
@@ -670,6 +668,7 @@ void menuLight(int id)
 	case LIGHT_AMBIENT:
 		{
 			ColorSelector dlg;
+			dlg.SetColor(Rgb(1,1,1));
 			if (IDOK == dlg.DoModal())
 			{
 				scene->AddLight( Light(AMBIENT_L, PARALLEL_S, vec4(0,0,0,0), dlg.GetColor(), vec4(0,0,0,0)));
@@ -682,6 +681,7 @@ void menuLight(int id)
 			if (direction.DoModal() == IDOK) 
 			{
 				ColorSelector dlg;
+				dlg.SetColor(Rgb(1,1,1));
 				if (IDOK == dlg.DoModal())
 				{
 					scene->AddLight( Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), dlg.GetColor(), vec4(direction.GetXYZ(),0) ));
@@ -695,6 +695,7 @@ void menuLight(int id)
 			if (position.DoModal() == IDOK) 
 			{
 				ColorSelector dlg;
+				dlg.SetColor(Rgb(1,1,1));
 				if (IDOK == dlg.DoModal())
 				{
 					scene->AddLight( Light(REGULAR_L, POINT_S, vec4(position.GetXYZ(),0), dlg.GetColor(), vec4(0,0,0,0) ));
@@ -749,6 +750,7 @@ void menuRenderer(int id)
 	case RENDERER_SET_FOG_COLOR:
 		{
 			ColorSelector dlg;
+			dlg.SetColor(renderer->GetBackgroundColor());
 			if (IDOK == dlg.DoModal())
 			{
 				renderer->SetFogColor(dlg.GetColor());
@@ -765,66 +767,57 @@ void menuRenderer(int id)
 void initMenu()
 {
 	int activeModelMenuId = glutCreateMenu(menuActiveModel);
-	glutAddMenuEntry("Show Normals per Vertex", MODEL_SHOW_VERTEX_NORMALS);
-	glutAddMenuEntry("Show Normals per Face", MODEL_SHOW_FACE_NORMALS);
-	glutAddMenuEntry("Show Bounding Box", MODEL_SHOW_BOUNDING_BOX);
-	glutAddMenuEntry("Show Model Frame", MODEL_SHOW_FRAME);
-	glutAddMenuEntry("Nonuniform Scale", MODEL_NON_UNIFORM_SCALE);
-	glutAddMenuEntry("Set Monoton Color", MODEL_SET_MONOTON_COLOR);
-	glutAddMenuEntry("Set Random Color", MODEL_SET_RANDOM_COLOR);
-	glutAddMenuEntry("Set Progressive Color", MODEL_SET_PROGRESSIVE_COLOR);
+	glutAddMenuEntry("Show Bounding Box",			MODEL_SHOW_BOUNDING_BOX);
+	glutAddMenuEntry("Set Monotone Color",			MODEL_SET_MONOTON_COLOR);
+	glutAddMenuEntry("Set Random Color",			MODEL_SET_RANDOM_COLOR);
+	glutAddMenuEntry("Set Progressive Color",		MODEL_SET_PROGRESSIVE_COLOR);
+	glutAddMenuEntry("Show Model Frame",			MODEL_SHOW_FRAME);
+	glutAddMenuEntry("Show Normals per Vertex",		MODEL_SHOW_VERTEX_NORMALS);
+	glutAddMenuEntry("Show Normals per Face",		MODEL_SHOW_FACE_NORMALS);
+	glutAddMenuEntry("Nonuniform Scale",			MODEL_NON_UNIFORM_SCALE);
 	
-
 	int lensMenu = glutCreateMenu(menuLens);
-	glutAddMenuEntry("Ortho", LENS_ORTHO);
-	glutAddMenuEntry("Perspective", LENS_PERSPECTIVE);
-	glutAddMenuEntry("Frustum", LENS_FRUSTUM);
+	glutAddMenuEntry("Ortho",			LENS_ORTHO);
+	glutAddMenuEntry("Perspective",		LENS_PERSPECTIVE);
+	glutAddMenuEntry("Frustum",			LENS_FRUSTUM);
 
 	int activeCameraMenuId = glutCreateMenu(menuActiveCamera);
-	glutAddMenuEntry("Set Camera Location", CAMERA_SET_LOCATION);
-	glutAddMenuEntry("Look At", CAMERA_SET_FOCUS_POINT);
-	glutAddMenuEntry("Focus on Active Model", CAMERA_FOCUS_ON_ACTIVE_MODEL);
+	glutAddMenuEntry("Focus on Active Model",		CAMERA_FOCUS_ON_ACTIVE_MODEL);
+	glutAddMenuEntry("Set Camera Location",			CAMERA_SET_LOCATION);
+	glutAddMenuEntry("Look At",						CAMERA_SET_FOCUS_POINT);	
 	glutAddSubMenu("Set lens type", lensMenu);
 
 	int rendererMenuId = glutCreateMenu(menuRenderer);
-	glutAddMenuEntry("Wireframe",	RENDERER_SHADING_WIREFRAME);
-	glutAddMenuEntry("Flat",		RENDERER_SHADING_FLAT);
-	glutAddMenuEntry("Gouraud",		RENDERER_SHADING_GOURAUD);
-	glutAddMenuEntry("Phong",		RENDERER_SHADING_PHONG);
-	glutAddMenuEntry("Antialiasing", RENDERER_SET_ANTIALIASING);
-	glutAddMenuEntry("Toggle fog", RENDERER_TOGGLE_FOG);
-	glutAddMenuEntry("Set fog color", RENDERER_SET_FOG_COLOR);
+	glutAddMenuEntry("Wireframe",		RENDERER_SHADING_WIREFRAME);
+	glutAddMenuEntry("Flat",			RENDERER_SHADING_FLAT);
+	glutAddMenuEntry("Gouraud",			RENDERER_SHADING_GOURAUD);
+	glutAddMenuEntry("Phong",			RENDERER_SHADING_PHONG);
+	glutAddMenuEntry("Antialiasing",	RENDERER_SET_ANTIALIASING);
+	glutAddMenuEntry("Toggle Fog",		RENDERER_TOGGLE_FOG);
+	glutAddMenuEntry("Set Fog Color",	RENDERER_SET_FOG_COLOR);
 	
 	int lightMenuId = glutCreateMenu(menuLight);
-	glutAddMenuEntry("Ambient",			LIGHT_AMBIENT);
-	glutAddMenuEntry("Poit source",		LIGHT_POINT_SOURCE);
-	glutAddMenuEntry("Parallel source",	LIGHT_PARALLEL_SOURCE);
+	glutAddMenuEntry("Ambient",				LIGHT_AMBIENT);
+	glutAddMenuEntry("Point Source",		LIGHT_POINT_SOURCE);
+	glutAddMenuEntry("Parallel Source",		LIGHT_PARALLEL_SOURCE);
 
 	glutCreateMenu(mainMenu);
-	glutAddMenuEntry("Show world frame",	MAIN_SHOW_WORLD_FRAME);
+	glutAddMenuEntry("Add Model",			MAIN_ADD_MODEL);
+	glutAddSubMenu("Active Model",			activeModelMenuId);
+	glutAddMenuEntry("Add Camera",			MAIN_ADD_CAMERA);
+	glutAddSubMenu("Active Camera",			activeCameraMenuId);
+	glutAddSubMenu("Add Light",				lightMenuId);
+	glutAddSubMenu("Renderer",				rendererMenuId);
 
-	glutAddMenuEntry("Render Cameras",		MAIN_RENDER_CAMERAS);
-	glutAddMenuEntry("Render Lights",		MAIN_RENDER_LIGHTS);
-
+	glutAddMenuEntry("Add Primitive",		MAIN_ADD_PRIMITIVE);
 	glutAddMenuEntry("Remove all Models",	MAIN_REMOVE_GEOMETRY);
 	glutAddMenuEntry("Remove all Cameras",	MAIN_REMOVE_CAMERAS);
 	glutAddMenuEntry("Remove all Lights",	MAIN_REMOVE_LIGHTS);
 
-	glutAddMenuEntry("Add primitive",		MAIN_ADD_PRIMITIVE);
-	glutAddMenuEntry("Add Model",			MAIN_ADD_MODEL);
-	glutAddSubMenu("Active Model",			activeModelMenuId);
-
-	glutAddMenuEntry("Add Camera",			MAIN_ADD_CAMERA);
-	glutAddSubMenu("Active Camera",			activeCameraMenuId);
-
-	glutAddSubMenu("Add Light",			lightMenuId);
-	
-	glutAddSubMenu("Renderer",				rendererMenuId);
-	glutAddMenuEntry("Background Color",	MAIN_SET_BACKGROUND_COLOR);
-
-	
-				
-	
+	glutAddMenuEntry("Show world frame",	MAIN_SHOW_WORLD_FRAME);
+	glutAddMenuEntry("Show Cameras",		MAIN_RENDER_CAMERAS);
+	glutAddMenuEntry("Show Lights",			MAIN_RENDER_LIGHTS);
+	glutAddMenuEntry("Set Background Color",MAIN_SET_BACKGROUND_COLOR);
 
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }

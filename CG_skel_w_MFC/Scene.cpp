@@ -111,18 +111,14 @@ void Scene::DrawSnowflake(vec4 at, float len, Rgb col)
 
 void Scene::DrawCameras()
 {
-	for (int i = 0; i < cameras.size(); i++) {
+	for (int i = 0; i < cameras.size(); i++) 
+	{
 			Camera* c = cameras[i];
 			if (c == ActiveCam()) continue;
 			float factor = 0.3;
 			Vertex cntr = Vertex(c->Eye(), 1);
 			Vertex focusPt = Vertex(c->At(), 1);
 			DrawSnowflake(cntr, factor, Rgb(0,0,1));
-
-			vector<Vertex> segments;
-			segments.push_back(cntr);
-			segments.push_back((focusPt - cntr) * 3 * factor);
-			//m_renderer->DrawNgons(segments, 2, Rgb(0, 0, 1));
 		}
 }
 
@@ -130,19 +126,20 @@ void Scene::DrawLights()
 {
 	for (int i = 0; i < lights.size(); i++) {
 		Light* l = lights[i];
-		if (l->lightType != REGULAR_L || l->lightSource != POINT_S) {
+		if (l->lightType != REGULAR_L) {
 			continue;
 		}
 		float factor = 0.4;
-		Vertex cntr = l->location;
+		Vertex cntr = (l->lightSource == POINT_S) ? l->location : vec4(ActiveCam()->At(), 1) - (l->direction * 10000);
 		cntr.w = 1;
-		DrawSnowflake(cntr, factor, Rgb(1,0.5,0));
+		Rgb clr = l->lightColor;
+		DrawSnowflake(cntr, factor, clr);
 		
 		// Ray from each point ligt source to the camera focus point
 		vector<Vertex> segments;
 		segments.push_back(cntr);
 		segments.push_back(Vertex(ActiveCam()->At(), 1));
-		m_renderer->DrawNgons(segments, 2, Rgb(1, 0.5, 0));
+		m_renderer->DrawNgons(segments, 2, clr);
 	}
 }
 

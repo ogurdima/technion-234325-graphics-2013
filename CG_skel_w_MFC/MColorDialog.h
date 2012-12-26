@@ -14,6 +14,7 @@ class MColorDialog : public CDialog
 
 public:
 	MColorDialog(CWnd* pParent = NULL);   // standard constructor
+	MColorDialog(Dlgrgb emissive, Dlgrgb diffuse, Dlgrgb specular, Dlgrgb ambient);
 	virtual ~MColorDialog();
 
 // Dialog Data
