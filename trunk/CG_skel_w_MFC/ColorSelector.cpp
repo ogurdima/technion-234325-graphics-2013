@@ -39,3 +39,11 @@ Rgb ColorSelector::GetColor()
 	COLORREF clr = m_colorWidget.GetColor();
 	return Rgb(((float)GetRValue(clr)/255), ((float)GetGValue(clr)/255), ((float)GetBValue(clr)/255));
 }
+
+void ColorSelector::SetColor(Rgb clr)
+{
+	byte br = (int)(clr.r * 255);
+	byte bg = (int)(clr.g * 255);
+	byte bb = (int)(clr.b * 255);
+	m_colorWidget.SetColor(RGB(br, bg, bb));
+}

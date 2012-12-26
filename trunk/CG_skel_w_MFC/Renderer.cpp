@@ -7,6 +7,94 @@
 
 #define INDEX(width,x,y,c) (x+y*width)*3+c
 
+//--------------------------------------------------------------------------
+// Non-class helper functions
+//--------------------------------------------------------------------------
+bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh)
+{
+	v1 = v1 / v1.w;
+	v2 = v2 / v2.w;
+
+	if( (v1.z > zHigh && v2.z > zHigh) || (v1.z < zLow && v2.z < zLow) )
+		return false;
+	if( v1.z != v2.z && !( v1.z >= zLow && v1.z <= zHigh && v2.z >= zLow && v2.z <= zHigh) )
+	{
+		
+		if(v1.z < zLow)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zLow - v1.z) / k. z;
+			v1 = v1 + t * k;
+
+		}
+		if(v2.z > zHigh)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zHigh - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+
+		if(v1.z > zHigh)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zHigh - v1.z) / k. z;
+			v1 = v1 + t * k;
+
+		}
+		if(v2.z < zLow)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zLow - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+	}
+	return true;
+}
+
+inline float getInterpolationParamater(vec4 vl, vec4 vr, vec4 vm)
+{
+	float dx = abs(vr.x - vl.x);
+	float dy = abs(vr.y - vl.y);
+	float dz = abs(vr.z - vl.z);
+	if(dx > dy && dx > dz)
+		return (vm.x - vl.x) / (vr.x - vl.x);
+	if(dy > dz)
+		return (vm.y - vl.y) / (vr.y - vl.y);
+	return (vm.z - vl.z) / (vr.z - vl.z);
+}
+
+inline float interpolate(float t, float a, float b)
+{
+	return a + t * (b - a);
+}
+
+inline vec4 interpolate(float t, vec4 a, vec4 b)
+{
+	return a + t * (b - a);
+}
+
+inline Rgb interpolate(float t, Rgb a, Rgb b)
+{
+	return Rgb(  a.r + t * (b.r - a.r),  a.g + t * (b.g - a.g), a.b + t * (b.b - a.b) );
+}
+
+inline MaterialColor interpolate(float t, MaterialColor a, MaterialColor b)
+{
+	MaterialColor mc;
+	mc.ambient = interpolate(t,a.ambient,b.ambient);
+	mc.diffuse = interpolate(t,a.diffuse,b.diffuse);
+	mc.emissive = interpolate(t,a.emissive,b.emissive);
+	mc.specular = interpolate(t,a.specular,b.specular);
+	return mc;
+}
+
+//--------------------------------------------------------------------------
+// General
+//--------------------------------------------------------------------------
 Renderer::Renderer(Rgb bg) :
 	m_width(512), 
 	m_height(512), 
@@ -32,7 +120,6 @@ Renderer::Renderer(int width, int height, Rgb bg) :
 	m_outBuffer(NULL),
 	m_colorBuf(NULL),
 	m_zbuffer(NULL),
-	contourX(NULL),
 	m_bg(bg),
 	m_specularPower(5),
 	m_shadingType(SHADING_FLAT),
@@ -112,7 +199,7 @@ void Renderer::CreateBuffers(int width, int height)
 	}
 
 	m_zbuffer = new float[m_bufW*m_bufH];
-	FlushBuffer();
+	FlushBuffers();
 }
 
 void Renderer::ClearDepthBuffer()
@@ -126,7 +213,7 @@ void Renderer::ClearDepthBuffer()
 	}
 }
 
-void Renderer::FlushBuffer()
+void Renderer::FlushBuffers()
 {
 	ClearColorBuffer();
 	ClearDepthBuffer();
@@ -146,7 +233,7 @@ void Renderer::ClearColorBuffer()
 //--------------------------------------------------------------------------
 // Clipping
 //--------------------------------------------------------------------------
-bool Renderer::clip(vec3& v1, vec3& v2)
+inline bool Renderer::clip(vec3& v1, vec3& v2)
 {
 	// x
 	if( (v1.x > 1 && v2.x > 1) || (v1.x < -1 && v2.x < -1) )
@@ -226,7 +313,7 @@ bool Renderer::clip(vec3& v1, vec3& v2)
 	return true;
 }
 
-bool Renderer::clip(vec4& v1, vec4& v2)
+inline bool Renderer::clip(vec4& v1, vec4& v2)
 {
 	assert(v1.w != 0 && v2.w != 0);
 	vec3 vv1 = vec3(v1.x,v1.y, v1.z) / v1.w;
@@ -238,287 +325,6 @@ bool Renderer::clip(vec4& v1, vec4& v2)
 		v2 = vec4(vv2, 1);
 	}
 	return res;
-}
-
-bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh)
-{
-	v1 = v1 / v1.w;
-	v2 = v2 / v2.w;
-
-	if( (v1.z > zHigh && v2.z > zHigh) || (v1.z < zLow && v2.z < zLow) )
-		return false;
-	if( v1.z != v2.z && !( v1.z >= zLow && v1.z <= zHigh && v2.z >= zLow && v2.z <= zHigh) )
-	{
-		
-		if(v1.z < zLow)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( zLow - v1.z) / k. z;
-			v1 = v1 + t * k;
-
-		}
-		if(v2.z > zHigh)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( zHigh - v1.z) / k. z;
-			v2 = v1 + t * k;
-		}
-
-		if(v1.z > zHigh)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( zHigh - v1.z) / k. z;
-			v1 = v1 + t * k;
-
-		}
-		if(v2.z < zLow)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( zLow - v1.z) / k. z;
-			v2 = v1 + t * k;
-		}
-	}
-	return true;
-}
-
-//--------------------------------------------------------------------------
-// Drawing
-//--------------------------------------------------------------------------
-void Renderer::DrawNgons(vector<Vertex>& vertices, int n, Rgb color) 
-{
-	//DrawNgonsFast(vertices, n, color);
-	DrawNgonsSlow(vertices, n, color);
-}
-
-void Renderer::DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color) 
-{
-	if (n < 2) return;
-	mat4 projection = m_camera->Projection();
-	mat4 view = m_camera->View();
-	float zHigh = -m_camera->ZNear();
-	float zLow = -m_camera->ZFar();
-	Vertex cur, next;
-	for (int i = 0; i < vertices.size(); i++)
-	{
-		if ( (i+1) % n == 0 && (i+1) >= n) //draw srarting from current n vertices back
-		{
-
-			int startIdx = i-n+1;
-			for (int j = 0; j < n; j++) {
-				// cur and next are copied by value - the array does not change
-				cur = view * vertices[startIdx + j];
-				next = view * vertices[startIdx + ((j+1)%n)];
-				// cur and next from here are in camera coordinates
-				if ( clipZ(cur, next, zLow, zHigh) ) 
-				{
-					// clipZ (maybe) changed values of cur and next, now they are between zNear and zFar
-					cur = projection * cur;
-					next = projection * next;
-					// cur and next from here are projected after they were clipped by Z
-					if( clip(cur, next) )
-					{
-						// clip (maybe) changed values of cur and next, now they are entirely inside canonic view volume, we can draw them
-						DrawLine(cur, next, color);
-					}
-				}
-			}
-		}
-	}
-}
-
-//--------------------------------------------------------------------------
-// Bresenham
-//--------------------------------------------------------------------------
-void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
-{
-	int x1 = (int)p1.x;
-	int x2 = (int)p2.x;
-	int y1 = (int)p1.y;
-	int y2 = (int)p2.y;
-
-	if (	((x1 < 0 || x1 > m_bufW) || (y1 < 0 || y1 > m_bufH)) &&
-		((x2 < 0 || x2 > m_bufW) || (y2 < 0 || y2 > m_bufH))	)
-	{
-		return;
-	}
-
-	bool steep = abs(y2 - y1) > abs(x2 - x1);
-
-	if(steep)
-	{
-		swap(x1,y1);
-		swap(x2,y2);
-	}
-	if(x1 > x2)
-	{
-		swap(x1,x2);
-		swap(y1,y2);
-	}
-
-	int dx = x2 - x1;
-	int dy = abs(y2 - y1);
-
-	int e =  dx/2;
-	int y = y1;
-	int yStep = (y1 < y2) ? 1 : -1;
-
-	for(int x = x1; x <= x2; ++x)
-	{
-		if(steep)
-		{
-			PlotPixel(y,x, col);
-		}
-		else
-		{
-			PlotPixel(x,y, col);
-		}
-		e -= dy;
-		if(e < 0)
-		{
-			e += dx;
-			y += yStep;
-		}
-	}
-}
-
-//--------------------------------------------------------------------------
-// Helps to transform from view plane to device coordinates
-//--------------------------------------------------------------------------
-vec2 Renderer::ScaleFactor() 
-{
-	vec2 res;
-	res.x = m_bufW/2;
-	res.y = m_bufH/2;
-	return res;
-
-	float screenAR = (float) m_bufW / (float) m_bufH;
-	if (m_camera->Aspect() > screenAR)
-	{
-		res.x = m_bufW/2;
-		res.y = res.x / m_camera->Aspect();
-	}
-	else
-	{
-		res.y = m_bufH/2;
-		res.x = res.y * m_camera->Aspect();
-	}
-	return res;
-}
-
-//--------------------------------------------------------------------------
-// Bresenham wrapper for vec4. 
-//--------------------------------------------------------------------------
-void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col)
-{
-	vec2 sf = ScaleFactor();
-	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0);
-	p1 = sp * p1;
-	p2 = sp * p2;
-	p1 = p1 / p1.w;
-	p2 = p2 / p2.w;
-	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col);
-}
-
-//--------------------------------------------------------------------------
-// Safely plot pixel in the given integer coordinates of the given color
-//--------------------------------------------------------------------------
-inline void Renderer::PlotPixel(int x, int y, Rgb color)
-{
-	if (x < 0 || x >= m_bufW || y < 0 || y >= m_bufH)
-		return;
-	m_colorBuf[INDEX(m_bufW,x,y,0)]=color.r;	m_colorBuf[INDEX(m_bufW,x,y,1)]=color.g;	m_colorBuf[INDEX(m_bufW,x,y,2)]=color.b;
-}
-
-void Renderer::SetCamera(Camera* c)
-{
-	m_camera = c;
-}
-
-void Renderer::SetShading(ShadingType t)
-{
-	m_shadingType = t;
-}
-
-Rgb Renderer::GetColor(Vertex at, vec4 n, vec4 camLoc, MaterialColor material)
-{
-	Rgb c;
-	c += material.emissive;
-	for(int i = 0; i < m_lights.size(); i++)
-	{
-		Light* light = m_lights[i];
-		vec4 lloc = light->location;
-		vec4 incomingRay;
-		if(light->lightType == AMBIENT_L)
-		{
-			if(c.r > 0.95 && c.b > 0.95)
-				bool ok = true;
-			c += light->lightColor * material.ambient;
-			continue;
-		}
-		if(light->lightSource == POINT_S)
-		{
-			incomingRay = normalize(at - lloc);
-		}
-		else if( light->lightSource == PARALLEL_S)
-		{
-			incomingRay = normalize(light->direction);
-		}
-
-		vec4 reflectedRay =  2 * n * dot(incomingRay, n) - incomingRay;
-		float coss = dot(n, incomingRay);
-		if(coss < 0)
-		{
-			c += (light->lightColor * coss) * material.diffuse; //diffuse
-		}
-		float csss = dot(normalize(reflectedRay), normalize(at - camLoc));
-		if(csss > 0)
-		{
-			float powww = pow(csss, m_specularPower);
-			c += material.specular * powww;
-		}
-	}
-	return c;
-}
-
-inline float getInterpolationParamater(vec4 vl, vec4 vr, vec4 vm)
-{
-	float dx = abs(vr.x - vl.x);
-	float dy = abs(vr.y - vl.y);
-	float dz = abs(vr.z - vl.z);
-	if(dx > dy && dx > dz)
-		return (vm.x - vl.x) / (vr.x - vl.x);
-	if(dy > dz)
-		return (vm.y - vl.y) / (vr.y - vl.y);
-	return (vm.z - vl.z) / (vr.z - vl.z);
-}
-
-inline float interpolate(float t, float a, float b)
-{
-	return a + t * (b - a);
-}
-
-inline vec4 interpolate(float t, vec4 a, vec4 b)
-{
-	return a + t * (b - a);
-}
-
-inline Rgb interpolate(float t, Rgb a, Rgb b)
-{
-	return Rgb(  a.r + t * (b.r - a.r),  a.g + t * (b.g - a.g), a.b + t * (b.b - a.b) );
-}
-
-inline MaterialColor interpolate(float t, MaterialColor a, MaterialColor b)
-{
-	MaterialColor mc;
-	mc.ambient = interpolate(t,a.ambient,b.ambient);
-	mc.diffuse = interpolate(t,a.diffuse,b.diffuse);
-	mc.emissive = interpolate(t,a.emissive,b.emissive);
-	mc.specular = interpolate(t,a.specular,b.specular);
-	return mc;
 }
 
 void Renderer::GetDrawablePoly(vector<Vertex>& vertices, vector<Vertex>& outPoly)
@@ -603,8 +409,63 @@ void Renderer::GetDrawablePoly(vector<Vertex>& vertices, vector<MaterialColor>& 
 	}
 }
 
-// New
-void Renderer::DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultColor, vector<vec4>& vertexNormals, vector<MaterialColor> vertexColors)
+//--------------------------------------------------------------------------
+// Drawing
+//--------------------------------------------------------------------------
+void Renderer::DrawNgons(vector<Vertex>& vertices, int n, Rgb color) 
+{
+	DrawNgonsSlow(vertices, n, color);
+}
+
+void Renderer::DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color) 
+{
+	if (n < 2) return;
+	mat4 projection = m_camera->Projection();
+	mat4 view = m_camera->View();
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	Vertex cur, next;
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		if ( (i+1) % n == 0 && (i+1) >= n) //draw srarting from current n vertices back
+		{
+
+			int startIdx = i-n+1;
+			for (int j = 0; j < n; j++) {
+				// cur and next are copied by value - the array does not change
+				cur = view * vertices[startIdx + j];
+				next = view * vertices[startIdx + ((j+1)%n)];
+				// cur and next from here are in camera coordinates
+				if ( clipZ(cur, next, zLow, zHigh) ) 
+				{
+					// clipZ (maybe) changed values of cur and next, now they are between zNear and zFar
+					cur = projection * cur;
+					next = projection * next;
+					// cur and next from here are projected after they were clipped by Z
+					if( clip(cur, next) )
+					{
+						// clip (maybe) changed values of cur and next, now they are entirely inside canonic view volume, we can draw them
+						DrawLine(cur, next, color);
+					}
+				}
+			}
+		}
+	}
+}
+
+void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
+	mat4 fp = m_camera->Projection() * m_camera->View();
+	vec4 p1 = fp * vec4(v1,1);
+	vec4 p2 = fp * vec4(v2,1);
+	if (abs(p1.w) < 0.001 || abs(p2.w) < 0.001)
+		return;
+	if (clip(p1, p2))
+	{
+		DrawLine(p1, p2, col);
+	}
+}
+
+void Renderer::DrawTriangles(vector<Vertex>& vertices, MaterialColor defaultColor, vector<vec4>& vertexNormals, vector<MaterialColor> vertexColors)
 {
 	mat4 projection = m_camera->Projection();
 	Vertex cur, next;
@@ -694,41 +555,12 @@ void Renderer::DDrawTriangles(vector<Vertex>& vertices, MaterialColor defaultCol
 			GetDrawablePoly(pts, matColors, normals, poly, outMatColors, outNormals);
 			PhongRasterizePolygon(poly,outMatColors, outNormals);
 		}
-
-		// second
-		
-		
-		//fullTriangle(v1,v2,v3);
 	}
 }
 
-Vertex Renderer::projectedToDisplay(Vertex v)
-{
-	vec2 sf = ScaleFactor();
-	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
-	v = sp * v;
-	v = v / v.w;
-	return v;
-}
-
-void Renderer::PlotPixel(int x, int y, float z, Rgb color)
-{
-	if (z > m_zbuffer[y*m_bufW + x])
-	{
-		if( m_fogEffect )
-		{
-			float g = 1 / log(2 + abs(z));
-			Rgb newPixCol = interpolate( g, m_fogColor, color);
-			PlotPixel(x, y, newPixCol);
-		}
-		else
-		{
-			PlotPixel(x, y, color);
-		}
-		m_zbuffer[y*m_bufW + x] = z;
-	}
-}
-
+//--------------------------------------------------------------------------
+// Rasterization and fragment processing
+//--------------------------------------------------------------------------
 void Renderer::PhongRasterizePolygon(vector<Vertex>& poly, vector<MaterialColor>& colors, vector<vec4>& normals)
 {
 	mat4 projection = m_camera->Projection();
@@ -936,80 +768,146 @@ void Renderer::FlatRasterizePolygon(vector<Vertex>& poly, Rgb color)
 	}
 }
 
-void Renderer::fullTriangle(Vertex v1, Vertex v2, Vertex v3)
+void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
 {
-	mat4 projection = m_camera->Projection();
-	vector<Vertex> poly, screen;
-	vector<Rgb> colors;
-	poly.push_back(v1); screen.push_back(projectedToDisplay(projection * v1)); colors.push_back(Rgb(1,0,0));
-	poly.push_back(v2); screen.push_back(projectedToDisplay(projection * v2)); colors.push_back(Rgb(0,1,0));
-	poly.push_back(v3); screen.push_back(projectedToDisplay(projection * v3)); colors.push_back(Rgb(0,0,1));
+	int x1 = (int)p1.x;
+	int x2 = (int)p2.x;
+	int y1 = (int)p1.y;
+	int y2 = (int)p2.y;
 
-
-
-	int ymin = m_bufH;
-	int ymax = 0;
-
-	for (int i = 0; i < screen.size(); i++) {
-		screen[i].z = poly[i].z;
-		ymin = min(ymin, (int)screen[i].y);
-		ymax = max(ymax, (int)screen[i].y);
-	}
-
-	ymin = max(0, ymin);
-	ymax = min(m_bufH-1, ymax);
-
-	CString tmp; tmp.Format("Ymin: %d, Ymax: %d\n", ymin, ymax);
-	::OutputDebugStringA(tmp);
-
-	// ymin is the first scanline now, ymax is the last
-
-	for (int y = ymin ; y <= ymax ; y++) 
+	if (	((x1 < 0 || x1 > m_bufW) || (y1 < 0 || y1 > m_bufH)) &&
+		((x2 < 0 || x2 > m_bufW) || (y2 < 0 || y2 > m_bufH))	)
 	{
-		Vertex l, r;
-		Rgb lc(1,1,1), rc(1,1,1);
-		l.x = m_bufW;
-		r.x = 0;
-		for (int i = 0; i < screen.size(); i++) 
-		{
-			int j = (i+1) % screen.size();
-			if ((screen[i].y > y) != (screen[j].y > y)) // if two vertices are on diffrent sides of the scanline
-			{
-				float t = ((float)y - screen[i].y)  / (screen[j].y - screen[i].y);
-				int x = (int) interpolate(t, screen[i].x, screen[j].x);
+		return;
+	}
 
-				if (x < l.x)
-				{
-					lc = interpolate(t, colors[i], colors[j]);
-					l.x = x;
-					l.y = y;
-					l.z = interpolate(t, screen[i].z, screen[j].z);
-				}
-				if (x >= r.x)
-				{
-					rc = interpolate(t, colors[i], colors[j]);
-					r.x = x;
-					r.y = y;
-					r.z = interpolate(t, screen[i].z, screen[j].z);
-				}
-			}
+	bool steep = abs(y2 - y1) > abs(x2 - x1);
+
+	if(steep)
+	{
+		swap(x1,y1);
+		swap(x2,y2);
+	}
+	if(x1 > x2)
+	{
+		swap(x1,x2);
+		swap(y1,y2);
+	}
+
+	int dx = x2 - x1;
+	int dy = abs(y2 - y1);
+
+	int e =  dx/2;
+	int y = y1;
+	int yStep = (y1 < y2) ? 1 : -1;
+
+	for(int x = x1; x <= x2; ++x)
+	{
+		if(steep)
+		{
+			PlotPixel(y,x, col);
 		}
-
-		int lb = max(0, (int)l.x);
-		int rb = min(m_bufW - 1, (int)r.x);
-		for (int x = lb; x <= rb; x++)
+		else
 		{
-			float t = ((float)x - l.x) / (r.x - l.x);
-			float z = interpolate(t, l.z, r.z);
-
-			if (z > m_zbuffer[y*m_bufW + x])
-			{
-				Rgb pixCol = interpolate(t, lc, rc);
-				PlotPixel(x, y, pixCol);
-				m_zbuffer[y*m_bufW + x] = z;
-			}
+			PlotPixel(x,y, col);
+		}
+		e -= dy;
+		if(e < 0)
+		{
+			e += dx;
+			y += yStep;
 		}
 	}
+}
+
+void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col)
+{
+	vec2 sf = ScaleFactor();
+	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0);
+	p1 = sp * p1;
+	p2 = sp * p2;
+	p1 = p1 / p1.w;
+	p2 = p2 / p2.w;
+	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col);
+}
+
+inline void Renderer::PlotPixel(int x, int y, Rgb color)
+{
+	if (x < 0 || x >= m_bufW || y < 0 || y >= m_bufH)
+		return;
+	m_colorBuf[INDEX(m_bufW,x,y,0)]=color.r;	m_colorBuf[INDEX(m_bufW,x,y,1)]=color.g;	m_colorBuf[INDEX(m_bufW,x,y,2)]=color.b;
+}
+
+inline void Renderer::PlotPixel(int x, int y, float z, Rgb color)
+{
+	if (z > m_zbuffer[y*m_bufW + x])
+	{
+		if( m_fogEffect )
+		{
+			float g = 1 / log(2 + abs(z));
+			Rgb newPixCol = interpolate( g, m_fogColor, color);
+			PlotPixel(x, y, newPixCol);
+		}
+		else
+		{
+			PlotPixel(x, y, color);
+		}
+		m_zbuffer[y*m_bufW + x] = z;
+	}
+}
+
+//--------------------------------------------------------------------
+// Shading and rendering
+//--------------------------------------------------------------------
+void Renderer::SetCamera(Camera* c)
+{
+	m_camera = c;
+}
+
+void Renderer::SetShading(ShadingType t)
+{
+	m_shadingType = t;
+}
+
+Rgb Renderer::GetColor(Vertex at, vec4 n, vec4 camLoc, MaterialColor material)
+{
+	Rgb c;
+	c += material.emissive;
+	for(int i = 0; i < m_lights.size(); i++)
+	{
+		Light* light = m_lights[i];
+		vec4 lloc = light->location;
+		vec4 incomingRay;
+		if(light->lightType == AMBIENT_L)
+		{
+			if(c.r > 0.95 && c.b > 0.95)
+				bool ok = true;
+			c += light->lightColor * material.ambient;
+			continue;
+		}
+		if(light->lightSource == POINT_S)
+		{
+			incomingRay = normalize(at - lloc);
+		}
+		else if( light->lightSource == PARALLEL_S)
+		{
+			incomingRay = normalize(light->direction);
+		}
+
+		vec4 reflectedRay =  2 * n * dot(incomingRay, n) - incomingRay;
+		float coss = dot(n, incomingRay);
+		if(coss < 0)
+		{
+			c += (light->lightColor * coss) * material.diffuse; //diffuse
+		}
+		float csss = dot(normalize(reflectedRay), normalize(at - camLoc));
+		if(csss > 0)
+		{
+			float powww = pow(csss, m_specularPower);
+			c += material.specular * powww;
+		}
+	}
+	return c;
 }
 
 void Renderer::SetLights(vector<Light*> _lights)
@@ -1026,6 +924,40 @@ void Renderer::ToggleFog()
 {
 	m_fogEffect = !m_fogEffect;
 }
+
+//--------------------------------------------------------------------------
+// Misc
+//--------------------------------------------------------------------------
+inline vec2 Renderer::ScaleFactor() 
+{
+	vec2 res;
+	res.x = m_bufW/2;
+	res.y = m_bufH/2;
+	return res;
+
+	float screenAR = (float) m_bufW / (float) m_bufH;
+	if (m_camera->Aspect() > screenAR)
+	{
+		res.x = m_bufW/2;
+		res.y = res.x / m_camera->Aspect();
+	}
+	else
+	{
+		res.y = m_bufH/2;
+		res.x = res.y * m_camera->Aspect();
+	}
+	return res;
+}
+
+inline Vertex Renderer::projectedToDisplay(Vertex v)
+{
+	vec2 sf = ScaleFactor();
+	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
+	v = sp * v;
+	v = v / v.w;
+	return v;
+}
+
 
 #pragma region  // Don't touch.
 /////////////////////////////////////////////////////
@@ -1141,497 +1073,9 @@ void Renderer::SwapBuffers()
 	glBindVertexArray(gScreenVtc);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glutSwapBuffers();
-	FlushBuffer();
+	FlushBuffers();
 }
 #pragma endregion
 
-#pragma region
-void foo(vec4& v1, vec4& v2, vec4& v3)
-{
-	if(v1.y < v2.y || (v1.y == v2.y && v1.x > v2.x))
-	{
-		swap(v1,v2);
-	}
-	if(v1.y < v3.y || (v1.y == v3.y && v1.x > v3.x))
-	{
-		swap(v1,v3);
-	}
-	if(v2.x > v3.x)
-	{
-		swap(v2,v3);
-	}
-}
-
-void clipLowZ(vec4& v1,vec4& v2,float zLow)
-{
-	v1 = v1 / v1.w;
-	v2 = v2 / v2.w;
-
-	if(v1.z < zLow && v2.z < zLow)
-		return;
-	if( v1.z != v2.z && !( v1.z >= zLow && v2.z >= zLow) )
-	{
-		if(v1.z > v2.z)
-		{
-			vec4 tmp = v1;
-			v1 = v2;
-			v2 = tmp;
-		}
-		if(v1.z < zLow)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( zLow - v1.z) / k. z;
-			v1 = v1 + t * k;
-		}
-	}
-}
-
-bool clipY(vec4& v1, vec4& v2, float yLow , float yHigh)
-{
-	v1 = v1 / v1.w;
-	v2 = v2 / v2.w;
-
-	if( (v1.y > yHigh && v2.y > yHigh) || (v1.y < yLow && v2.y < yLow) )
-		return false;
-	if( v1.y != v2.y && !( v1.y >= yLow && v1.y <= yHigh && v2.y >= yLow && v2.y <= yHigh) )
-	{
-		if(v1.y > v2.y)
-		{
-			vec4 tmp = v1;
-			v1 = v2;
-			v2 = tmp;
-		}
-		if(v1.y < yLow)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( yLow - v1.y) / k.y;
-			v1 = v1 + t * k;
-		}
-		if(v2.z > yHigh)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( yHigh - v1.y) / k.y;
-			v2 = v1 + t * k;
-		}
-	}
-	return true;
-}
-
-bool clipX(vec4& v1, vec4& v2, float xLow , float xHigh)
-{
-	v1 = v1 / v1.w;
-	v2 = v2 / v2.w;
-
-	if( (v1.x > xHigh && v2.x > xHigh) || (v1.x < xLow && v2.x < xLow) )
-		return false;
-	if( v1.x != v2.x && !( v1.x >= xLow && v1.x <= xHigh && v2.x >= xLow && v2.x <= xHigh) )
-	{
-		if(v1.x > v2.x)
-		{
-			vec4 tmp = v1;
-			v1 = v2;
-			v2 = tmp;
-		}
-		if(v1.x < xLow)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( xLow - v1.x) / k.x;
-			v1 = v1 + t * k;
-		}
-		if(v2.z > xHigh)
-		{
-			vec4 k = v2 - v1;
-			k.w = 0;
-			float t = ( xHigh - v1.x) / k.x;
-			v2 = v1 + t * k;
-		}
-	}
-	return true;
-}
-
-void Renderer::ScanRight(vec4 v1,vec4 v2,int* contourX )
-{
-	if(!clipY(v1,v2,0,m_bufH-1)) return;
-
-	int yMin = min(v1.y,v2.y);
-	int yMax = max(v1.y,v2.y);
-
-	if(v1.x < 0 && v2.x < 0)
-	{
-		for( int i = yMin; i <= yMax; i++)
-		{
-			contourX[m_bufH+i] = -1;
-		}
-		return;
-	}
-
-	if(v1.x > m_bufH - 1 && v2.x > m_bufH - 1)
-	{
-		for( int i = yMin; i <= yMax; i++)
-		{
-			contourX[m_bufH+i] = m_bufH - 1;
-		}
-		return;
-	}
-
-	clipX(v1,v2,0,m_bufW);
-	if( v1.y > v2.y)
-		swap(v1,v2);
-
-	int yMin2 = v1.y;
-	int yMax2 = v2.y;
-
-	if( yMax2 < yMax) 
-	{
-		int val = (int)v2.x;
-		if( val <= 1)
-			val = -1;
-		else if ( val >= m_bufW -2)
-			val = m_bufW - 1;
-		else
-			assert(0);
-		for( int i = yMax2; i <= yMax; i++)
-		{
-			contourX[m_bufH+i] = val;
-		}
-	}
-
-	if( yMin2 > yMin)
-	{
-		int val = (int)v1.x;
-		if( val <= 1)
-			val = -1;
-		else if ( val >= m_bufW -2)
-			val = m_bufW - 1;
-		else
-			assert(0);
-		for( int i = yMin; i <= yMin2; i++)
-		{
-			contourX[m_bufH+i] = val;
-		}
-	}
-
-	for( int i = yMin2; i <= yMax2; i++)
-	{
-		contourX[m_bufH+i] = 0;
-	}
-
-	int x1 = (int)v1.x;
-	int x2 = (int)v2.x;
-	int y1 = (int)v1.y;
-	int y2 = (int)v2.y;
 
 
-	bool steep = abs(y2 - y1) > abs(x2 - x1);
-
-	if(steep)
-	{
-		swap(x1,y1);
-		swap(x2,y2);
-	}
-	if(x1 > x2)
-	{
-		swap(x1,x2);
-		swap(y1,y2);
-	}
-
-	int dx = x2 - x1;
-	int dy = abs(y2 - y1);
-
-	int e =  dx/2;
-	int y = y1;
-	int yStep = (y1 < y2) ? 1 : -1;
-
-	for(int x = x1; x <= x2; ++x)
-	{
-		if(steep)
-		{
-			if( y > contourX[m_bufH+x]) 
-				contourX[m_bufH+x] = y;
-		}
-		else
-		{
-			if( x > contourX[m_bufH+y]) 
-				contourX[m_bufH+y] = x;
-		}
-		e -= dy;
-		if(e < 0)
-		{
-			e += dx;
-			y += yStep;
-		}
-	}
-}
-
-void Renderer::ScanLeft(vec4 v1,vec4 v2,int* contourX )
-{
-	if(!clipY(v1,v2,0,m_bufH-1)) return;
-
-	int yMin = min(v1.y,v2.y);
-	int yMax = max(v1.y,v2.y);
-
-	if(v1.x < 0 && v2.x < 0)
-	{
-		for( int i = yMin; i <= yMax; i++)
-		{
-			contourX[i] = 0;
-		}
-		return;
-	}
-
-	if(v1.x > m_bufH - 1 && v2.x > m_bufH - 1)
-	{
-		for( int i = yMin; i <= yMax; i++)
-		{
-			contourX[i] = m_bufH - 1;
-		}
-		return;
-	}
-
-	clipX(v1,v2,0,m_bufW-1);
-	if( v1.y > v2.y)
-		swap(v1,v2);
-
-	int yMin2 = v1.y;
-	int yMax2 = v2.y;
-
-	if( yMax2 < yMax) 
-	{
-		int val = (int)v1.x;
-		for( int i = yMax2; i <= yMax; i++)
-		{
-			contourX[i] = val;
-		}
-	}
-
-	if( yMin2 > yMin) 
-	{
-		int val = (int)v2.x;
-		for( int i = yMin; i <= yMin2; i++)
-		{
-			contourX[i] = val;
-		}
-	}
-
-	for( int i = yMin2; i <= yMax2; i++)
-	{
-		contourX[i] = m_bufH;
-	}
-
-	int x1 = (int)v1.x;
-	int x2 = (int)v2.x;
-	int y1 = (int)v1.y;
-	int y2 = (int)v2.y;
-
-
-	bool steep = abs(y2 - y1) > abs(x2 - x1);
-
-	if(steep)
-	{
-		swap(x1,y1);
-		swap(x2,y2);
-	}
-	if(x1 > x2)
-	{
-		swap(x1,x2);
-		swap(y1,y2);
-	}
-
-	int dx = x2 - x1;
-	int dy = abs(y2 - y1);
-
-	int e =  dx/2;
-	int y = y1;
-	int yStep = (y1 < y2) ? 1 : -1;
-
-	for(int x = x1; x <= x2; ++x)
-	{
-		if(steep)
-		{
-			if( y < contourX[x]) 
-				contourX[x] = y;
-		}
-		else
-		{
-			if( x < contourX[y]) 
-				contourX[y] = x;
-		}
-		e -= dy;
-		if(e < 0)
-		{
-			e += dx;
-			y += yStep;
-		}
-	}
-}
-
-void Renderer::RasterizeTriangle(vec4 v1, vec4 v2, vec4 v3)
-{
-	vec2 sf = ScaleFactor();
-	mat4 ft = Scale( sf.x , sf.y, 1) * Translate(1,1,0)  * m_camera->Projection();
-	v1 = ft * v1;
-	v2 = ft * v2;
-	v3 = ft * v3;
-
-	v1 = v1 / v1.w;
-	v2 = v2 / v2.w;
-	v3 = v3 / v3.w;
-
-	int xMin = min( min(v1.x, v2.x), v3.x);
-	int xMax = max( max(v1.x, v2.x), v3.x);
-	int yMin = min( min(v1.y, v2.y), v3.y);
-	int yMax = max( max(v1.y, v2.y), v3.y);
-
-	if( yMin > m_bufH || yMax < 0 || xMin > m_bufW || xMax < 0) return;
-
-	xMin = max( xMin, 0);
-	yMin = max( yMin, 0);
-	xMax = min( xMax, m_bufW - 1);
-	yMax = min( yMax, m_bufH-1);
-
-	foo(v1,v2,v3);
-
-	vec3 crosProd = cross(vec3(v2.x,v2.y,0) - vec3(v1.x,v1.y,0), vec3(v3.x,v3.y,0) - vec3(v1.x,v1.y,0));
-
-	if(crosProd.z < 0)
-	{
-		swap(v2,v3);
-	}
-
-	if(v2.y > v3.y)
-	{
-		ScanLeft(v1,v2,contourX);
-		ScanLeft(v2,v3,contourX);
-		ScanRight(v1,v3,contourX);
-	}
-	else
-	{
-		ScanLeft(v1,v2,contourX);
-		ScanRight(v2,v3,contourX);
-		ScanRight(v1,v3,contourX);
-	}
-	for( int i = yMin; i <= yMax; ++i)
-	{
-		int right = contourX[m_bufH + i];
-		int left = contourX[i];
-		if(right > m_bufW - 1 || left < 0 || left > right) 
-			continue;
-		for(int j = left; j <= right; j++)
-			PlotPixel(j,i);
-		;
-	}
-}
-
-void Renderer::DrawTriangle(vec4& v1, vec4& v2, vec4& v3)
-{
-	float zHigh = -m_camera->ZNear();
-	float zLow = -m_camera->ZFar();
-	v1 = v1 / v1.w;
-	v2 = v2 / v2.w;
-	v3 = v3 / v3.w;
-	int count = (v1.z < zLow) + (v2.z < zLow) + (v3.z < zLow);
-	if( count == 3) return;
-	else if( count == 2)
-	{
-		if(v3.z < zLow)
-			swap(v1,v3);
-		if(v3.z < zLow)
-			swap(v2,v3);
-		vec4 vv1 = v1;
-		vec4 vv2 = v3;
-		vec4 vv3 = v2;
-		vec4 vv4 = v3;
-		clipLowZ(vv1,vv2,zLow);
-		clipLowZ(vv3,vv4,zLow);
-		assert( vv2 == vv4);
-		RasterizeTriangle(vv1,vv3,vv2);
-	}
-	else if( count == 1)
-	{
-		if(v3.z < zLow)
-			swap(v1,v3);
-		if(v2.z < zLow)
-			swap(v2,v1);
-		vec4 vv1 = v1;
-		vec4 vv2 = v2;
-		vec4 vv3 = v1;
-		vec4 vv4 = v3;
-		clipLowZ(vv1,vv2,zLow);
-		clipLowZ(vv3,vv4,zLow);
-		RasterizeTriangle(vv1,vv2,vv4);
-		RasterizeTriangle(vv1,vv3,vv4);
-	}
-	else
-	{
-		RasterizeTriangle(v1,v2,v3);
-	}
-}
-
-void Renderer::DrawTriangles(vector<Vertex>& vertices)
-{
-	mat4 view = m_camera->View();
-	Vertex v1, v2, v3;
-	for (int i = 3; i <= vertices.size(); i+=3 )
-	{
-		v1 = view * vertices[i-3];
-		v2 = view * vertices[i-2];
-		v3 = view * vertices[i-1];
-		DrawTriangle(v1,v2,v3);
-	}
-}
-
-void Renderer::DrawNgonsFast(vector<Vertex>& vertices, int n, Rgb color) 
-{
-	if (n < 2) return;
-	mat4 projection = m_camera->Projection();
-	mat4 view = m_camera->View();
-	float zHigh = -m_camera->ZNear();
-	float zLow = -m_camera->ZFar();
-	Vertex p1, p2;
-	for (int i = 0; i < vertices.size(); i++)
-	{
-		vertices[i] = view * vertices[i];
-		if ( (i+1) % n == 0 && (i+1) >= n) //draw srarting from current n vertices back
-		{
-			int startIdx = i-n+1;
-			for (int j = 0; j < n; j++) {
-				// cur and next are references to the actual array elements
-				// these elements have allready in camera coordinates
-				Vertex& cur = vertices[startIdx + j];
-				Vertex& next = vertices[startIdx + ((j+1)%n)];
-				// cur and next from here are in camera coordinates
-				if ( clipZ(cur, next, zLow, zHigh) ) 
-				{
-					// clipZ (maybe) changed values of cur and next, now they are between zNear and zFar
-					p1 = projection * cur;
-					p2 = projection * next;
-					// p1 and p2 are copies of cur and next after projection
-					if( clip(p1, p2) )
-					{
-						// clip (maybe) changed values of cur and next, now they are entirely inside canonic view volume, we can draw them
-						DrawLine(p1, p2, color);
-					}
-				}
-			}
-		}
-	}
-
-}
-
-void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
-	mat4 fp = m_camera->Projection() * m_camera->View();
-	vec4 p1 = fp * vec4(v1,1);
-	vec4 p2 = fp * vec4(v2,1);
-	if (abs(p1.w) < 0.001 || abs(p2.w) < 0.001)
-		return;
-	if (clip(p1, p2))
-	{
-		DrawLine(p1, p2, col);
-	}
-
-}
-#pragma endregion

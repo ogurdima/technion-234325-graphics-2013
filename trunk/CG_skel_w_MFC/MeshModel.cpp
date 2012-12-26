@@ -86,8 +86,7 @@ void MeshModel::draw(Renderer * r, Rgb color)
 			normals.push_back(  normalize(normalPairs[i+1] - normalPairs[i])  );
 		}
 	}
-	r->DDrawTriangles(vp, _defaultColor, normals, _vertexColors);
-	//r->DrawNgons(vp,3,Rgb(0,1,0));
+	r->DrawTriangles(vp, _defaultColor, normals, _vertexColors);
 	if (_drawBB) 
 	{
 		drawBoundingBox(r);

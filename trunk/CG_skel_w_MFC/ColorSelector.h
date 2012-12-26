@@ -20,5 +20,6 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	CMFCColorButton m_colorWidget;
+	void SetColor(Rgb clr);
 	Rgb GetColor();
 };

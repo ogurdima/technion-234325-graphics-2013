@@ -7,9 +7,8 @@ Camera::Camera() :
 	up(vec4(0,0,1,0)),
 	aspect(4/3),
 	fovy(M_PI/6),
-	zNear(0.2),
-	zFar(20),
-	cTransform(Identity4())
+	zNear(0.5),
+	zFar(100)
 {
 	LookAt(eye, at, up);
 	Perspective(fovy, aspect, zNear, zFar);
@@ -86,7 +85,7 @@ mat4 Camera::View()
 {
 	vec4 n = normalize( eye - at);
 	vec4 u = vec4(normalize(cross(up,n)), 0);
-    vec4 v = vec4(normalize(cross(n,u)), 0);
+    vec4 v = vec4(cross(n,u), 0);
     vec4 t = vec4(0, 0, 0, 1);
 	return mat4(u, v, n, t) * Translate( -eye );
 }

@@ -12,8 +12,6 @@ class Camera
 	vec4 eye, at, up;
 	float right, left, top, bottom, zNear, zFar, fovy,aspect;  
 
-	mat4 cTransform, projection;
-
 	void LookAt(const vec4& eye, const vec4& at, const vec4& up );
 
 public:
