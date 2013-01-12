@@ -1,0 +1,14 @@
+#pragma once
+#include "Renderer.h"
+#include "Vertex.h"
+using namespace std;
+class Model {
+protected:
+	
+public:
+	void virtual draw(Renderer * r = NULL, Rgb color = Rgb(0.7,0.7,0.7) )=0;
+	vector<vec3> virtual coordinates()= 0;
+	vec3 virtual origin() = 0;
+	virtual ~Model() {}
+};
+

@@ -1,0 +1,1081 @@
+#include "StdAfx.h"
+#include "Renderer.h"
+#include "CG_skel_w_MFC.h"
+#include "InitShader.h"
+#include "GL\freeglut.h"
+#include <assert.h>
+
+#define INDEX(width,x,y,c) (x+y*width)*3+c
+
+//--------------------------------------------------------------------------
+// Non-class helper functions
+//--------------------------------------------------------------------------
+bool clipZ(vec4& v1, vec4& v2, float zLow , float zHigh)
+{
+	v1 = v1 / v1.w;
+	v2 = v2 / v2.w;
+
+	if( (v1.z > zHigh && v2.z > zHigh) || (v1.z < zLow && v2.z < zLow) )
+		return false;
+	if( v1.z != v2.z && !( v1.z >= zLow && v1.z <= zHigh && v2.z >= zLow && v2.z <= zHigh) )
+	{
+		
+		if(v1.z < zLow)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zLow - v1.z) / k. z;
+			v1 = v1 + t * k;
+
+		}
+		if(v2.z > zHigh)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zHigh - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+
+		if(v1.z > zHigh)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zHigh - v1.z) / k. z;
+			v1 = v1 + t * k;
+
+		}
+		if(v2.z < zLow)
+		{
+			vec4 k = v2 - v1;
+			k.w = 0;
+			float t = ( zLow - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+	}
+	return true;
+}
+
+inline float getInterpolationParamater(vec4 vl, vec4 vr, vec4 vm)
+{
+	float dx = abs(vr.x - vl.x);
+	float dy = abs(vr.y - vl.y);
+	float dz = abs(vr.z - vl.z);
+	if(dx > dy && dx > dz)
+		return (vm.x - vl.x) / (vr.x - vl.x);
+	if(dy > dz)
+		return (vm.y - vl.y) / (vr.y - vl.y);
+	return (vm.z - vl.z) / (vr.z - vl.z);
+}
+
+inline float interpolate(float t, float a, float b)
+{
+	return a + t * (b - a);
+}
+
+inline vec4 interpolate(float t, vec4 a, vec4 b)
+{
+	return a + t * (b - a);
+}
+
+inline Rgb interpolate(float t, Rgb a, Rgb b)
+{
+	return Rgb(  a.r + t * (b.r - a.r),  a.g + t * (b.g - a.g), a.b + t * (b.b - a.b) );
+}
+
+inline MaterialColor interpolate(float t, MaterialColor a, MaterialColor b)
+{
+	MaterialColor mc;
+	mc.ambient = interpolate(t,a.ambient,b.ambient);
+	mc.diffuse = interpolate(t,a.diffuse,b.diffuse);
+	mc.emissive = interpolate(t,a.emissive,b.emissive);
+	mc.specular = interpolate(t,a.specular,b.specular);
+	return mc;
+}
+
+//--------------------------------------------------------------------------
+// General
+//--------------------------------------------------------------------------
+Renderer::Renderer(Rgb bg) :
+	m_width(512), 
+	m_height(512), 
+	m_outBuffer(NULL),
+	m_zbuffer(NULL),
+	m_bg(bg),
+	m_colorBuf(NULL),
+	m_specularPower(5),
+	m_shadingType(SHADING_FLAT),
+	m_fogEffect(false),
+	m_fogColor(Rgb(0.6,0.6,0.6)),
+	m_aaX(1),
+	m_bufH(512),
+	m_bufW(512)
+{
+	InitOpenGLRendering();
+	CreateBuffers(512,512);
+}
+
+Renderer::Renderer(int width, int height, Rgb bg) :
+	m_width(width), 
+	m_height(height), 
+	m_outBuffer(NULL),
+	m_colorBuf(NULL),
+	m_zbuffer(NULL),
+	m_bg(bg),
+	m_specularPower(5),
+	m_shadingType(SHADING_FLAT),
+	m_fogEffect(false),
+	m_fogColor(Rgb(0.6,0.6,0.6)),
+	m_aaX(1),
+	m_bufH(height),
+	m_bufW(width)
+{
+	InitOpenGLRendering();
+	CreateBuffers(width, height);
+}
+
+Renderer::~Renderer(void)
+{
+	if (m_outBuffer != NULL) {
+		delete m_outBuffer;
+		m_outBuffer = NULL;
+	}
+	if (m_aaX != 1 && m_colorBuf != NULL) 
+	{
+		delete m_colorBuf;
+		m_colorBuf = NULL;
+	}
+	if (m_zbuffer != NULL) {
+		delete m_zbuffer;
+		m_zbuffer = NULL;
+	}
+}
+
+void Renderer::SetAntiAliasing(int x)
+{
+	if (m_aaX != 1 && m_colorBuf != NULL) 
+	{
+		delete[] m_colorBuf;
+		m_colorBuf = NULL;
+	}
+	else if (m_aaX == 1)
+		m_colorBuf = NULL;
+
+	m_aaX = x;
+	CreateBuffers(m_width, m_height);
+}
+
+//--------------------------------------------------------------------------
+// Buffers
+//--------------------------------------------------------------------------
+void Renderer::CreateBuffers(int width, int height)
+{
+	m_width=width;
+	m_height=height;	
+	m_bufW = m_aaX * m_width;
+	m_bufH = m_aaX * m_height;
+	CreateOpenGLBuffer(); //Do not remove this line.
+	if (m_outBuffer != NULL) {
+		delete[] m_outBuffer;
+		m_outBuffer = NULL;
+	}
+	m_outBuffer = new float[3*m_width*m_height];
+	if (m_aaX != 1 && m_colorBuf != NULL) 
+	{
+		delete[] m_colorBuf;
+		m_colorBuf = NULL;
+	}
+	if (m_aaX == 1)
+	{
+		m_colorBuf = m_outBuffer;
+	}
+	else
+	{
+		m_colorBuf = new float[3*m_bufW*m_bufH];
+	}
+	
+	if (m_zbuffer != NULL) {
+		delete[] m_zbuffer;
+		m_zbuffer = NULL;
+	}
+
+	m_zbuffer = new float[m_bufW*m_bufH];
+	FlushBuffers();
+}
+
+void Renderer::ClearDepthBuffer()
+{
+	for(int i=0; i<m_bufH; i++)
+	{
+		for (int j = 0; j < m_bufW; j++)
+		{
+			m_zbuffer[j + i*m_bufW] = -100500;
+		}
+	}
+}
+
+void Renderer::FlushBuffers()
+{
+	ClearColorBuffer();
+	ClearDepthBuffer();
+}
+
+void Renderer::ClearColorBuffer() 
+{
+	for(int i=0; i<m_bufH; i++)
+	{
+		for (int j = 0; j < m_bufW; j++)
+		{
+			m_colorBuf[INDEX(m_bufW,j,i,0)]=m_bg.r;	m_colorBuf[INDEX(m_bufW,j,i,1)]=m_bg.g;	m_colorBuf[INDEX(m_bufW,j,i,2)]=m_bg.b;
+		}
+	}
+}
+
+//--------------------------------------------------------------------------
+// Clipping
+//--------------------------------------------------------------------------
+inline bool Renderer::clip(vec3& v1, vec3& v2)
+{
+	// x
+	if( (v1.x > 1 && v2.x > 1) || (v1.x < -1 && v2.x < -1) )
+		return false;
+
+	if( v1.x != v2.x && !( v1.x >= -1 && v1.x <= 1 && v2.x >= -1 && v2.x <= 1) )
+	{
+		if(v1.x > v2.x)
+		{
+			vec3 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.x < -1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( -1 - v1.x) / k. x;
+			v1 = v1 + t * k;
+		}
+		if(v2.x > 1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( 1 - v1.x) / k. x;
+			v2 = v1 + t * k;
+		}
+	}
+
+	// y
+	if( (v1.y > 1 && v2.y > 1) || (v1.y < -1 && v2.y < -1) )
+		return false;
+	if( v1.y != v2.y && !( v1.y >= -1 && v1.y <= 1 && v2.y >= -1 && v2.y <= 1) )
+	{
+		if(v1.y > v2.y)
+		{
+			vec3 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.y < -1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( -1 - v1.y) / k. y;
+			v1 = v1 + t * k;
+		}
+		if(v2.y > 1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( 1 - v1.y) / k. y;
+			v2 = v1 + t * k;
+		}
+	}
+
+	// z
+	if( (v1.z > 1 && v2.z > 1) || (v1.z < -1 && v2.z < -1) )
+		return false;
+	if( v1.z != v2.z && !( v1.z >= -1 && v1.z <= 1 && v2.z >= -1 && v2.z <= 1) )
+	{
+		if(v1.z > v2.z)
+		{
+			vec3 tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		if(v1.z < -1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( -1 - v1.z) / k. z;
+			v1 = v1 + t * k;
+		}
+		if(v2.z > 1)
+		{
+			vec3 k = v2 - v1;
+			float t = ( 1 - v1.z) / k. z;
+			v2 = v1 + t * k;
+		}
+	}
+	return true;
+}
+
+inline bool Renderer::clip(vec4& v1, vec4& v2)
+{
+	assert(v1.w != 0 && v2.w != 0);
+	vec3 vv1 = vec3(v1.x,v1.y, v1.z) / v1.w;
+	vec3 vv2 = vec3(v2.x,v2.y, v2.z) / v2.w;
+	bool res = clip(vv1, vv2);
+	if( res )
+	{
+		v1 = vec4(vv1, 1);
+		v2 = vec4(vv2, 1);
+	}
+	return res;
+}
+
+void Renderer::GetDrawablePoly(vector<Vertex>& vertices, vector<Vertex>& outPoly)
+{
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	mat4 view = m_camera->View();
+	for( int i = 0; i < vertices.size(); ++i)
+	{
+		Vertex v1 = view * vertices[i];
+		Vertex v2 = view * vertices[(i+1) % vertices.size()];
+		Vertex p1 = v1;
+		Vertex p2 = v2;
+		if(clipZ(p1,p2,zLow,zHigh))
+		{
+			if (! (v1.z < zHigh && v1.z > zLow) ) // if not inside
+			{
+				outPoly.push_back(p1);
+			}
+			outPoly.push_back(p2);
+		}
+	}
+	
+}
+
+void Renderer::GetDrawablePoly(vector<Vertex>& vertices, vector<Rgb>& colors, vector<Vertex>& outPoly, vector<Rgb>& outColors)
+{
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	mat4 view = m_camera->View();
+	for( int i = 0; i < vertices.size(); ++i)
+	{
+		Vertex v1 = view * vertices[i];
+		Vertex v2 = view * vertices[(i+1) % vertices.size()];
+		Vertex p1 = v1;
+		Vertex p2 = v2;
+		if(clipZ(p1,p2,zLow,zHigh))
+		{
+			if (! (v1.z < zHigh && v1.z > zLow) ) // if not inside
+			{
+				outPoly.push_back(p1);
+				float t = getInterpolationParamater(v1,v2, p1);
+				outColors.push_back( interpolate(t,colors[i], colors[(i+1) % vertices.size()]));
+			}
+			float t = getInterpolationParamater(v1,v2, p2);
+			outColors.push_back( interpolate(t,colors[i], colors[(i+1) % vertices.size()]));
+			outPoly.push_back(p2);
+		}
+	}
+}
+
+void Renderer::GetDrawablePoly(vector<Vertex>& vertices, vector<MaterialColor>& colors, vector<vec4>& normals, vector<Vertex>& outPoly, vector<MaterialColor>& outColors, vector<vec4>& outNormals)
+{
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	mat4 view = m_camera->View();
+
+	for( int i = 0; i < vertices.size(); ++i)
+	{
+		Vertex vv1 = vertices[i];
+		Vertex vv2 = vertices[(i+1) % vertices.size()];
+		Vertex v1 = view * vv1;
+		Vertex v2 = view * vv2;
+		Vertex p1 = v1;
+		Vertex p2 = v2;
+		if(clipZ(p1,p2,zLow,zHigh))
+		{
+			if (! (v1.z < zHigh && v1.z > zLow) ) // if not inside
+			{
+				
+				float t = getInterpolationParamater(v1,v2, p1);
+				outPoly.push_back(interpolate(t, vv1,vv2));
+				vec4 n = normalize(interpolate(t,normals[i], normals[(i+1) % vertices.size()]));
+				outNormals.push_back( interpolate(t,normals[i], normals[(i+1) % vertices.size()]));
+				outColors.push_back( interpolate(t,colors[i], colors[(i+1) % vertices.size()]));
+			}
+			float t = getInterpolationParamater(v1,v2, p2);
+			outPoly.push_back(interpolate(t, vv1,vv2));
+			outNormals.push_back( interpolate(t,normals[i], normals[(i+1) % vertices.size()]));
+			outColors.push_back( interpolate(t,colors[i], colors[(i+1) % vertices.size()]));
+		}
+	}
+}
+
+//--------------------------------------------------------------------------
+// Drawing
+//--------------------------------------------------------------------------
+void Renderer::DrawNgons(vector<Vertex>& vertices, int n, Rgb color) 
+{
+	DrawNgonsSlow(vertices, n, color);
+}
+
+void Renderer::DrawNgonsSlow(vector<Vertex>& vertices, int n, Rgb color) 
+{
+	if (n < 2) return;
+	mat4 projection = m_camera->Projection();
+	mat4 view = m_camera->View();
+	float zHigh = -m_camera->ZNear();
+	float zLow = -m_camera->ZFar();
+	Vertex cur, next;
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		if ( (i+1) % n == 0 && (i+1) >= n) //draw srarting from current n vertices back
+		{
+
+			int startIdx = i-n+1;
+			for (int j = 0; j < n; j++) {
+				// cur and next are copied by value - the array does not change
+				cur = view * vertices[startIdx + j];
+				next = view * vertices[startIdx + ((j+1)%n)];
+				// cur and next from here are in camera coordinates
+				if ( clipZ(cur, next, zLow, zHigh) ) 
+				{
+					// clipZ (maybe) changed values of cur and next, now they are between zNear and zFar
+					cur = projection * cur;
+					next = projection * next;
+					// cur and next from here are projected after they were clipped by Z
+					if( clip(cur, next) )
+					{
+						// clip (maybe) changed values of cur and next, now they are entirely inside canonic view volume, we can draw them
+						DrawLine(cur, next, color);
+					}
+				}
+			}
+		}
+	}
+}
+
+void Renderer::DrawLine3D(vec3 v1, vec3 v2, Rgb col) {
+	mat4 fp = m_camera->Projection() * m_camera->View();
+	vec4 p1 = fp * vec4(v1,1);
+	vec4 p2 = fp * vec4(v2,1);
+	if (abs(p1.w) < 0.001 || abs(p2.w) < 0.001)
+		return;
+	if (clip(p1, p2))
+	{
+		DrawLine(p1, p2, col);
+	}
+}
+
+void Renderer::DrawTriangles(vector<Vertex>& vertices, MaterialColor defaultColor, vector<vec4>& vertexNormals, vector<MaterialColor> vertexColors)
+{
+	mat4 projection = m_camera->Projection();
+	Vertex cur, next;
+
+	if (SHADING_WIREFRAME == m_shadingType) 
+	{
+		DrawNgons(vertices, 3, Rgb(0,1,0));
+		return;
+	}
+	bool deflt = vertexColors.size() != vertices.size();
+	if (deflt)
+	{
+		vertexColors.clear();
+		for (int j = 0; j < vertices.size(); j++)
+		{
+			vertexColors.push_back(defaultColor);
+		}
+	}
+	
+	for (int i = 0; i < vertices.size(); i+=3)
+	{
+		Vertex v1 = vertices[i];
+		Vertex v2 = vertices[i+1];
+		Vertex v3 = vertices[i+2];
+		vector<Vertex> poly;
+		vec4 camLoc = vec4(m_camera->Eye(),0);
+		vector<Rgb> colors;
+		vector<Vertex> pts;
+		pts.push_back(v1);
+		pts.push_back(v2);
+		pts.push_back(v3);
+
+		// flat
+		if( m_shadingType == SHADING_FLAT)
+		{
+			
+			
+
+			vec4 n = vec4(normalize( cross(v2 - v1, v3 - v2)), 0);
+			vec4 m = vec4((v1.x  + v2.x + v3.x)/3,(v1.y  + v2.y + v3.y)/3,(v1.z  + v2.z + v3.z)/3, 0);
+			Rgb c;
+			if(! deflt)
+			{
+				MaterialColor mc1 = vertexColors[i];
+				MaterialColor mc2 = vertexColors[i+1];
+				MaterialColor mc3 = vertexColors[i+2];
+				MaterialColor mc;
+				float f = 1.0 / 3.0;
+				mc.ambient = mc1.ambient*f + mc2.ambient*f + mc3.ambient*f;
+				mc.emissive = mc1.emissive*f + mc2.emissive*f + mc3.emissive*f;
+				mc.diffuse = mc1.diffuse*f+ mc2.diffuse*f + mc3.diffuse*f;
+				mc.specular = mc1.specular*f + mc2.specular*f + mc3.specular*f;
+				c = GetColor(m, n, camLoc, mc);
+			}
+			else
+			{
+				c = GetColor(m, n, camLoc, defaultColor);
+			}
+			GetDrawablePoly(pts,poly);
+			FlatRasterizePolygon(poly,c);
+		}
+		else if (m_shadingType == SHADING_GOURARD)
+		{
+			for (int j = i; j < i+3; j++)
+			{
+				Vertex v = vertices[j];
+				vec4 n = normalize(vertexNormals[j]);
+				MaterialColor vCol = vertexColors[j];
+				Rgb tmpC = GetColor(v, n, camLoc, vCol);
+				colors.push_back(tmpC);
+			}
+			vector<Rgb> outColors;
+			GetDrawablePoly(pts, colors, poly, outColors);
+			GouraudRasterizePolygon(poly,outColors);
+		}
+		else if ( m_shadingType == SHADING_PHONG)
+		{
+			vector<MaterialColor> matColors;
+			vector<vec4> normals;
+			for (int j = i; j < i+3; j++)
+			{
+				matColors.push_back(vertexColors[j]);
+				normals.push_back(vertexNormals[j]);
+			}
+			vector<MaterialColor> outMatColors;
+			vector<vec4> outNormals;
+			GetDrawablePoly(pts, matColors, normals, poly, outMatColors, outNormals);
+			PhongRasterizePolygon(poly,outMatColors, outNormals);
+		}
+	}
+}
+
+//--------------------------------------------------------------------------
+// Rasterization and fragment processing
+//--------------------------------------------------------------------------
+void Renderer::PhongRasterizePolygon(vector<Vertex>& poly, vector<MaterialColor>& colors, vector<vec4>& normals)
+{
+	mat4 projection = m_camera->Projection();
+	mat4 view = m_camera->View();
+	vec4 camLoc = vec4(m_camera->Eye(),0);
+	vector<Vertex> screen;
+	int ymin = m_bufH;
+	int ymax = 0;
+	for(int i = 0; i < poly.size(); ++i)
+	{
+		Vertex v = projectedToDisplay(projection * view * poly[i]);
+		//v.z = poly[i].z;
+		v.z = (view * poly[i]).z;
+		ymin = min(ymin, (int)v.y);
+		ymax = max(ymax, (int)v.y);
+		screen.push_back(v);
+	}
+
+	ymin = max(0, ymin);
+	ymax = min(m_bufH - 1, ymax);
+
+	// ymin is the first scanline now, ymax is the last
+
+	for (int y = ymin ; y <= ymax ; y++) 
+	{
+		Vertex l, r;
+		MaterialColor lc, rc;
+		vec4 ln,rn;
+		vec4 lv, rv;
+		l.x = m_bufW;
+		r.x = 0;
+		for (int i = 0; i < screen.size(); i++) 
+		{
+			int j = (i+1) % screen.size();
+			if ((screen[i].y > y) != (screen[j].y > y)) // if two vertices are on diffrent sides of the scanline
+			{
+				float t = ((float)y - screen[i].y)  / (screen[j].y - screen[i].y);
+				int x = (int) interpolate(t, screen[i].x, screen[j].x);
+
+				if (x < l.x)
+				{
+					lc = interpolate(t, colors[i], colors[j]);
+					ln = normalize(interpolate(t, normals[i], normals[j]));
+					lv = interpolate(t, poly[i], poly[j]);
+					l.x = x;
+					l.y = y;
+					l.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+				if (x >= r.x)
+				{
+					rc = interpolate(t, colors[i], colors[j]);
+					rn = normalize(interpolate(t, normals[i], normals[j]));
+					rv = interpolate(t, poly[i], poly[j]);
+					r.x = x;
+					r.y = y;
+					r.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+			}
+		}
+
+		int lb = max(0, (int)l.x);
+		int rb = min(m_bufW - 1, (int)r.x);
+
+		for (int x = lb; x <= rb; x++)
+		{
+			float t = ((float)x - l.x) / (r.x - l.x);
+			float z = interpolate(t, l.z, r.z);
+			
+			if (z > m_zbuffer[y*m_bufW + x])
+			{
+				MaterialColor pixMat = interpolate(t, lc, rc);
+				vec4 at = interpolate(t, lv, rv);
+				vec4 n =  normalize(interpolate(t, ln, rn));
+				Rgb pixCol = GetColor(at, n, camLoc, pixMat);
+				PlotPixel(x, y, z, pixCol);
+			}
+		}
+	}
+}
+
+void Renderer::GouraudRasterizePolygon(vector<Vertex>& poly, vector<Rgb>& colors)
+{
+	mat4 projection = m_camera->Projection();
+	vector<Vertex> screen;
+	int ymin = m_bufH;
+	int ymax = 0;
+	for(int i = 0; i < poly.size(); ++i)
+	{
+		Vertex v = projectedToDisplay(projection * poly[i]);
+		v.z = poly[i].z;
+		ymin = min(ymin, (int)v.y);
+		ymax = max(ymax, (int)v.y);
+		screen.push_back(v);
+	}
+
+	ymin = max(0, ymin);
+	ymax = min(m_bufH-1, ymax);
+
+	// ymin is the first scanline now, ymax is the last
+
+	for (int y = ymin ; y <= ymax ; y++) 
+	{
+		Vertex l, r;
+		Rgb lc(1,1,1), rc(1,1,1);
+		l.x = m_bufW;
+		r.x = 0;
+		for (int i = 0; i < screen.size(); i++) 
+		{
+			int j = (i+1) % screen.size();
+			if ((screen[i].y > y) != (screen[j].y > y)) // if two vertices are on diffrent sides of the scanline
+			{
+				float t = ((float)y - screen[i].y)  / (screen[j].y - screen[i].y);
+				int x = (int) interpolate(t, screen[i].x, screen[j].x);
+
+				if (x < l.x)
+				{
+					lc = interpolate(t, colors[i], colors[j]);
+					l.x = x;
+					l.y = y;
+					l.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+				if (x >= r.x)
+				{
+					rc = interpolate(t, colors[i], colors[j]);
+					r.x = x;
+					r.y = y;
+					r.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+			}
+		}
+
+		int lb = max(0, (int)l.x);
+		int rb = min(m_bufW - 1, (int)r.x);
+
+		for (int x = lb; x <= rb; x++)
+		{
+			float t = ((float)x - l.x) / (r.x - l.x);
+			float z = interpolate(t, l.z, r.z);
+			if (z > m_zbuffer[y*m_bufW + x])
+			{
+				Rgb pixCol = interpolate(t, lc, rc);
+				PlotPixel(x,y,z,pixCol);
+			}
+		}
+	}
+}
+
+void Renderer::FlatRasterizePolygon(vector<Vertex>& poly, Rgb color)
+{
+	mat4 projection = m_camera->Projection();
+	vector<Vertex> screen;
+	int ymin = m_bufH;
+	int ymax = 0;
+	for(int i = 0; i < poly.size(); ++i)
+	{
+		Vertex v = projectedToDisplay(projection * poly[i]);
+		v.z = poly[i].z;
+		ymin = min(ymin, (int)v.y);
+		ymax = max(ymax, (int)v.y);
+		screen.push_back(v);
+	}
+
+	ymin = max(0, ymin);
+	ymax = min(m_bufH-1, ymax);
+
+	// ymin is the first scanline now, ymax is the last
+	for (int y = ymin ; y <= ymax ; y++) 
+	{
+		Vertex l, r;
+		
+		l.x = m_bufW;
+		r.x = 0;
+		for (int i = 0; i < screen.size(); i++) 
+		{
+			int j = (i+1) % screen.size();
+			if ((screen[i].y > y) != (screen[j].y > y)) // if two vertices are on diffrent sides of the scanline
+			{
+				float t = ((float)y - screen[i].y)  / (screen[j].y - screen[i].y);
+				int x = (int) interpolate(t, screen[i].x, screen[j].x);
+
+				if (x < l.x)
+				{
+					l.x = x;
+					l.y = y;
+					l.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+				if (x >= r.x)
+				{
+					r.x = x;
+					r.y = y;
+					r.z = interpolate(t, screen[i].z, screen[j].z);
+				}
+			}
+		}
+
+		int lb = max(0, (int)l.x);
+		int rb = min(m_bufW - 1, (int)r.x);
+
+		for (int x = lb; x <= rb; x++)
+		{
+			float t = ((float)x - l.x) / (r.x - l.x);
+			float z = interpolate(t, l.z, r.z);
+			PlotPixel(x,y,z,color);
+		}
+	}
+}
+
+void Renderer::DrawLine(vec2 p1, vec2 p2, Rgb col)
+{
+	int x1 = (int)p1.x;
+	int x2 = (int)p2.x;
+	int y1 = (int)p1.y;
+	int y2 = (int)p2.y;
+
+	if (	((x1 < 0 || x1 > m_bufW) || (y1 < 0 || y1 > m_bufH)) &&
+		((x2 < 0 || x2 > m_bufW) || (y2 < 0 || y2 > m_bufH))	)
+	{
+		return;
+	}
+
+	bool steep = abs(y2 - y1) > abs(x2 - x1);
+
+	if(steep)
+	{
+		swap(x1,y1);
+		swap(x2,y2);
+	}
+	if(x1 > x2)
+	{
+		swap(x1,x2);
+		swap(y1,y2);
+	}
+
+	int dx = x2 - x1;
+	int dy = abs(y2 - y1);
+
+	int e =  dx/2;
+	int y = y1;
+	int yStep = (y1 < y2) ? 1 : -1;
+
+	for(int x = x1; x <= x2; ++x)
+	{
+		if(steep)
+		{
+			PlotPixel(y,x, col);
+		}
+		else
+		{
+			PlotPixel(x,y, col);
+		}
+		e -= dy;
+		if(e < 0)
+		{
+			e += dx;
+			y += yStep;
+		}
+	}
+}
+
+void Renderer::DrawLine(vec4 p1, vec4 p2, Rgb col)
+{
+	vec2 sf = ScaleFactor();
+	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0);
+	p1 = sp * p1;
+	p2 = sp * p2;
+	p1 = p1 / p1.w;
+	p2 = p2 / p2.w;
+	DrawLine(vec2(p1.x,p1.y),vec2(p2.x,p2.y),col);
+}
+
+inline void Renderer::PlotPixel(int x, int y, Rgb color)
+{
+	if (x < 0 || x >= m_bufW || y < 0 || y >= m_bufH)
+		return;
+	m_colorBuf[INDEX(m_bufW,x,y,0)]=color.r;	m_colorBuf[INDEX(m_bufW,x,y,1)]=color.g;	m_colorBuf[INDEX(m_bufW,x,y,2)]=color.b;
+}
+
+inline void Renderer::PlotPixel(int x, int y, float z, Rgb color)
+{
+	if (z > m_zbuffer[y*m_bufW + x])
+	{
+		if( m_fogEffect )
+		{
+			float g = 1 / log(2 + abs(z));
+			Rgb newPixCol = interpolate( g, m_fogColor, color);
+			PlotPixel(x, y, newPixCol);
+		}
+		else
+		{
+			PlotPixel(x, y, color);
+		}
+		m_zbuffer[y*m_bufW + x] = z;
+	}
+}
+
+//--------------------------------------------------------------------
+// Shading and rendering
+//--------------------------------------------------------------------
+void Renderer::SetCamera(Camera* c)
+{
+	m_camera = c;
+}
+
+void Renderer::SetShading(ShadingType t)
+{
+	m_shadingType = t;
+}
+
+Rgb Renderer::GetColor(Vertex at, vec4 n, vec4 camLoc, MaterialColor material)
+{
+	Rgb c;
+	c += material.emissive;
+	for(int i = 0; i < m_lights.size(); i++)
+	{
+		Light* light = m_lights[i];
+		vec4 lloc = light->location;
+		vec4 incomingRay;
+		if(light->lightType == AMBIENT_L)
+		{
+			if(c.r > 0.95 && c.b > 0.95)
+				bool ok = true;
+			c += light->lightColor * material.ambient;
+			continue;
+		}
+		if(light->lightSource == POINT_S)
+		{
+			incomingRay = normalize(at - lloc);
+		}
+		else if( light->lightSource == PARALLEL_S)
+		{
+			incomingRay = normalize(light->direction);
+		}
+
+		vec4 reflectedRay =  2 * n * dot(incomingRay, n) - incomingRay;
+		float coss = dot(n, incomingRay);
+		if(coss < 0)
+		{
+			c += (light->lightColor * coss) * material.diffuse; //diffuse
+		}
+		float csss = dot(normalize(reflectedRay), normalize(at - camLoc));
+		if(csss > 0)
+		{
+			float powww = pow(csss, m_specularPower);
+			c += material.specular * powww;
+		}
+	}
+	return c;
+}
+
+void Renderer::SetLights(vector<Light*> _lights)
+{
+	m_lights = _lights;
+}
+
+void Renderer::SetFogColor(Rgb col)
+{
+	m_fogColor = col;
+}
+
+void Renderer::ToggleFog()
+{
+	m_fogEffect = !m_fogEffect;
+}
+
+//--------------------------------------------------------------------------
+// Misc
+//--------------------------------------------------------------------------
+inline vec2 Renderer::ScaleFactor() 
+{
+	vec2 res;
+	res.x = m_bufW/2;
+	res.y = m_bufH/2;
+	return res;
+
+	float screenAR = (float) m_bufW / (float) m_bufH;
+	if (m_camera->Aspect() > screenAR)
+	{
+		res.x = m_bufW/2;
+		res.y = res.x / m_camera->Aspect();
+	}
+	else
+	{
+		res.y = m_bufH/2;
+		res.x = res.y * m_camera->Aspect();
+	}
+	return res;
+}
+
+inline Vertex Renderer::projectedToDisplay(Vertex v)
+{
+	vec2 sf = ScaleFactor();
+	mat4 sp = Scale( sf.x , sf.y, 1)  * Translate(1,1,0) ;
+	v = sp * v;
+	v = v / v.w;
+	return v;
+}
+
+
+#pragma region  // Don't touch.
+/////////////////////////////////////////////////////
+//OpenGL stuff. Don't touch.
+
+void Renderer::InitOpenGLRendering()
+{
+	int a = glGetError();
+	a = glGetError();
+	glGenTextures(1, &gScreenTex);
+	a = glGetError();
+	glGenVertexArrays(1, &gScreenVtc);
+	//GLuint buffer;
+	glBindVertexArray(gScreenVtc);
+	glGenBuffers(1, &gBuffer);
+	const GLfloat vtc[]={
+		-1, -1,
+		1, -1,
+		-1, 1,
+		-1, 1,
+		1, -1,
+		1, 1
+	};
+	const GLfloat tex[]={
+		0,0,
+		m_width,0,
+		0,m_height,
+		0,m_height,
+		m_width,0,
+		m_width,m_height};
+		glBindBuffer(GL_ARRAY_BUFFER, gBuffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vtc)+sizeof(tex), NULL, GL_STATIC_DRAW);
+		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(vtc), vtc);
+		glBufferSubData( GL_ARRAY_BUFFER, sizeof(vtc), sizeof(tex), tex);
+
+		GLuint program = InitShader( "vshader.glsl", "fshader.glsl" );
+		glUseProgram( program );
+		GLint  vPosition = glGetAttribLocation( program, "vPosition" );
+
+		glEnableVertexAttribArray( vPosition );
+		glVertexAttribPointer( vPosition, 2, GL_FLOAT, GL_FALSE, 0,
+			0 );
+
+		GLint  vTexCoord = glGetAttribLocation( program, "vTexCoord" );
+		glEnableVertexAttribArray( vTexCoord );
+		glVertexAttribPointer( vTexCoord, 2, GL_FLOAT, GL_FALSE, 0,
+			(GLvoid *) sizeof(vtc) );
+		glUniform1i( glGetUniformLocation(program, "texture"), 0 );
+}
+
+void Renderer::CreateOpenGLBuffer()
+{
+	glActiveTexture(GL_TEXTURE0);
+	const GLfloat vtc[]={
+		-1, -1,
+		1, -1,
+		-1, 1,
+		-1, 1,
+		1, -1,
+		1, 1
+	};
+	const GLfloat tex[]={
+		0,0,
+		m_width,0,
+		0,m_height,
+		0,m_height,
+		m_width,0,
+		m_width,m_height};
+		glBindBuffer(GL_ARRAY_BUFFER, gBuffer);
+		glBufferSubData( GL_ARRAY_BUFFER, sizeof(vtc), sizeof(tex), tex);
+		glBindTexture(GL_TEXTURE_RECTANGLE, gScreenTex);
+		glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGB8, m_width, m_height, 0, GL_RGB, GL_FLOAT, NULL);
+		glViewport(0, 0, m_width, m_height);
+}
+
+void Renderer::AliasBufToOutputBuf()
+{
+	float aaS =  (m_aaX * m_aaX);
+	for (int x = 0; x < m_width; x++)
+	{
+		for (int y = 0; y < m_height; y++)
+		{
+			float r= 0,g = 0, b = 0;
+			for (int i = 0; i < m_aaX; i++)
+			{
+				for (int j = 0; j < m_aaX; j++)
+				{
+					int ax = x * m_aaX + i;
+					int ay = y * m_aaX + j;
+					r += m_colorBuf[INDEX(m_bufW,ax,ay,0)] / aaS;
+					g += m_colorBuf[INDEX(m_bufW,ax,ay,1)] / aaS;
+					b += m_colorBuf[INDEX(m_bufW,ax,ay,2)] / aaS;
+					
+				}
+			}
+			m_outBuffer[INDEX(m_width,x,y,0)]=r;	m_outBuffer[INDEX(m_width,x,y,1)]=g;	m_outBuffer[INDEX(m_width,x,y,2)]=b;
+		}
+	}
+}
+
+void Renderer::SwapBuffers()
+{
+	//Copy from m_colorBuf to m_outBuffer if aaX != 1, otherwise it's the same buffer
+	if (m_aaX != 1)
+	{
+		AliasBufToOutputBuf();
+	}
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_RECTANGLE, gScreenTex);
+	glTexSubImage2D(GL_TEXTURE_RECTANGLE, 0, 0, 0, m_width, m_height, GL_RGB, GL_FLOAT, m_outBuffer);
+	//glGenerateMipmap(GL_TEXTURE_RECTANGLE);
+
+	glBindVertexArray(gScreenVtc);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glutSwapBuffers();
+	FlushBuffers();
+}
+#pragma endregion
+
+
+
