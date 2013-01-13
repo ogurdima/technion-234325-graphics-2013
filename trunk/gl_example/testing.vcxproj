@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{849F10CE-4916-4A83-A3CB-A19AF397A995}</ProjectGuid>
+    <ProjectGuid>{22A7F089-C16C-47B5-BE49-065C0B6ADA7B}</ProjectGuid>
     <RootNamespace>CG_skel_w_MFC</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
@@ -94,68 +94,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="CG_skel_w_MFC.cpp" />
-    <ClCompile Include="ColorSelector.cpp" />
     <ClCompile Include="InitShader.cpp" />
-    <ClCompile Include="InputDialog.cpp" />
-    <ClCompile Include="Light.cpp" />
-    <ClCompile Include="MColorDialog.cpp" />
-    <ClCompile Include="MeshModel.cpp" />
-    <ClCompile Include="PrimMeshModel.cpp" />
-    <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="testing.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="CG_skel_w_MFC.h" />
-    <ClInclude Include="ColorSelector.h" />
-    <ClInclude Include="Face.h" />
     <ClInclude Include="InitShader.h" />
-    <ClInclude Include="InputDialog.h" />
-    <ClInclude Include="Light.h" />
     <ClInclude Include="mat.h" />
-    <ClInclude Include="MaterialColor.h" />
-    <ClInclude Include="MColorDialog.h" />
-    <ClInclude Include="MeshModel.h" />
-    <ClInclude Include="Model.h" />
-    <ClInclude Include="PrimMeshModel.h" />
-    <ClInclude Include="Renderer.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="Rgb.h" />
-    <ClInclude Include="Scene.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="testing.h" />
     <ClInclude Include="vec.h" />
-    <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CG_skel_w_MFC.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\fshader.glsl" />
-    <None Include="Shaders\vshader.glsl" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\freeglut\freeglut.vcxproj">
-      <Project>{7ffb8bd3-9807-4b3b-867f-cdbd36bc48a1}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\glew\glew.vcxproj">
-      <Project>{e354a711-c2d4-4492-a756-1000564dccb8}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
+    <None Include="fshader.glsl" />
+    <None Include="vshader.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  <ProjectExtensions>
-    <VisualStudio>
-      <UserProperties RESOURCE_FILE="CG_skel_w_MFC.rc" />
-    </VisualStudio>
-  </ProjectExtensions>
 </Project>

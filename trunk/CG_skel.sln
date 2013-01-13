@@ -7,12 +7,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "freeglut", "freeglut\freegl
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CG_skel_w_MFC", "CG_skel_w_MFC\CG_skel_w_MFC.vcxproj", "{849F10CE-4916-4A83-A3CB-A19AF397A995}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{88C2BC77-4FDA-4F29-9633-CAF2F493DDA4}"
-	ProjectSection(SolutionItems) = preProject
-		CG_skel.vsmdi = CG_skel.vsmdi
-		Local.testsettings = Local.testsettings
-		TraceAndTestImpact.testsettings = TraceAndTestImpact.testsettings
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testing", "gl_example\testing.vcxproj", "{22A7F089-C16C-47B5-BE49-065C0B6ADA7B}"
 EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
@@ -35,6 +30,10 @@ Global
 		{849F10CE-4916-4A83-A3CB-A19AF397A995}.Debug|Win32.Build.0 = Debug|Win32
 		{849F10CE-4916-4A83-A3CB-A19AF397A995}.Release|Win32.ActiveCfg = Release|Win32
 		{849F10CE-4916-4A83-A3CB-A19AF397A995}.Release|Win32.Build.0 = Release|Win32
+		{22A7F089-C16C-47B5-BE49-065C0B6ADA7B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{22A7F089-C16C-47B5-BE49-065C0B6ADA7B}.Debug|Win32.Build.0 = Debug|Win32
+		{22A7F089-C16C-47B5-BE49-065C0B6ADA7B}.Release|Win32.ActiveCfg = Release|Win32
+		{22A7F089-C16C-47B5-BE49-065C0B6ADA7B}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

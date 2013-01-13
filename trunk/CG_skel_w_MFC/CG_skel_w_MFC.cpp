@@ -235,7 +235,7 @@ void display( void )
 
 void reshape( int width, int height )
 {
-	renderer->CreateBuffers(width, height);
+	// renderer->CreateBuffers(width, height);
 	Camera* ac = scene->ActiveCam();
 	float windowAR = (float) width / (float) height;
 	float x = abs(ac->Left()) + abs(ac->Right());
@@ -511,10 +511,9 @@ void mainMenu(int id)
 	case MAIN_SET_BACKGROUND_COLOR:
 		{
 			ColorSelector dlg;
-			dlg.SetColor(renderer->GetBackgroundColor());
+			dlg.SetColor(Rgb(0,0,0));
 			if (IDOK == dlg.DoModal())
 			{
-				renderer->SetBackgroundColor(dlg.GetColor());
 			}
 		}
 		break;
@@ -713,19 +712,15 @@ void menuRenderer(int id)
 	switch (id)
 	{
 	case RENDERER_SHADING_WIREFRAME:
-		renderer->SetShading(SHADING_WIREFRAME);
 		break;
 
 	case RENDERER_SHADING_FLAT:
-		renderer->SetShading(SHADING_FLAT);
 		break;
 
 	case RENDERER_SHADING_GOURAUD:
-		renderer->SetShading(SHADING_GOURARD);
 		break;
 
 	case RENDERER_SHADING_PHONG:
-		renderer->SetShading(SHADING_PHONG);
 		break;
 
 	case RENDERER_SET_ANTIALIASING:
@@ -737,23 +732,20 @@ void menuRenderer(int id)
 				int res = atoi(cmd.data());
 				if(res >= 1)
 				{
-					renderer->SetAntiAliasing(res);
 				}
 			}
 		}
 		break;
 
 	case RENDERER_TOGGLE_FOG:
-		renderer->ToggleFog();
 		break;
 
 	case RENDERER_SET_FOG_COLOR:
 		{
 			ColorSelector dlg;
-			dlg.SetColor(renderer->GetBackgroundColor());
+			dlg.SetColor(Rgb(0,0,0));
 			if (IDOK == dlg.DoModal())
 			{
-				renderer->SetFogColor(dlg.GetColor());
 			}
 		}
 		break;
@@ -827,9 +819,10 @@ int my_main( int argc, char **argv )
 {
 	//----------------------------------------------------------------------------
 	// Initialize window
+	//----------------------------------------------------------------------------
 	glutInit( &argc, argv );
 	glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE );
-	glutInitWindowSize( 800, 800 );
+	glutInitWindowSize( 800, 600 );
 	glutInitContextVersion( 2, 1 );
 	glutInitContextProfile( GLUT_CORE_PROFILE );
 	glutCreateWindow( "The Awesome" );
@@ -839,16 +832,25 @@ int my_main( int argc, char **argv )
 	{
 		/* Problem: glewInit failed, something is seriously wrong. */
 		fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+		throw std::exception("Failed in glewInit");
 		exit(1);
 	}
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
+	//----------------------------------------------------------------------------
+	// Initialize Callbacks
+	//----------------------------------------------------------------------------
+	glutDisplayFunc( display );
+	glutKeyboardFunc( keyboard );
+	glutMouseFunc( mouse );
+	glutMotionFunc ( motion );
+	glutReshapeFunc( reshape );
+	initMenu();
 
 	//----------------------------------------------------------------------------
 	// Create initial renderer
 	//----------------------------------------------------------------------------
-	renderer = new Renderer(800,800, Rgb(0.95, 0.95, 0.95));
-	renderer->SetShading(SHADING_GOURARD);
+	renderer = new Renderer(800, 600);
 	
 	//----------------------------------------------------------------------------
 	// Create initial cameras
@@ -859,35 +861,18 @@ int my_main( int argc, char **argv )
 	Camera c2 = Camera(); // One more
 	c2.LookAt(vec3(5,5,5) , vec3(0,0,0) , vec3(0,0,1) );
 	c2.Perspective(30, 4/3, 0.5, 20);
-
 	smoothFactor = (c1.Right() - c1.Left()) / 10.0;
 
 	//----------------------------------------------------------------------------
 	// Create initial scene
 	//----------------------------------------------------------------------------
 	scene = new Scene(renderer);
-
 	scene->AddCamera(c2);
 	scene->AddCamera(c1);
 	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(7,7,7,0), Rgb(1,1,1), vec4(1,1,1,1)));
 	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), Rgb(1,1,1), vec4(0,0,-1,0)));
 	scene->AddLight(Light(AMBIENT_L, PARALLEL_S, vec4(0,0,0,0), Rgb(0.6,0,0), vec4(0,0,0,0)));
 
-	scene->ToggleShowCameras();
-	scene->ToggleShowLights();
-	scene->ToggleShowWorldFrame();
-
-	
-	
-	//----------------------------------------------------------------------------
-	// Initialize Callbacks
-	//----------------------------------------------------------------------------
-	glutDisplayFunc( display );
-	glutKeyboardFunc( keyboard );
-	glutMouseFunc( mouse );
-	glutMotionFunc ( motion );
-	glutReshapeFunc( reshape );
-	initMenu();
 
 	glutMainLoop();
 	delete renderer;

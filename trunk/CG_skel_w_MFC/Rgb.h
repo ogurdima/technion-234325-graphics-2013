@@ -1,7 +1,8 @@
 #pragma once
 
 #include "mat.h"
-#include <WinDef.h>
+
+
 
 struct Rgb {
 	Rgb() : r(0), g(0), b(0) { }
@@ -42,4 +43,7 @@ struct Rgb {
 	float r;
 	float g;
 	float b;
+
+
 };
+
