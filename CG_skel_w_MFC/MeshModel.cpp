@@ -8,18 +8,19 @@
 
 using namespace std;
 
-vec3 vec3fFromStream(std::istream & aStream)
-{
-	float x, y, z;
-	aStream >> x >> std::ws >> y >> std::ws >> z;
-	return vec3(x, y, z);
-}
+static vec3 vec3fFromStream(std::istream & aStream);
+static vec2 vec2fFromStream(std::istream & aStream);
+static Rgb interpolate(float t, Rgb a, Rgb b);
 
-vec2 vec2fFromStream(std::istream & aStream)
+
+MeshModel::MeshModel() :
+_drawBB(false),
+_drawVN(false),
+_drawFN(false),
+_drawMF(false)
 {
-	float x, y;
-	aStream >> x >> std::ws >> y;
-	return vec2(x, y);
+	_world_transform = Identity4();
+	_normal_transform = Identity4();
 }
 
 MeshModel::MeshModel(string fileName) :
@@ -29,6 +30,20 @@ _drawFN(false),
 _drawMF(false)
 {
 	loadFile(fileName);
+}
+
+MeshModel::MeshModel(const MeshModel& rhs) 
+{
+	_world_transform = rhs._world_transform;
+	_normal_transform = rhs._normal_transform;
+	_faces = rhs._faces;
+	_vertices = rhs._vertices;
+	_normals = rhs._normals;
+	_faceNormals = rhs._faceNormals;
+	_drawVN = rhs._drawVN;
+	_drawFN = rhs._drawFN;
+	_drawBB = rhs._drawBB;
+	_drawMF = rhs._drawMF;
 }
 
 MeshModel::~MeshModel(void)
@@ -75,41 +90,144 @@ void MeshModel::loadFile(string fileName)
 	CalculateFaceNormals();
 }
 
-void MeshModel::draw(Renderer * r, Rgb color)
+// Drawing function
+void MeshModel::draw(Renderer * r)
 {
-	vector<Vertex> vp = transformVertices();
-	vector<vec4> normalPairs = transformNormals(1);
-	vector<vec4> normals;
-	if (normalPairs.size() != 0) {
-		for (int i = 0; i < normalPairs.size(); i+=2)
-		{
-			normals.push_back(  normalize(normalPairs[i+1] - normalPairs[i])  );
-		}
-	}
-	r->DrawTriangles(vp, _defaultColor, normals, _vertexColors);
-	if (_drawBB) 
+	cout << "MeshModel::draw" << endl;
+}
+
+// Transformations
+void MeshModel::Rotate(mat4 m)
+{
+	_world_transform = m * _world_transform;
+	_normal_transform = m * _normal_transform;
+}
+
+void MeshModel::Translate(mat4 m)
+{
+	_world_transform = m * _world_transform;
+	_normal_transform = m * _normal_transform;
+}
+
+void MeshModel::Scale(mat4 m)
+{
+	_world_transform = m * _world_transform;
+	m[0][0] = 1 / m[0][0];
+	m[1][1] = 1 / m[1][1];
+	m[2][2] = 1 / m[2][2];
+	_normal_transform = m * _normal_transform;
+}
+
+vec3 MeshModel::origin()
+{
+	vec4 orig4 = _world_transform * vec4(0,0,0,1);
+	return vec3( orig4.x, orig4.y, orig4.z );
+}
+
+// Drawing options
+bool MeshModel::ToggleShowFaceNormals()
+{
+	bool oldval = _drawFN;
+	_drawFN = ! _drawFN;
+	return oldval;
+}
+
+bool MeshModel::ToggleShowBoundingBox()
+{
+	bool oldval = _drawBB;
+	_drawBB = ! _drawBB;
+	return oldval;
+}
+
+bool MeshModel::ToggleShowVertexNormals()
+{
+	bool oldval = _drawVN;
+	_drawVN = ! _drawVN;
+	return oldval;
+}
+
+bool MeshModel::ToggleShowModelFrame() {
+	bool oldval = _drawMF;
+	_drawMF = ! _drawMF;
+	return oldval;
+}
+
+// Color manipulations
+MaterialColor MeshModel::GetDefaultColor()
+{
+	return _defaultColor;
+}
+
+void MeshModel::SetDefaultColor(MaterialColor _c)
+{
+	_vertexColors.clear();
+	_defaultColor = _c;
+}
+
+void MeshModel::SetRandomColor()
+{
+	vector<Vertex> vertices = transformVertices();
+	srand(time(0));
+	_vertexColors.clear();
+	for(int i = 0; i < vertices.size(); ++i)
 	{
-		drawBoundingBox(r);
-	}
-	if (_drawVN && _normals.size() > 0)
-	{
-		r->DrawNgons(transformNormals(0.1), 2, Rgb(0.31,0.58,0.93));
-	}
-	if (_drawFN)
-	{
-		//compute face normals and draw them
-		r->DrawNgons(transformFaceNormals(0.1), 2, Rgb(0.85,0.60,0.60));
-	}
-	if (_drawMF)
-	{
-		vector<vec3> fr = coordinates();
-		vec3 o = origin();
-		r->DrawLine3D(o, fr[0], Rgb(0.5,0.5,1));
-		r->DrawLine3D(o, fr[1], Rgb(0.5,0.5,1));
-		r->DrawLine3D(o, fr[2], Rgb(0.5,0.5,1));
+		MaterialColor mc;
+		mc.ambient = Rgb(rand(), rand(), rand());
+		mc.emissive = Rgb(rand(), rand(), rand());
+		mc.diffuse = Rgb(rand(), rand(), rand());
+		mc.specular = Rgb(rand(), rand(), rand()); 
+		_vertexColors.push_back(mc);
 	}
 }
 
+void MeshModel::SetProgressiveColor()
+{
+	vector<Vertex> vertices = transformVertices();
+	_vertexColors.clear();
+	float yMin = vertices[0].y , yMax = vertices[0].y;
+	for(int i = 1; i < vertices.size(); ++i)
+	{
+		if(vertices[i].y < yMin)
+		{
+			yMin = vertices[i].y;
+		}
+		if(vertices[i].y > yMax)
+		{
+			yMax = vertices[i].y;
+		}
+	}
+	if( yMin >= yMax)
+	{
+		return;
+	}
+	float delta = yMax - yMin;
+	float med = (yMin + yMax) / 2;
+	for(int i = 0; i < vertices.size(); ++i )
+	{
+		float y = vertices[i].y;
+		float t1 = ( y - yMin)/ delta;
+		Rgb color = interpolate( t1, Rgb(1,0,0), Rgb(0,0,1));
+		float t2;
+		if( y < med)
+		{
+			t2 = (y - yMin) * 2 / delta;
+			
+		}
+		else
+		{
+			t2 = (yMax - y) * 2 / delta;
+		}
+		color += interpolate(t2, Rgb(0,0,0), Rgb(0,1,0));
+		MaterialColor mc;
+		mc.ambient = color;
+		mc.diffuse = color;
+		mc.emissive = color;
+		mc.specular = color;
+		_vertexColors.push_back(mc);
+	}
+}
+
+// private functions
 vector<Vertex> MeshModel::transformVertices(){
 	vector<Vertex> vertex_positions;
 	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it){
@@ -166,132 +284,6 @@ vector<Vertex> MeshModel::transformVertices(vector<Vertex> inModelCoords)
 	return inModelCoords; // it is actually now in world coordinates
 }
 
-void MeshModel::Rotate(mat4 m)
-{
-	_world_transform = m * _world_transform;
-	_normal_transform = m * _normal_transform;
-}
-
-void MeshModel::Translate(mat4 m)
-{
-	_world_transform = m * _world_transform;
-	_normal_transform = m * _normal_transform;
-}
-
-void MeshModel::Scale(mat4 m)
-{
-	_world_transform = m * _world_transform;
-	m[0][0] = 1 / m[0][0];
-	m[1][1] = 1 / m[1][1];
-	m[2][2] = 1 / m[2][2];
-	_normal_transform = m * _normal_transform;
-}
-
-vector<vec3> MeshModel::coordinates() {
-	vector<vec3> v;
-	//mat4 stam = transpose(_world_transform);
-	vec4 tx = _world_transform * vec4(1,0,0,1);
-	vec4 ty = _world_transform * vec4(0,1,0,1);
-	vec4 tz = _world_transform * vec4(0,0,1,1);
-	vec4 orig4 = _world_transform * vec4(0,0,0,1);
-
-	v.push_back( vec3(tx.x / tx.w, tx.y / tx.w, tx.z / tx.w) );
-	v.push_back( vec3(ty.x / ty.w, ty.y / ty.w, ty.z / ty.w) );
-	v.push_back( vec3(tz.x / tz.w, tz.y / tz.w, tz.z / tz.w) );
-	return v;
-}
-
-vec3 MeshModel::origin()
-{
-	vec4 orig4 = _world_transform * vec4(0,0,0,1);
-	return vec3( orig4.x, orig4.y, orig4.z );
-}
-
-void MeshModel::drawBoundingBox(Renderer * r, Rgb color)
-{
-	typedef enum {X = 0, Y, Z} COORD;
-	if (r == NULL || _vertices.size() == 0)
-		return;
-	Vertex v = _vertices[0];
-	float max[3] = {};
-	float min[3] = {};
-	min[X] = max[X] = v.x;
-	min[Y] = max[Y] = v.y;
-	min[Z] = max[Z] = v.z;
-	for (int i = 1; i < _vertices.size(); i++) {
-		v = _vertices[i];
-		min[X] = min(min[X], v.x);
-		min[Y] = min(min[Y], v.y);
-		min[Z] = min(min[Z], v.z);
-		max[X] = max(max[X], v.x);
-		max[Y] = max(max[Y], v.y);
-		max[Z] = max(max[Z], v.z);
-	}
-	vector<Vertex> rims;
-
-	//Hello shitcode!
-
-
-
-
-	rims.clear();
-	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); 
-	rims = transformVertices(rims);
-	r->DrawNgons(rims, rims.size(), color);
-
-	rims.clear();
-	rims.push_back( Vertex(min[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) );
-	rims = transformVertices(rims);
-	r->DrawNgons(rims, rims.size(), color);
-
-	rims.clear();
-	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],max[Z],1) );
-	rims = transformVertices(rims);
-	r->DrawNgons(rims, rims.size(), color);
-
-	rims.clear();
-	rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) );
-	rims = transformVertices(rims);
-	r->DrawNgons(rims, rims.size(), color);
-
-	rims.clear();
-	rims.push_back( Vertex(min[X],min[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],min[Z],1) ); rims.push_back( Vertex(min[X],max[Y],max[Z],1) ); rims.push_back( Vertex(min[X],min[Y],max[Z],1) );
-	rims = transformVertices(rims);
-	r->DrawNgons(rims, rims.size(), color);
-
-	rims.clear();
-	rims.push_back( Vertex(max[X],min[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],min[Z],1) ); rims.push_back( Vertex(max[X],max[Y],max[Z],1) ); rims.push_back( Vertex(max[X],min[Y],max[Z],1) );
-	rims = transformVertices(rims);
-	r->DrawNgons(rims, rims.size(), color);
-}
-
-bool MeshModel::ToggleShowFaceNormals()
-{
-	bool oldval = _drawFN;
-	_drawFN = ! _drawFN;
-	return oldval;
-}
-
-bool MeshModel::ToggleShowBoundingBox()
-{
-	bool oldval = _drawBB;
-	_drawBB = ! _drawBB;
-	return oldval;
-}
-
-bool MeshModel::ToggleShowVertexNormals()
-{
-	bool oldval = _drawVN;
-	_drawVN = ! _drawVN;
-	return oldval;
-}
-
-bool MeshModel::ToggleShowModelFrame() {
-	bool oldval = _drawMF;
-	_drawMF = ! _drawMF;
-	return oldval;
-}
-
 void MeshModel::CalculateFaceNormals()
 {
 	vec4 p1, p2, p3, d1, d2, crs;
@@ -307,81 +299,22 @@ void MeshModel::CalculateFaceNormals()
 	}
 }
 
-MaterialColor MeshModel::GetDefaultColor()
+// static helper functions
+static vec3 vec3fFromStream(std::istream & aStream)
 {
-	return _defaultColor;
+	float x, y, z;
+	aStream >> x >> std::ws >> y >> std::ws >> z;
+	return vec3(x, y, z);
 }
 
-void MeshModel::SetDefaultColor(MaterialColor _c)
+static vec2 vec2fFromStream(std::istream & aStream)
 {
-	_vertexColors.clear();
-	_defaultColor = _c;
+	float x, y;
+	aStream >> x >> std::ws >> y;
+	return vec2(x, y);
 }
 
-void MeshModel::SetRandomColor()
-{
-	vector<Vertex> vertices = transformVertices();
-	srand(time(0));
-	_vertexColors.clear();
-	for(int i = 0; i < vertices.size(); ++i)
-	{
-		MaterialColor mc;
-		mc.ambient = Rgb(rand(), rand(), rand());
-		mc.emissive = Rgb(rand(), rand(), rand());
-		mc.diffuse = Rgb(rand(), rand(), rand());
-		mc.specular = Rgb(rand(), rand(), rand()); 
-		_vertexColors.push_back(mc);
-	}
-}
-
-inline Rgb interpolate(float t, Rgb a, Rgb b)
+static Rgb interpolate(float t, Rgb a, Rgb b)
 {
 	return Rgb(  a.r + t * (b.r - a.r),  a.g + t * (b.g - a.g), a.b + t * (b.b - a.b) );
-}
-
-void MeshModel::SetProgressiveColor()
-{
-	vector<Vertex> vertices = transformVertices();
-	_vertexColors.clear();
-	float yMin = vertices[0].y , yMax = vertices[0].y;
-	for(int i = 1; i < vertices.size(); ++i)
-	{
-		if(vertices[i].y < yMin)
-		{
-			yMin = vertices[i].y;
-		}
-		if(vertices[i].y > yMax)
-		{
-			yMax = vertices[i].y;
-		}
-	}
-	if( yMin >= yMax)
-	{
-		return;
-	}
-	float delta = yMax - yMin;
-	float med = (yMin + yMax) / 2;
-	for(int i = 0; i < vertices.size(); ++i )
-	{
-		float y = vertices[i].y;
-		float t1 = ( y - yMin)/ delta;
-		Rgb color = interpolate( t1, Rgb(1,0,0), Rgb(0,0,1));
-		float t2;
-		if( y < med)
-		{
-			t2 = (y - yMin) * 2 / delta;
-			
-		}
-		else
-		{
-			t2 = (yMax - y) * 2 / delta;
-		}
-		color += interpolate(t2, Rgb(0,0,0), Rgb(0,1,0));
-		MaterialColor mc;
-		mc.ambient = color;
-		mc.diffuse = color;
-		mc.emissive = color;
-		mc.specular = color;
-		_vertexColors.push_back(mc);
-	}
 }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "gl/glew.h"
 #include <vector>
 #include <string>
 #include "Renderer.h"
@@ -9,8 +8,17 @@
 #include "MeshModel.h"
 #include "Rgb.h"
 #include "Light.h"
+#include "InitShader.h"
+
 using namespace std;
  
+typedef enum
+{
+	FLAT = 0,
+	GOURAUD,
+	PHONG
+} ShadingType;
+
 
 class Scene 
 {
@@ -28,8 +36,10 @@ protected:
 	bool drawWorldFrame;
 	bool drawLights;
 
+	GLuint oglPrograms[3];
+	void initShaders();
+
 public:
-	Scene();
 	~Scene();
 	Scene(Renderer *renderer);
 	void loadOBJModel(string fileName);
