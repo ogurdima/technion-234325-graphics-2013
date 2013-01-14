@@ -27,7 +27,7 @@ protected:
 	vector<Model*> models;
 	vector<Light*> lights;
 	vector<Camera*> cameras;
-	Renderer* m_renderer;
+	Renderer* renderer;
 	vector<vec3> anchored;
 	int activeModel;
 	int activeLight;
@@ -35,8 +35,9 @@ protected:
 	bool drawCameras;
 	bool drawWorldFrame;
 	bool drawLights;
-
+	ShadingType shading;
 	GLuint oglPrograms[3];
+	CameraBind oglCameraBind;
 	void initShaders();
 
 public:

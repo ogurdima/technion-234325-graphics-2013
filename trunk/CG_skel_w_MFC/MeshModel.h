@@ -20,6 +20,7 @@ public:
 	MeshModel(const MeshModel& rhs);
 	~MeshModel(void);
 	void loadFile(string fileName);
+	void BindToRenderer(Renderer* r);
 	// Drawing function
 	void virtual draw(Renderer * r);
 	// Transformations
@@ -43,6 +44,7 @@ protected :
 	vector<Vertex> _vertices;
 	vector<vec4> _normals;
 	vector<vec4> _faceNormals;
+	vector<vec2> _textures;
 	vector<MaterialColor> _vertexColors;
 	MaterialColor _defaultColor;
 	mat4 _world_transform;
@@ -52,9 +54,12 @@ protected :
 	bool _drawBB;
 	bool _drawMF;
 
+	ModelBind oglBind;
+
 	void CalculateFaceNormals();
 	vector<Vertex> transformVertices();
 	vector<vec4> transformNormals(float len = 1);
 	vector<Vertex> transformFaceNormals(float len = 1);
 	vector<Vertex> transformVertices(vector<Vertex> inModelCoords);
+	vector<Vertex> triangles();
 };

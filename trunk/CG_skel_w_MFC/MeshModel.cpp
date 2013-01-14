@@ -77,6 +77,10 @@ void MeshModel::loadFile(string fileName)
 		}
 		else if (lineType == "f") 
 			_faces.push_back(Face(issLine));
+		else if (lineType == "vt")
+		{
+			_textures.push_back(vec2fFromStream(issLine));
+		}
 		else if (lineType == "#" || lineType == "")
 		{
 			// comment / empty line
@@ -90,11 +94,19 @@ void MeshModel::loadFile(string fileName)
 	CalculateFaceNormals();
 }
 
+void MeshModel::BindToRenderer(Renderer* r)
+{
+	oglBind = r->BindModel(triangles(), triangles());
+}
+
 // Drawing function
 void MeshModel::draw(Renderer * r)
 {
 	cout << "MeshModel::draw" << endl;
+	r->SetUniformMatrix(oglBind.modelHnd, _world_transform);
+	r->DrawTriangles(oglBind.vao, _faces.size() * 3);
 }
+
 
 // Transformations
 void MeshModel::Rotate(mat4 m)
@@ -233,6 +245,17 @@ vector<Vertex> MeshModel::transformVertices(){
 	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it){
 		for (int i = 0; i < 3; i++){
 			vertex_positions.push_back( _world_transform * _vertices[it->v[i] - 1] ); // Pushing only verticies (w/o normals/textures)
+		}
+	}
+	return vertex_positions;
+}
+
+vector<Vertex> MeshModel::triangles()
+{
+	vector<Vertex> vertex_positions;
+	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it){
+		for (int i = 0; i < 3; i++){
+			vertex_positions.push_back( _vertices[it->v[i] - 1] ); // Pushing only verticies (w/o normals/textures)
 		}
 	}
 	return vertex_positions;

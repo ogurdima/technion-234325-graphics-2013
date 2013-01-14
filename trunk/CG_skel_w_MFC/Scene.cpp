@@ -7,15 +7,18 @@ using namespace std;
 
 
 Scene::Scene(Renderer *renderer) : 
-m_renderer(renderer),
+renderer(renderer),
 activeModel(-1),
 activeLight(-1),
 activeCamera(-1),
 drawCameras(false),
 drawWorldFrame(false),
-drawLights(false)
+drawLights(false),
+shading(FLAT)
 {
 	initShaders();
+	renderer->SetShadingProgram(oglPrograms[FLAT]);
+	oglCameraBind = renderer->BindCamera();
 }
 
 void Scene::initShaders()
@@ -50,6 +53,7 @@ Scene::~Scene()
 void Scene::loadOBJModel(string fileName)
 {
 	MeshModel *model = new MeshModel(fileName);
+	model->BindToRenderer(renderer);
 	models.push_back(model);
 	activeModel = models.size() - 1;
 }
@@ -58,12 +62,25 @@ void Scene::draw()
 {
 	if(! isLegal())
 		return;
+
 	cout << "Scene::Draw" << endl;
+
+	vector<GLuint> h;
+	vector<mat4> v;
+
+	h.push_back(oglCameraBind.viewHnd);
+	v.push_back(cameras[activeCamera]->View());
+	h.push_back(oglCameraBind.projectHnd);
+	v.push_back(cameras[activeCamera]->Projection());
+
+	renderer->SetUniformMatrices(h, v);
+
 	for (int i = 0; i < models.size(); i++)
 	{
 		cout << "Model[" << i << "]";
-		models[i]->draw(m_renderer);
+		models[i]->draw(renderer);
 	}
+	renderer->SwapBuffers();
 }
 
 void Scene::AddCamera(Camera c)
