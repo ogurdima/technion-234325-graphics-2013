@@ -94,16 +94,17 @@ void MeshModel::loadFile(string fileName)
 	CalculateFaceNormals();
 }
 
-void MeshModel::BindToRenderer(Renderer* r)
+void MeshModel::BindToRenderer(Renderer* r, ShadingType st)
 {
-	oglBind = r->BindModel(triangles(), triangles());
+	oglBind = r->BindModel(triangles(), normals(st), _defaultColor);
 }
 
 // Drawing function
 void MeshModel::draw(Renderer * r)
 {
 	cout << "MeshModel::draw" << endl;
-	r->SetUniformMatrix(oglBind.modelHnd, _world_transform);
+	r->SetUniformMatrix(oglBind.pointMat, _world_transform);
+	r->SetUniformMatrix(oglBind.normMat, _normal_transform);
 	r->DrawTriangles(oglBind.vao, _faces.size() * 3);
 }
 
@@ -259,6 +260,26 @@ vector<Vertex> MeshModel::triangles()
 		}
 	}
 	return vertex_positions;
+}
+
+vector<vec4> MeshModel::normals(ShadingType st)
+{
+	vector<vec4> normals;
+	if (st != FLAT)
+	{
+		normals = _normals;
+	}
+	else
+	{
+		for (int i = 0; i < _faceNormals.size(); i++)
+		{
+			for(int j = 0; j < 3; j++) // push face normal instead of vertex normal for every vertex
+			{
+				normals.push_back(_faceNormals[i]);
+			}
+		}
+	}
+	return normals;
 }
 
 // returns vertex-normal list

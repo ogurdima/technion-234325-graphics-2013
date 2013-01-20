@@ -12,12 +12,6 @@
 
 using namespace std;
  
-typedef enum
-{
-	FLAT = 0,
-	GOURAUD,
-	PHONG
-} ShadingType;
 
 
 class Scene 
@@ -28,7 +22,6 @@ protected:
 	vector<Light*> lights;
 	vector<Camera*> cameras;
 	Renderer* renderer;
-	vector<vec3> anchored;
 	int activeModel;
 	int activeLight;
 	int activeCamera;

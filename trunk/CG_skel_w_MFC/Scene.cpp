@@ -53,7 +53,7 @@ Scene::~Scene()
 void Scene::loadOBJModel(string fileName)
 {
 	MeshModel *model = new MeshModel(fileName);
-	model->BindToRenderer(renderer);
+	model->BindToRenderer(renderer, shading);
 	models.push_back(model);
 	activeModel = models.size() - 1;
 }
@@ -74,6 +74,16 @@ void Scene::draw()
 	v.push_back(cameras[activeCamera]->Projection());
 
 	renderer->SetUniformMatrices(h, v);
+
+	vector<vec4> lightDirections;
+	for (int i = 0; i < lights.size(); i++)
+	{
+		if (lights[i]->lightType == REGULAR_L && lights[i]->lightSource == PARALLEL_S)
+		{
+			lightDirections.push_back(cameras[activeCamera]->View() * lights[i]->direction);
+		}
+	}
+	renderer->SetLightDirections(lightDirections);
 
 	for (int i = 0; i < models.size(); i++)
 	{

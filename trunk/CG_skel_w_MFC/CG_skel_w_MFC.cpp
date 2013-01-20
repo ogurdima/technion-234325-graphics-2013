@@ -815,6 +815,12 @@ void initMenu()
 }
 //----------------------------------------------------------------------------
 
+void onDestruction()
+{
+	delete scene;
+	delete renderer;
+}
+
 int my_main( int argc, char **argv )
 {
 	//----------------------------------------------------------------------------
@@ -845,6 +851,9 @@ int my_main( int argc, char **argv )
 	glutMouseFunc( mouse );
 	glutMotionFunc ( motion );
 	glutReshapeFunc( reshape );
+	
+	glutCloseFunc( onDestruction ); 	
+
 	initMenu();
 
 	//----------------------------------------------------------------------------
