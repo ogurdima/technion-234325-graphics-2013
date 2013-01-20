@@ -22,32 +22,49 @@ void Renderer::SetShadingProgram(GLuint _program)
 	glUseProgram(program);
 }
 
-ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals /*also textures*/)
+ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals /*also textures*/, MaterialColor c)
 {
 	if (program < 0)
 	{
 		throw std::exception("Binding model without program set");
 	}
 
-	GLuint buffers[1];
+	GLuint buffers[2];
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
-	glGenBuffers(1, buffers);
+	glGenBuffers(2, buffers);
 
 	GLuint vPositionLoc = glGetAttribLocation(program, "vPosition");
+	GLuint vNormalLoc = glGetAttribLocation(program, "vNormal");
 	GLuint modelLoc = glGetUniformLocation(program, "model");
+	GLuint normalTransformLoc = glGetUniformLocation(program, "normalTransform");
+	GLuint emissiveLoc = glGetUniformLocation(program, "emissive");
+	GLuint diffuseLoc = glGetUniformLocation(program, "diffuse");
+	GLuint ambientLoc = glGetUniformLocation(program, "ambient");
+	GLuint specularLoc = glGetUniformLocation(program, "specular");
+	GLuint shininessLoc = glGetUniformLocation(program, "shininess");
 
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * pts.size(), &pts[0], GL_STATIC_DRAW);
-
 	glEnableVertexAttribArray(vPositionLoc);
 	glVertexAttribPointer(vPositionLoc, 4, GL_FLOAT, 0, 0, 0);
 
+	glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * normals.size(), &normals[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(vNormalLoc);
+	glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
+
+	glUniform4f(emissiveLoc, c.emissive.r, c.emissive.g, c.emissive.b, 0);
+	glUniform4f(ambientLoc, c.ambient.r, c.ambient.g, c.ambient.b, 0);
+	glUniform4f(specularLoc, c.specular.r, c.specular.g, c.specular.b, 0);
+	glUniform1f(shininessLoc, 4.0);
+
 	ModelBind b;
-	b.modelHnd = modelLoc;
-	b.ptsHnd = vPositionLoc;
+	b.pointMat = modelLoc;
+	b.normMat = normalTransformLoc;
+	b.ptsHnd = vPositionLoc; // not sure we need this
+	b.nrmHnd = vNormalLoc; // not sure we need this
 	b.vao = vao;
 	return b;
 }
@@ -66,6 +83,26 @@ CameraBind Renderer::BindCamera()
 	b.projectHnd = projectLoc;
 	b.viewHnd = viewLoc;
 	return b;
+}
+
+void Renderer::SetLightDirections(vector<vec4> lightDirections)
+{
+	if (program < 0)
+	{
+		throw std::exception("Binding camera without program set");
+	}
+	int bound = min(lightDirections.size(), MAX_LIGHTS);
+	char name[512];
+
+	for (int i = 0; i < bound; i++)
+	{
+		sprintf(name, "lightDir[%d]", i);
+		int lightDirLoc = glGetUniformLocation(program, name);
+		//assert(lightDirLoc != -1);
+		glUniform3f(lightDirLoc, lightDirections[i].x, lightDirections[i].y, lightDirections[i].z);
+	}
+	int lightNumLoc = glGetUniformLocation(program, "lightNum");
+	glUniform1i(lightNumLoc, bound);
 }
 
 void Renderer::SetUniformMatrices(vector<GLuint> handles, vector<mat4> values)
@@ -95,6 +132,7 @@ void Renderer::DrawTriangles(GLuint vao, int count)
 	{
 		throw std::exception("DrawTriangles called with not program set");
 	}
+	glEnable(GL_DEPTH_TEST);
 	glBindVertexArray(vao);
 	glDrawArrays(GL_TRIANGLES, 0, count);
 }

@@ -20,7 +20,7 @@ public:
 	MeshModel(const MeshModel& rhs);
 	~MeshModel(void);
 	void loadFile(string fileName);
-	void BindToRenderer(Renderer* r);
+	void BindToRenderer(Renderer* r, ShadingType st);
 	// Drawing function
 	void virtual draw(Renderer * r);
 	// Transformations
@@ -62,4 +62,5 @@ protected :
 	vector<Vertex> transformFaceNormals(float len = 1);
 	vector<Vertex> transformVertices(vector<Vertex> inModelCoords);
 	vector<Vertex> triangles();
+	vector<vec4> normals(ShadingType st);
 };
