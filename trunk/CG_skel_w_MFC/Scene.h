@@ -18,7 +18,7 @@ class Scene
 {
 
 protected:
-	vector<Model*> models;
+	vector<MeshModel*> models;
 	vector<Light*> lights;
 	vector<Camera*> cameras;
 	Renderer* renderer;
@@ -53,6 +53,10 @@ public:
 
 	Camera* ActiveCam();
 	MeshModel* ActiveModel();
+
+
+	void SetShading(ShadingType s);
+
 
 	void draw();
 	void drawWorldAxes();

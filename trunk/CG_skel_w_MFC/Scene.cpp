@@ -24,6 +24,8 @@ shading(FLAT)
 void Scene::initShaders()
 {
 	oglPrograms[FLAT] = InitShader("Shaders/flat_vshader.glsl", "Shaders/flat_fshader.glsl");
+	oglPrograms[GOURAUD] = InitShader("Shaders/flat_vshader.glsl", "Shaders/flat_fshader.glsl");
+	oglPrograms[PHONG] = InitShader("Shaders/phong_vshader.glsl", "Shaders/phong_fshader.glsl");
 }
 
 Scene::~Scene() 
@@ -76,14 +78,25 @@ void Scene::draw()
 	renderer->SetUniformMatrices(h, v);
 
 	vector<vec4> lightDirections;
+	vector<vec3> parlightColors;
+	vector<vec4> lightPositions;
+	vector<vec3> ptlightColors;
 	for (int i = 0; i < lights.size(); i++)
 	{
 		if (lights[i]->lightType == REGULAR_L && lights[i]->lightSource == PARALLEL_S)
 		{
 			lightDirections.push_back(cameras[activeCamera]->View() * lights[i]->direction);
+			parlightColors.push_back(lights[i]->lightColor.toVec3());
 		}
+		else if (lights[i]->lightType == REGULAR_L && lights[i]->lightSource == POINT_S)
+		{
+			lightPositions.push_back(cameras[activeCamera]->View() * lights[i]->location);
+			ptlightColors.push_back(lights[i]->lightColor.toVec3());
+		}
+
 	}
-	renderer->SetLightDirections(lightDirections);
+	renderer->SetParallelLights(lightDirections, parlightColors);
+	renderer->SetPointLights(lightPositions, ptlightColors);
 
 	for (int i = 0; i < models.size(); i++)
 	{
@@ -185,4 +198,19 @@ void Scene::AddMeshModel(MeshModel m )
 	MeshModel* mm = new MeshModel(m);
 	models.push_back(mm);
 	activeModel = models.size() - 1;
+}
+
+
+void Scene::SetShading(ShadingType s)
+{
+	if (s != FLAT && s != GOURAUD && s != PHONG)
+	{
+		return;
+	}
+	shading = s;
+	renderer->SetShadingProgram(oglPrograms[shading]);
+	for (int i = 0; i < models.size(); i++)
+	{
+		models[i]->BindToRenderer(renderer, shading);
+	}
 }

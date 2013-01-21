@@ -1,7 +1,7 @@
 #pragma once
 
 #include "mat.h"
-
+#include "vec.h"
 
 
 struct Rgb {
@@ -38,6 +38,11 @@ struct Rgb {
 		g = g/max;
 		b = b/max;
 		return *this;
+	}
+
+	vec3 toVec3()
+	{
+		return vec3(r, g, b);
 	}
 
 	float r;

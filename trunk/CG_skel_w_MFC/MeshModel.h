@@ -57,10 +57,6 @@ protected :
 	ModelBind oglBind;
 
 	void CalculateFaceNormals();
-	vector<Vertex> transformVertices();
-	vector<vec4> transformNormals(float len = 1);
-	vector<Vertex> transformFaceNormals(float len = 1);
-	vector<Vertex> transformVertices(vector<Vertex> inModelCoords);
 	vector<Vertex> triangles();
 	vector<vec4> normals(ShadingType st);
 };

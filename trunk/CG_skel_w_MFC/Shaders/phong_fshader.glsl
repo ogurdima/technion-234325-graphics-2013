@@ -2,13 +2,11 @@
 
 #define MAX_LIGHTS 30
 
-in vec4 vPosition;
-in vec4 vNormal;
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-uniform mat4 normalTransform;
+in vec3 normal;
+in vec4 vertex;
+
+out vec4 fcolor;
 
 uniform	vec3 emissive;
 uniform vec3 diffuse;
@@ -20,19 +18,16 @@ uniform vec3 lightDir[MAX_LIGHTS];
 uniform vec3 parlightColor[MAX_LIGHTS];
 uniform int parallelLightNum;
 
-
 uniform vec3 lightPos[MAX_LIGHTS];
 uniform vec3 ptlightColor[MAX_LIGHTS];
 uniform int pointLightNum;
 
 
-out vec4 color;
-
 void main()
 {
-	vec3 normalCf = -normalize(view * normalTransform * vNormal).xyz;
-	vec4 vertexCf = view * model * vPosition;
-
+	vec4 vertexCf = vertex;
+	vec3 normalCf = normal;
+	
 	vec3 diffuseFactor = vec3(0,0,0);
 	vec3 ambientFactor = vec3(0,0,0);
 	vec3 specularFactor = vec3(0,0,0);
@@ -64,8 +59,5 @@ void main()
 	
 	vec3 totalColor = diffuseFactor + ambientFactor + specularFactor + emissiveFactor;
 
-	gl_Position = projection * vertexCf;
-	color = vec4(totalColor, 1);
+	fcolor = vec4(totalColor, 1);
 }
-
-
