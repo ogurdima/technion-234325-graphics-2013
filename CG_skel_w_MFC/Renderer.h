@@ -46,7 +46,8 @@ public:
 	CameraBind BindCamera();
 	void SetUniformMatrices(vector<GLuint> handles, vector<mat4> values);
 	void SetUniformMatrix(GLuint handle, mat4 val);
-	void SetLightDirections(vector<vec4> lightDirections);
+	void SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors);
+	void SetPointLights(vector<vec4> lightPositions, vector<vec3> lightColors);
 
 	void DrawTriangles(GLuint vao, int count);
 	void SwapBuffers();

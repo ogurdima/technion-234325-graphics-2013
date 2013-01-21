@@ -55,9 +55,10 @@ ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals /*also text
 	glEnableVertexAttribArray(vNormalLoc);
 	glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
 
-	glUniform4f(emissiveLoc, c.emissive.r, c.emissive.g, c.emissive.b, 0);
-	glUniform4f(ambientLoc, c.ambient.r, c.ambient.g, c.ambient.b, 0);
-	glUniform4f(specularLoc, c.specular.r, c.specular.g, c.specular.b, 0);
+	glUniform3f(emissiveLoc, c.emissive.r, c.emissive.g, c.emissive.b);
+	glUniform3f(ambientLoc, c.ambient.r, c.ambient.g, c.ambient.b);
+	glUniform3f(specularLoc, c.specular.r, c.specular.g, c.specular.b);
+	glUniform3f(diffuseLoc, c.diffuse.r, c.diffuse.g, c.diffuse.b);
 	glUniform1f(shininessLoc, 4.0);
 
 	ModelBind b;
@@ -85,7 +86,7 @@ CameraBind Renderer::BindCamera()
 	return b;
 }
 
-void Renderer::SetLightDirections(vector<vec4> lightDirections)
+void Renderer::SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors)
 {
 	if (program < 0)
 	{
@@ -98,11 +99,43 @@ void Renderer::SetLightDirections(vector<vec4> lightDirections)
 	{
 		sprintf(name, "lightDir[%d]", i);
 		int lightDirLoc = glGetUniformLocation(program, name);
-		//assert(lightDirLoc != -1);
 		glUniform3f(lightDirLoc, lightDirections[i].x, lightDirections[i].y, lightDirections[i].z);
+
+		sprintf(name, "parlightColor[%d]", i);
+		int parlightColorLoc = glGetUniformLocation(program, name);
+		glUniform3f(parlightColorLoc, lightColors[i].x, lightColors[i].y, lightColors[i].z);
+
+		cout << "Renderer::SetParallelLights: (" << lightDirections[i].x << ", " << lightDirections[i].y << ", " << lightDirections[i].z << ")";
+		cout << " RGB: [" << lightColors[i].x << ", " << lightColors[i].y << ", " << lightColors[i].z << "]" << endl;
 	}
-	int lightNumLoc = glGetUniformLocation(program, "lightNum");
-	glUniform1i(lightNumLoc, bound);
+	int parallelLightNumLoc = glGetUniformLocation(program, "parallelLightNum");
+	glUniform1i(parallelLightNumLoc, bound);
+}
+
+void Renderer::SetPointLights(vector<vec4> lightPositions, vector<vec3> lightColors)
+{
+	if (program < 0)
+	{
+		throw std::exception("Binding camera without program set");
+	}
+	int bound = min(lightPositions.size(), MAX_LIGHTS);
+	char name[512];
+
+	for (int i = 0; i < bound; i++)
+	{
+		sprintf(name, "lightPos[%d]", i);
+		int lightPosLoc = glGetUniformLocation(program, name);
+		glUniform3f(lightPosLoc, lightPositions[i].x, lightPositions[i].y, lightPositions[i].z);
+
+		sprintf(name, "ptlightColor[%d]", i);
+		int ptlightColorLoc = glGetUniformLocation(program, name);
+		glUniform3f(ptlightColorLoc, lightColors[i].x, lightColors[i].y, lightColors[i].z);
+
+		cout << "Renderer::SetPointLights: (" << lightPositions[i].x << ", " << lightPositions[i].y << ", " << lightPositions[i].z << ")" << endl;
+		cout << " RGB: [" << lightColors[i].x << ", " << lightColors[i].y << ", " << lightColors[i].z << "]" << endl;
+	}
+	int pointLightNumLoc = glGetUniformLocation(program, "pointLightNum");
+	glUniform1i(pointLightNumLoc, bound);
 }
 
 void Renderer::SetUniformMatrices(vector<GLuint> handles, vector<mat4> values)

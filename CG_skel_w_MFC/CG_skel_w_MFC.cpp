@@ -715,12 +715,15 @@ void menuRenderer(int id)
 		break;
 
 	case RENDERER_SHADING_FLAT:
+		scene->SetShading(FLAT);
 		break;
 
 	case RENDERER_SHADING_GOURAUD:
+		scene->SetShading(GOURAUD);
 		break;
 
 	case RENDERER_SHADING_PHONG:
+		scene->SetShading(PHONG);
 		break;
 
 	case RENDERER_SET_ANTIALIASING:
@@ -865,8 +868,8 @@ int my_main( int argc, char **argv )
 	// Create initial cameras
 	//----------------------------------------------------------------------------
 	Camera c1 = Camera(); // The default camera
-	c1.LookAt(vec3(0,5,0) , vec3(0,0,0) , vec3(0,0,1) );
-	c1.Ortho(-4, 4, -3, 3, 0.5, 20);
+	c1.LookAt(vec3(0,15,0) , vec3(0,0,0) , vec3(0,0,1) );
+	c1.Perspective(60, 1, 1, 200);
 	Camera c2 = Camera(); // One more
 	c2.LookAt(vec3(5,5,5) , vec3(0,0,0) , vec3(0,0,1) );
 	c2.Perspective(30, 4/3, 0.5, 20);
@@ -876,11 +879,8 @@ int my_main( int argc, char **argv )
 	// Create initial scene
 	//----------------------------------------------------------------------------
 	scene = new Scene(renderer);
-	scene->AddCamera(c2);
 	scene->AddCamera(c1);
-	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(7,7,7,0), Rgb(1,1,1), vec4(1,1,1,1)));
-	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), Rgb(1,1,1), vec4(0,0,-1,0)));
-	scene->AddLight(Light(AMBIENT_L, PARALLEL_S, vec4(0,0,0,0), Rgb(0.6,0,0), vec4(0,0,0,0)));
+	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), Rgb(0.5,0.5,0.5), vec4(0,0,-1,0)));
 
 
 	glutMainLoop();

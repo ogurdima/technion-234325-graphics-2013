@@ -179,7 +179,7 @@ void MeshModel::SetDefaultColor(MaterialColor _c)
 
 void MeshModel::SetRandomColor()
 {
-	vector<Vertex> vertices = transformVertices();
+	vector<Vertex> vertices = triangles();
 	srand(time(0));
 	_vertexColors.clear();
 	for(int i = 0; i < vertices.size(); ++i)
@@ -195,7 +195,7 @@ void MeshModel::SetRandomColor()
 
 void MeshModel::SetProgressiveColor()
 {
-	vector<Vertex> vertices = transformVertices();
+	vector<Vertex> vertices = triangles();
 	_vertexColors.clear();
 	float yMin = vertices[0].y , yMax = vertices[0].y;
 	for(int i = 1; i < vertices.size(); ++i)
@@ -240,16 +240,6 @@ void MeshModel::SetProgressiveColor()
 	}
 }
 
-// private functions
-vector<Vertex> MeshModel::transformVertices(){
-	vector<Vertex> vertex_positions;
-	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it){
-		for (int i = 0; i < 3; i++){
-			vertex_positions.push_back( _world_transform * _vertices[it->v[i] - 1] ); // Pushing only verticies (w/o normals/textures)
-		}
-	}
-	return vertex_positions;
-}
 
 vector<Vertex> MeshModel::triangles()
 {
@@ -267,7 +257,20 @@ vector<vec4> MeshModel::normals(ShadingType st)
 	vector<vec4> normals;
 	if (st != FLAT)
 	{
-		normals = _normals;
+		for (int i = 0; i < _faces.size(); i++)
+		{
+			for (int j = 0; j < 3; j++) // push face normal instead of vertex normal for every vertex
+			{
+				if(_faces[i].vn[j] <= 0) // normal not defined
+				{
+					normals.push_back(_faceNormals[i]);
+				}
+				else
+				{
+					normals.push_back(_normals[_faces[i].vn[j] - 1]);
+				}
+			}
+		}
 	}
 	else
 	{
@@ -280,52 +283,6 @@ vector<vec4> MeshModel::normals(ShadingType st)
 		}
 	}
 	return normals;
-}
-
-// returns vertex-normal list
-vector<Vertex> MeshModel::transformNormals(float len)
-{
-	vector<Vertex> retVal;
-	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it)
-	{
-		for (int i = 0; i < 3; i++) // Assuming all faces are constructed with 3 verticies
-		{
-			if(it->vn[i] <= 0) // normal is not defined for vertex
-				continue;
-			vec4 normalStart = _world_transform * _vertices[it->v[i] - 1];
-			vec4 normalEnd = normalStart + len * normalize(_normal_transform * _normals[it->vn[i] - 1]);
-			retVal.push_back( normalStart ); // push vertex
-			retVal.push_back( normalEnd ); // push normal endpoint
-		}
-	}
-	return retVal;
-}
-
-vector<Vertex> MeshModel::transformFaceNormals(float len) 
-{
-	vector<Vertex> origNormalList;
-	for (int i = 0; i < _faces.size(); i++) 
-	{
-		Face& f = _faces[i];
-		vec4& n = _faceNormals[i];
-		vec4 normalStart = (_vertices[f.v[0] - 1] + _vertices[f.v[1] - 1] + _vertices[f.v[2] - 1]) / 3;
-		// Starting from here we are in world frame
-		normalStart = _world_transform * normalStart;
-		vec4 normalEnd = normalStart + len * normalize(_normal_transform * n);
-		origNormalList.push_back(normalStart);
-		origNormalList.push_back(normalEnd);
-	}
-	return origNormalList;
-}
-
-vector<Vertex> MeshModel::transformVertices(vector<Vertex> inModelCoords)
-{
-	for(vector<Vertex>::iterator it = inModelCoords.begin();   it != inModelCoords.end(); it++) 
-	{
-		vec4 v = _world_transform * (*it);
-		*it = v;
-	}
-	return inModelCoords; // it is actually now in world coordinates
 }
 
 void MeshModel::CalculateFaceNormals()
