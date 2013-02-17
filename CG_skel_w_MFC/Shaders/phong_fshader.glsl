@@ -38,22 +38,22 @@ void main()
 	for (int i = 0; i < parallelLightNum; i++)
 	{
 		vec3 L = normalize(lightDir[i]);
-		NdotL =  max(0.0, dot(normalCf, L ) );
+		NdotL =  max(0.0, dot(normalCf, -L ) );
 		diffuseFactor += diffuse * NdotL * parlightColor[i];
 		if (NdotL > 0)
 		{
-			specularFactor += specular * parlightColor[i] * pow( max(   dot(reflect(-L, normalCf), veiwDir),    0) , shininess);
+			specularFactor += specular * parlightColor[i] * pow( max(   dot(reflect(L, normalCf), veiwDir),    0) , shininess);
 		}
 	}
 
 	for (int i = 0; i < pointLightNum; i++)
 	{
 		vec3 L = normalize(vertexCf.xyz - lightPos[i]);
-		NdotL =  max(0.0, dot(normalCf, L ) );
+		NdotL =  max(0.0, dot(normalCf, -L ) );
 		diffuseFactor += diffuse * NdotL * ptlightColor[i];
 		if (NdotL > 0)
 		{
-			specularFactor += specular * ptlightColor[i] * pow( max(   dot(reflect(-L, normalCf), veiwDir),    0) , shininess);
+			specularFactor += specular * ptlightColor[i] * pow( max(   dot(reflect(L, normalCf), veiwDir),    0) , shininess);
 		}
 	}
 	
