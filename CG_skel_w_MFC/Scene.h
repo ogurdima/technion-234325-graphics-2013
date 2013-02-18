@@ -11,8 +11,6 @@
 
 
 using namespace std;
- 
-
 
 class Scene 
 {
@@ -31,15 +29,8 @@ protected:
 	bool					drawWorldFrame;
 	bool					drawLights;
 
-	//ShadingType				shading;
-	//GLuint					oglPrograms[3];
-	//GLuint					oglLineProgram;
-	//CameraBind				oglCameraBind;
-	//
-	//void			InitShaders();
-	//void			SetCameraMatices();
-	void			SetLights();
-	//GLuint			BindLineBuffer(vector<vec4> verteces, vector<vec3> colors);
+
+	void					SetLights();
 
 
 public:

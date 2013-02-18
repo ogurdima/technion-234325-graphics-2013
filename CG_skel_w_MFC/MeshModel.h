@@ -22,6 +22,7 @@ public:
 
 	void			LoadFile(string fileName);
 	void			BindToRenderer(Renderer* r);
+	void			QuickRebind(Renderer* r);
 	void virtual	Draw(Renderer * r);
 
 	// Transformations

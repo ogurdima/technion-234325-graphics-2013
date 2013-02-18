@@ -14,6 +14,16 @@ Renderer::~Renderer(void)
 {
 }
 
+void Renderer::InitShaders()
+{
+	oglPrograms[FLAT] = InitShader("Shaders/flat_vshader.glsl", "Shaders/flat_fshader.glsl");
+	oglPrograms[GOURAUD] = InitShader("Shaders/flat_vshader.glsl", "Shaders/flat_fshader.glsl");
+	oglPrograms[PHONG] = InitShader("Shaders/phong_vshader.glsl", "Shaders/phong_fshader.glsl");
+	oglPrograms[TOON] = InitShader("Shaders/toon_vshader.glsl", "Shaders/toon_fshader.glsl");
+	oglPrograms[SILHOUETTE] = InitShader("Shaders/silhouette_vshader.glsl", "Shaders/silhouette_fshader.glsl");
+	oglLineProgram = InitShader("Shaders/line_vshader.glsl", "Shaders/line_fshader.glsl");
+}
+
 void Renderer::SetShading(ShadingType _type)
 {
 	shading = _type;
@@ -25,7 +35,7 @@ ShadingType Renderer::Shading()
 	return shading;
 }
 
-ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals /*also textures*/, MaterialColor c)
+ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals)
 {
 	GLuint program = oglPrograms[shading];
 	if (program < 0)
@@ -33,62 +43,49 @@ ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals /*also text
 		throw std::exception("Binding model without program set");
 	}
 
-	GLuint buffers[2];
+	ModelBind b;
+	RebindModelUniforms(&b);
+
+	GLuint* buffers = new GLuint[2];
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 	glGenBuffers(2, buffers);
 
 	GLuint vPositionLoc = glGetAttribLocation(program, "vPosition");
-	GLuint vNormalLoc = glGetAttribLocation(program, "vNormal");
-	GLuint modelLoc = glGetUniformLocation(program, "model");
-	GLuint normalTransformLoc = glGetUniformLocation(program, "normalTransform");
-	GLuint emissiveLoc = glGetUniformLocation(program, "emissive");
-	GLuint diffuseLoc = glGetUniformLocation(program, "diffuse");
-	GLuint ambientLoc = glGetUniformLocation(program, "ambient");
-	GLuint specularLoc = glGetUniformLocation(program, "specular");
-	GLuint shininessLoc = glGetUniformLocation(program, "shininess");
-
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * pts.size(), &pts[0], GL_STATIC_DRAW);
 	glEnableVertexAttribArray(vPositionLoc);
 	glVertexAttribPointer(vPositionLoc, 4, GL_FLOAT, 0, 0, 0);
-
+	
+	GLuint vNormalLoc = glGetAttribLocation(program, "vNormal");
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * normals.size(), &normals[0], GL_STATIC_DRAW);
 	glEnableVertexAttribArray(vNormalLoc);
 	glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
 
-	glUniform3f(emissiveLoc, c.emissive.r, c.emissive.g, c.emissive.b);
-	glUniform3f(ambientLoc, c.ambient.r, c.ambient.g, c.ambient.b);
-	glUniform3f(specularLoc, c.specular.r, c.specular.g, c.specular.b);
-	glUniform3f(diffuseLoc, c.diffuse.r, c.diffuse.g, c.diffuse.b);
-	glUniform1f(shininessLoc, 4.0);
-
-	ModelBind b;
-	b.pointMat = modelLoc;
-	b.normMat = normalTransformLoc;
-	b.ptsHnd = vPositionLoc; // not sure we need this
-	b.nrmHnd = vNormalLoc; // not sure we need this
 	b.vao = vao;
+	b.size = 2;
+	b.buffers = buffers;
 	return b;
 }
 
-//CameraBind Renderer::BindCamera()
-//{
-//	if (program < 0)
-//	{
-//		throw std::exception("Binding camera without program set");
-//	}
-//
-//	GLuint viewLoc = glGetUniformLocation(program, "view");
-//	GLuint projectLoc = glGetUniformLocation(program, "projection");
-//
-//	CameraBind b;
-//	b.projectHnd = projectLoc;
-//	b.viewHnd = viewLoc;
-//	return b;
-//}
+void Renderer::RebindModelUniforms( ModelBind* mb)
+{
+	GLuint program = oglPrograms[shading];
+	if (program < 0)
+	{
+		throw std::exception("Binding model without program set");
+	}
+	
+	mb->modelLoc = glGetUniformLocation(program, "model");
+	mb->normalTransformLoc = glGetUniformLocation(program, "normalTransform");
+	mb->emissiveLoc = glGetUniformLocation(program, "emissive");
+	mb->diffuseLoc = glGetUniformLocation(program, "diffuse");
+	mb->ambientLoc = glGetUniformLocation(program, "ambient");
+	mb->specularLoc = glGetUniformLocation(program, "specular");
+	mb->shininessLoc = glGetUniformLocation(program, "shininess");
+}
 
 void Renderer::SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors)
 {
@@ -157,6 +154,26 @@ void Renderer::SetUniformMatrices(vector<GLuint> handles, vector<mat4> values)
 	}
 }
 
+void Renderer::SetUniformVec3(GLuint handle, vec3 val)
+{
+	GLuint program = oglPrograms[shading];
+	if (program < 0)
+	{
+		throw std::exception("Bad arguments in SetUniformMatrices");
+	}
+	glUniform3f(handle, val.x, val.y, val.z);
+}
+
+void Renderer::SetUniform(GLuint handle, float val)
+{
+	GLuint program = oglPrograms[shading];
+	if (program < 0)
+	{
+		throw std::exception("Bad arguments in SetUniformMatrices");
+	}
+	glUniform1f(handle, val);
+}
+
 void Renderer::SetUniformMatrix(GLuint handle, mat4 val)
 {
 	GLuint program = oglPrograms[shading];
@@ -195,10 +212,21 @@ void Renderer::DrawTriangles(GLuint vao, int count)
 	{
 		throw std::exception("DrawTriangles called with no program set");
 	}
+	
 	glEnable(GL_DEPTH_TEST);
 	glBindVertexArray(vao);
+
 	glDrawArrays(GL_TRIANGLES, 0, count);
 }
+
+void Renderer::DrawSilhouette(GLuint vao, int count)
+{
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+	DrawTriangles(vao, count);
+	glDisable(GL_CULL_FACE);
+}
+
 
 GLuint Renderer::BindLineBuffer(vector<vec4> verteces, vector<vec3> colors)
 {
@@ -303,10 +331,3 @@ void Renderer::InitDraw(mat4 view, mat4 projection)
 	glUseProgram(oglPrograms[shading]);
 }
 
-void Renderer::InitShaders()
-{
-	oglPrograms[FLAT] = InitShader("Shaders/flat_vshader.glsl", "Shaders/flat_fshader.glsl");
-	oglPrograms[GOURAUD] = InitShader("Shaders/flat_vshader.glsl", "Shaders/flat_fshader.glsl");
-	oglPrograms[PHONG] = InitShader("Shaders/phong_vshader.glsl", "Shaders/phong_fshader.glsl");
-	oglLineProgram = InitShader("Shaders/line_vshader.glsl", "Shaders/line_fshader.glsl");
-}
