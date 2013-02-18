@@ -140,6 +140,8 @@
     <None Include="Shaders\flat_fshader.glsl" />
     <None Include="Shaders\flat_vshader.glsl" />
     <None Include="Shaders\fshader.glsl" />
+    <None Include="Shaders\line_fshader.glsl" />
+    <None Include="Shaders\line_vshader.glsl" />
     <None Include="Shaders\phong_fshader.glsl" />
     <None Include="Shaders\phong_vshader.glsl" />
     <None Include="Shaders\vshader.glsl" />

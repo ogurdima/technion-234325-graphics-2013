@@ -71,9 +71,12 @@ mat4 Camera::Projection()
 	switch (lensMode)
 	{
 	case ORTHO:
+		return OrthoMat( left, right, bottom, top, zNear, zFar);
 		return Scale(2/(right - left), 2/(top - bottom), 2/(zNear - zFar)) *  Translate(-(right+left)/2,-(top  + bottom)/2, (zFar + zNear)/2);
 	case FRUSTUM:
+		return FrustumMat(left, right, bottom, top, zNear, zFar);
 	case PERSPECTIVE:
+		return PerspectiveMat(fovy, aspect , zNear, zFar);
 		return mat4(	(2*zNear/(right - left)), 0, (right + left)/(right - left), 0,
 						0, 2*zNear/(top - bottom), (top + bottom)/(top - bottom),0,
 						0,0, -(zFar + zNear)/(zFar - zNear), -2*zFar*zNear/(zFar - zNear),
@@ -83,6 +86,8 @@ mat4 Camera::Projection()
 
 mat4 Camera::View()
 {
+	return LookAtMat(eye, at, up);
+
 	vec4 n = normalize( eye - at);
 	vec4 u = vec4(normalize(cross(up,n)), 0);
     vec4 v = vec4(cross(n,u), 0);

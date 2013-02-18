@@ -5,7 +5,6 @@
 
 using namespace std;
 
-
 Scene::Scene(Renderer *renderer) : 
 renderer(renderer),
 activeModel(-1),
@@ -13,19 +12,9 @@ activeLight(-1),
 activeCamera(-1),
 drawCameras(false),
 drawWorldFrame(false),
-drawLights(false),
-shading(FLAT)
+drawLights(false)
 {
-	initShaders();
-	renderer->SetShadingProgram(oglPrograms[FLAT]);
-	oglCameraBind = renderer->BindCamera();
-}
-
-void Scene::initShaders()
-{
-	oglPrograms[FLAT] = InitShader("Shaders/flat_vshader.glsl", "Shaders/flat_fshader.glsl");
-	oglPrograms[GOURAUD] = InitShader("Shaders/flat_vshader.glsl", "Shaders/flat_fshader.glsl");
-	oglPrograms[PHONG] = InitShader("Shaders/phong_vshader.glsl", "Shaders/phong_fshader.glsl");
+	renderer->SetShading(FLAT);
 }
 
 Scene::~Scene() 
@@ -52,31 +41,16 @@ Scene::~Scene()
 	}
 }
 
-void Scene::loadOBJModel(string fileName)
+void Scene::LoadOBJModel(string fileName)
 {
 	MeshModel *model = new MeshModel(fileName);
-	model->BindToRenderer(renderer, shading);
+	model->BindToRenderer(renderer);
 	models.push_back(model);
 	activeModel = models.size() - 1;
 }
 
-void Scene::draw()
+void Scene::SetLights()
 {
-	if(! isLegal())
-		return;
-
-	cout << "Scene::Draw" << endl;
-
-	vector<GLuint> h;
-	vector<mat4> v;
-
-	h.push_back(oglCameraBind.viewHnd);
-	v.push_back(cameras[activeCamera]->View());
-	h.push_back(oglCameraBind.projectHnd);
-	v.push_back(cameras[activeCamera]->Projection());
-
-	renderer->SetUniformMatrices(h, v);
-
 	vector<vec4> lightDirections;
 	vector<vec3> parlightColors;
 	vector<vec4> lightPositions;
@@ -87,22 +61,55 @@ void Scene::draw()
 		{
 			lightDirections.push_back(cameras[activeCamera]->View() * lights[i]->direction);
 			parlightColors.push_back(lights[i]->lightColor.toVec3());
+			//renderer->DrawParallelSource(lights[i]->lightColor, lights[i]->direction, cameras[activeCamera]->Projection()*cameras[activeCamera]->View());
 		}
 		else if (lights[i]->lightType == REGULAR_L && lights[i]->lightSource == POINT_S)
 		{
 			lightPositions.push_back(cameras[activeCamera]->View() * lights[i]->location);
 			ptlightColors.push_back(lights[i]->lightColor.toVec3());
+			//renderer->DrawPointSource(lights[i]->lightColor);
 		}
-
 	}
+
 	renderer->SetParallelLights(lightDirections, parlightColors);
 	renderer->SetPointLights(lightPositions, ptlightColors);
+}
+
+void Scene::Draw()
+{
+	if(! IsLegal())
+		return;
+	cout << "Scene::Draw" << endl;
+
+	Camera* ac = ActiveCam();
+	renderer->InitDraw(ac->View(), ac->Projection());
+
+	SetLights();
 
 	for (int i = 0; i < models.size(); i++)
 	{
 		cout << "Model[" << i << "]";
-		models[i]->draw(renderer);
+		models[i]->Draw(renderer);
 	}
+
+	vector<vec4> lineEp;
+	vector<vec3> clrs;
+	lineEp.push_back(vec4(0,0,0,1));
+	clrs.push_back(vec3(1,0,0));
+	lineEp.push_back(vec4(10,0,0,1));
+	clrs.push_back(vec3(1,0,0));
+	lineEp.push_back(vec4(0,0,0,1));
+	clrs.push_back(vec3(0,1,0));
+	lineEp.push_back(vec4(0,10,0,1));
+	clrs.push_back(vec3(0,1,0));
+	lineEp.push_back(vec4(0,0,0,1));
+	clrs.push_back(vec3(0,0,1));
+	lineEp.push_back(vec4(0,0,10,1));
+	clrs.push_back(vec3(1,0,1));
+
+	renderer->DrawWFLines( lineEp, clrs);
+	
+
 	renderer->SwapBuffers();
 }
 
@@ -117,6 +124,14 @@ void Scene::AddLight(Light l)
 {
 	Light* ll = new Light(l);
 	lights.push_back(ll);
+	activeLight = lights.size() - 1;
+}
+
+void Scene::AddMeshModel(MeshModel m )
+{
+	MeshModel* mm = new MeshModel(m);
+	models.push_back(mm);
+	activeModel = models.size() - 1;
 }
 
 void Scene::RemoveLights()
@@ -137,7 +152,7 @@ void Scene::RemoveGeometry()
 	models.clear();
 }
 
-bool Scene::isLegal() {
+bool Scene::IsLegal() {
 	return (activeCamera != -1  && cameras.size() > activeCamera);
 }
 
@@ -146,6 +161,13 @@ Camera* Scene::ActiveCam()
 	if(activeCamera == -1 || cameras.size() <= activeCamera)
 		return NULL;
 	return cameras[activeCamera];
+}
+
+Light* Scene::ActiveLight()
+{
+	if(activeLight == -1 || lights.size() <= activeLight)
+		return NULL;
+	return lights[activeLight];
 }
 
 MeshModel* Scene::ActiveModel()
@@ -172,6 +194,14 @@ void Scene::ToggleActiveCamera()
 	activeCamera %= cameras.size();
 }
 
+void Scene::ToggleActiveLight()
+{
+	if (activeLight == -1)
+		return;
+	activeLight += 1;
+	activeLight %= lights.size();
+}
+
 bool Scene::ToggleShowCameras()
 {
 	bool oldval = drawCameras;
@@ -193,24 +223,16 @@ bool Scene::ToggleShowLights()
 	return oldval;
 }
 
-void Scene::AddMeshModel(MeshModel m )
-{
-	MeshModel* mm = new MeshModel(m);
-	models.push_back(mm);
-	activeModel = models.size() - 1;
-}
-
-
 void Scene::SetShading(ShadingType s)
 {
 	if (s != FLAT && s != GOURAUD && s != PHONG)
 	{
 		return;
 	}
-	shading = s;
-	renderer->SetShadingProgram(oglPrograms[shading]);
+	
+	renderer->SetShading(s);
 	for (int i = 0; i < models.size(); i++)
 	{
-		models[i]->BindToRenderer(renderer, shading);
+		models[i]->BindToRenderer(renderer);
 	}
 }

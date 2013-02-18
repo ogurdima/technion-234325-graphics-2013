@@ -21,6 +21,7 @@ _drawMF(false)
 {
 	_world_transform = Identity4();
 	_normal_transform = Identity4();
+	_inner_transform = Identity4();
 }
 
 MeshModel::MeshModel(string fileName) :
@@ -29,7 +30,7 @@ _drawVN(false),
 _drawFN(false),
 _drawMF(false)
 {
-	loadFile(fileName);
+	LoadFile(fileName);
 }
 
 MeshModel::MeshModel(const MeshModel& rhs) 
@@ -50,7 +51,7 @@ MeshModel::~MeshModel(void)
 {
 }
 
-void MeshModel::loadFile(string fileName)
+void MeshModel::LoadFile(string fileName)
 {
 	ifstream ifile(fileName.c_str());
 
@@ -94,35 +95,45 @@ void MeshModel::loadFile(string fileName)
 	CalculateFaceNormals();
 }
 
-void MeshModel::BindToRenderer(Renderer* r, ShadingType st)
+void MeshModel::BindToRenderer(Renderer* r)
 {
-	oglBind = r->BindModel(triangles(), normals(st), _defaultColor);
+	_oglBind = r->BindModel(Triangles(), Normals(r->Shading()), _defaultColor);
 }
 
 // Drawing function
-void MeshModel::draw(Renderer * r)
+void MeshModel::Draw(Renderer * r)
 {
 	cout << "MeshModel::draw" << endl;
-	r->SetUniformMatrix(oglBind.pointMat, _world_transform);
-	r->SetUniformMatrix(oglBind.normMat, _normal_transform);
-	r->DrawTriangles(oglBind.vao, _faces.size() * 3);
+	r->SetUniformMatrix(_oglBind.pointMat, _world_transform * _inner_transform);
+	r->SetUniformMatrix(_oglBind.normMat, _normal_transform * _inner_transform);
+	r->DrawTriangles(_oglBind.vao, _faces.size() * 3);
 }
 
 
 // Transformations
-void MeshModel::Rotate(mat4 m)
+void MeshModel::MFRotate(mat4 m)
+{
+	_inner_transform = m * _inner_transform;
+}
+
+void MeshModel::MFTranslate(mat4 m)
+{
+	_inner_transform = m * _inner_transform;
+}
+
+void MeshModel::WFRotate(mat4 m)
 {
 	_world_transform = m * _world_transform;
 	_normal_transform = m * _normal_transform;
 }
 
-void MeshModel::Translate(mat4 m)
+void MeshModel::WFTranslate(mat4 m)
 {
 	_world_transform = m * _world_transform;
 	_normal_transform = m * _normal_transform;
 }
 
-void MeshModel::Scale(mat4 m)
+void MeshModel::WFScale(mat4 m)
 {
 	_world_transform = m * _world_transform;
 	m[0][0] = 1 / m[0][0];
@@ -131,7 +142,7 @@ void MeshModel::Scale(mat4 m)
 	_normal_transform = m * _normal_transform;
 }
 
-vec3 MeshModel::origin()
+vec3 MeshModel::Origin()
 {
 	vec4 orig4 = _world_transform * vec4(0,0,0,1);
 	return vec3( orig4.x, orig4.y, orig4.z );
@@ -179,7 +190,7 @@ void MeshModel::SetDefaultColor(MaterialColor _c)
 
 void MeshModel::SetRandomColor()
 {
-	vector<Vertex> vertices = triangles();
+	vector<Vertex> vertices = Triangles();
 	srand(time(0));
 	_vertexColors.clear();
 	for(int i = 0; i < vertices.size(); ++i)
@@ -195,7 +206,7 @@ void MeshModel::SetRandomColor()
 
 void MeshModel::SetProgressiveColor()
 {
-	vector<Vertex> vertices = triangles();
+	vector<Vertex> vertices = Triangles();
 	_vertexColors.clear();
 	float yMin = vertices[0].y , yMax = vertices[0].y;
 	for(int i = 1; i < vertices.size(); ++i)
@@ -240,8 +251,7 @@ void MeshModel::SetProgressiveColor()
 	}
 }
 
-
-vector<Vertex> MeshModel::triangles()
+vector<Vertex> MeshModel::Triangles()
 {
 	vector<Vertex> vertex_positions;
 	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it){
@@ -252,7 +262,7 @@ vector<Vertex> MeshModel::triangles()
 	return vertex_positions;
 }
 
-vector<vec4> MeshModel::normals(ShadingType st)
+vector<vec4> MeshModel::Normals(ShadingType st)
 {
 	vector<vec4> normals;
 	if (st != FLAT)
