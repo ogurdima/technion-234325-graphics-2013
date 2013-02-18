@@ -97,15 +97,39 @@ void MeshModel::LoadFile(string fileName)
 
 void MeshModel::BindToRenderer(Renderer* r)
 {
-	_oglBind = r->BindModel(Triangles(), Normals(r->Shading()), _defaultColor);
+	_oglBind = r->BindModel(Triangles(), Normals(r->Shading()));
+}
+
+void MeshModel::QuickRebind(Renderer* r)
+{
+	r->RebindModelUniforms(&_oglBind);
 }
 
 // Drawing function
 void MeshModel::Draw(Renderer * r)
 {
 	cout << "MeshModel::draw" << endl;
-	r->SetUniformMatrix(_oglBind.pointMat, _world_transform * _inner_transform);
-	r->SetUniformMatrix(_oglBind.normMat, _normal_transform * _inner_transform);
+
+	//r->SetUniformMatrix(_oglBind.modelLoc,  _world_transform * Scale(1.05,1.05,1.05) * _inner_transform);
+	//r->SetUniformMatrix(_oglBind.normalTransformLoc, _normal_transform * _inner_transform);
+
+	/*r->SetUniformVec3( _oglBind.ambientLoc, 0);
+	r->SetUniformVec3( _oglBind.diffuseLoc, 0);
+	r->SetUniformVec3( _oglBind.emissiveLoc, 0);
+	r->SetUniformVec3( _oglBind.specularLoc, 0);
+	r->SetUniform( _oglBind.shininessLoc, 4);*/
+
+	//r->DrawSilhouette(_oglBind.vao, _faces.size() * 3);
+
+	r->SetUniformMatrix(_oglBind.modelLoc, _world_transform * _inner_transform);
+	r->SetUniformMatrix(_oglBind.normalTransformLoc, _normal_transform * _inner_transform);
+
+	r->SetUniformVec3( _oglBind.ambientLoc, _defaultColor.ambient.toVec3());
+	r->SetUniformVec3( _oglBind.diffuseLoc, _defaultColor.diffuse.toVec3());
+	r->SetUniformVec3( _oglBind.emissiveLoc, _defaultColor.emissive.toVec3());
+	r->SetUniformVec3( _oglBind.specularLoc, _defaultColor.specular.toVec3());
+	r->SetUniform( _oglBind.shininessLoc, 4);
+
 	r->DrawTriangles(_oglBind.vao, _faces.size() * 3);
 }
 

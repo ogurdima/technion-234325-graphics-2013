@@ -15,16 +15,23 @@ typedef enum
 {
 	FLAT = 0,
 	GOURAUD,
-	PHONG
+	PHONG,
+	TOON,
+	SILHOUETTE
 } ShadingType;
 
 typedef struct 
 {
-	GLuint pointMat; // points transformation
-	GLuint normMat; // normals transformation
-	GLuint ptsHnd;
-	GLuint nrmHnd;
-	GLuint vao;
+	GLuint		modelLoc; // points transformation
+	GLuint		normalTransformLoc; // normals transformation
+	GLuint		emissiveLoc;
+	GLuint		ambientLoc;
+	GLuint		specularLoc;
+	GLuint		diffuseLoc;
+	GLuint		shininessLoc;
+	GLuint		vao;
+	int			size;
+	GLuint*		buffers;
 } ModelBind;
 
 typedef struct 
@@ -33,23 +40,35 @@ typedef struct
 	GLuint projectHnd;
 } CameraBind;
 
+class VaoBinding
+{
+public:
+	GLuint vao;
+	GLsizei size;
+	GLuint * buffers;
+};
+
 class Renderer
 {
 public:
 	Renderer(int _w, int _h);
 	~Renderer(void);
 
-	ModelBind		BindModel(vector<vec4> pts, vector<vec4> normals /*also textures*/, MaterialColor c);
+	ModelBind		BindModel(vector<vec4> pts, vector<vec4> normals);
+	void			RebindModelUniforms(ModelBind* mb);
 
 	//CameraBind		BindCamera();
 	void			SetUniformMatrices(vector<GLuint> handles, vector<mat4> values);
 	void			SetUniformMatrix(GLuint handle, mat4 val);
+	void			SetUniformVec3(GLuint handle, vec3 val);
+	void			SetUniform(GLuint handle, float val);
 	void			SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors);
 	void			SetPointLights(vector<vec4> lightPositions, vector<vec3> lightColors);
 
 	//void			DrawParallelSource(Rgb col, vec4 dir, mat4 toScreen);
 
 	void			DrawTriangles(GLuint vao, int count);
+	void			DrawSilhouette(GLuint vao, int count);
 	void			DrawWFLines(vector<vec4> verteces, vector<vec3> colors);
 	void			SwapBuffers();
 
@@ -70,8 +89,7 @@ private:
 	int deviceW;
 
 	ShadingType				shading;
-	GLuint					oglPrograms[3];
+	GLuint					oglPrograms[5];
 	GLuint					oglLineProgram;
-	CameraBind				oglCameraBind;
 };
 

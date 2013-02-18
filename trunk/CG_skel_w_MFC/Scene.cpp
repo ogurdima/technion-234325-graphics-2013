@@ -14,7 +14,7 @@ drawCameras(false),
 drawWorldFrame(false),
 drawLights(false)
 {
-	renderer->SetShading(FLAT);
+	this->renderer->SetShading(FLAT);
 }
 
 Scene::~Scene() 
@@ -83,14 +83,34 @@ void Scene::Draw()
 
 	Camera* ac = ActiveCam();
 	renderer->InitDraw(ac->View(), ac->Projection());
-
 	SetLights();
 
-	for (int i = 0; i < models.size(); i++)
+	if(0)
 	{
-		cout << "Model[" << i << "]";
-		models[i]->Draw(renderer);
+		ShadingType oldSt = renderer->Shading();
+		renderer->SetShading(SILHOUETTE);
+		for (int i = 0; i < models.size(); i++)
+		{
+			models[i]->QuickRebind(renderer);
+			models[i]->Draw(renderer);
+		}
+
+		renderer->SetShading(oldSt);
+		for (int i = 0; i < models.size(); i++)
+		{
+			models[i]->QuickRebind(renderer);
+			models[i]->Draw(renderer);
+		}
 	}
+	else
+	{
+		for (int i = 0; i < models.size(); i++)
+		{
+			cout << "Model[" << i << "]";
+			models[i]->Draw(renderer);
+		}
+	}
+
 
 	vector<vec4> lineEp;
 	vector<vec3> clrs;
@@ -225,11 +245,11 @@ bool Scene::ToggleShowLights()
 
 void Scene::SetShading(ShadingType s)
 {
-	if (s != FLAT && s != GOURAUD && s != PHONG)
+	if (s != FLAT && s != GOURAUD && s != PHONG && s != TOON)
 	{
 		return;
 	}
-	
+
 	renderer->SetShading(s);
 	for (int i = 0; i < models.size(); i++)
 	{

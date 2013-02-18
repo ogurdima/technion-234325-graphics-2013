@@ -66,6 +66,7 @@ typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 #define RENDERER_SET_ANTIALIASING				405
 #define RENDERER_TOGGLE_FOG						406
 #define RENDERER_SET_FOG_COLOR					407
+#define RENDERER_SHADING_TOON					408
 
 #define LIGHT_AMBIENT							50
 #define LIGHT_POINT_SOURCE						51
@@ -1133,7 +1134,7 @@ void addPointLight()
 		dlg.SetColor(Rgb(1,1,1));
 		if (IDOK == dlg.DoModal())
 		{
-			scene->AddLight( Light(REGULAR_L, POINT_S, vec4(position.GetXYZ(),0), dlg.GetColor(), vec4(0,0,0,0) ));
+			scene->AddLight( Light(REGULAR_L, POINT_S, vec4(position.GetXYZ(),1), dlg.GetColor(), vec4(0,0,0,0) ));
 		}
 	}
 }
@@ -1175,6 +1176,10 @@ void menuRenderer(int id)
 
 	case RENDERER_SHADING_PHONG:
 		scene->SetShading(PHONG);
+		break;
+
+	case RENDERER_SHADING_TOON:
+		scene->SetShading(TOON);
 		break;
 
 	case RENDERER_SET_ANTIALIASING:
@@ -1225,6 +1230,7 @@ void initMenu()
 	glutAddMenuEntry("Flat",			RENDERER_SHADING_FLAT);
 	glutAddMenuEntry("Gouraud",			RENDERER_SHADING_GOURAUD);
 	glutAddMenuEntry("Phong",			RENDERER_SHADING_PHONG);
+	glutAddMenuEntry("Toon",			RENDERER_SHADING_TOON);
 	glutAddMenuEntry("Antialiasing",	RENDERER_SET_ANTIALIASING);
 	glutAddMenuEntry("Toggle Fog",		RENDERER_TOGGLE_FOG);
 	glutAddMenuEntry("Set Fog Color",	RENDERER_SET_FOG_COLOR);
@@ -1287,6 +1293,7 @@ int my_main( int argc, char **argv )
 		exit(1);
 	}
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+	glEnable(GL_CULL_FACE);
 
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
@@ -1323,6 +1330,7 @@ int my_main( int argc, char **argv )
 	scene = new Scene(renderer);
 	scene->AddCamera(c1);
 	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), Rgb(0.5,0.5,0.5), vec4(0,0,-1, 0)));
+	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(0,5,-5,0), Rgb(0.5,0.5,0.5), vec4(0,0,0, 0)));
 
 
 	glutMainLoop();

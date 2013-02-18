@@ -139,12 +139,14 @@
   <ItemGroup>
     <None Include="Shaders\flat_fshader.glsl" />
     <None Include="Shaders\flat_vshader.glsl" />
-    <None Include="Shaders\fshader.glsl" />
     <None Include="Shaders\line_fshader.glsl" />
     <None Include="Shaders\line_vshader.glsl" />
     <None Include="Shaders\phong_fshader.glsl" />
     <None Include="Shaders\phong_vshader.glsl" />
-    <None Include="Shaders\vshader.glsl" />
+    <None Include="Shaders\silhouette_fshader.glsl" />
+    <None Include="Shaders\silhouette_vshader.glsl" />
+    <None Include="Shaders\toon_fshader.glsl" />
+    <None Include="Shaders\toon_vshader.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\freeglut\freeglut.vcxproj">
