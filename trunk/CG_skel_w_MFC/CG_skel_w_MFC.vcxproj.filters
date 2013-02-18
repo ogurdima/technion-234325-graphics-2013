@@ -156,7 +156,11 @@
     <None Include="Shaders\toon_vshader.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\silhouette_fshader.glsl" />
-    <None Include="Shaders\silhouette_vshader.glsl" />
+    <None Include="Shaders\silhouette_fshader.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\silhouette_vshader.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
