@@ -44,8 +44,6 @@ ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals)
 	}
 
 	ModelBind b;
-	RebindModelUniforms(&b);
-
 	GLuint* buffers = new GLuint[2];
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -67,6 +65,7 @@ ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals)
 	b.vao = vao;
 	b.size = 2;
 	b.buffers = buffers;
+	RebindModelUniforms(&b);
 	return b;
 }
 
@@ -85,6 +84,16 @@ void Renderer::RebindModelUniforms( ModelBind* mb)
 	mb->ambientLoc = glGetUniformLocation(program, "ambient");
 	mb->specularLoc = glGetUniformLocation(program, "specular");
 	mb->shininessLoc = glGetUniformLocation(program, "shininess");
+
+	GLuint vPositionLoc = glGetAttribLocation(program, "vPosition");
+	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[0]);
+	glEnableVertexAttribArray(vPositionLoc);
+	glVertexAttribPointer(vPositionLoc, 4, GL_FLOAT, 0, 0, 0);
+	
+	GLuint vNormalLoc = glGetAttribLocation(program, "vNormal");
+	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[1]);
+	glEnableVertexAttribArray(vNormalLoc);
+	glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
 }
 
 void Renderer::SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors)
@@ -215,7 +224,6 @@ void Renderer::DrawTriangles(GLuint vao, int count)
 	
 	glEnable(GL_DEPTH_TEST);
 	glBindVertexArray(vao);
-
 	glDrawArrays(GL_TRIANGLES, 0, count);
 }
 
@@ -226,7 +234,6 @@ void Renderer::DrawSilhouette(GLuint vao, int count)
 	DrawTriangles(vao, count);
 	glDisable(GL_CULL_FACE);
 }
-
 
 GLuint Renderer::BindLineBuffer(vector<vec4> verteces, vector<vec3> colors)
 {
