@@ -2,6 +2,13 @@
 #include "Renderer.h"
 #include "InitShader.h"
 
+void checkOpenGLerror()
+{
+  GLenum errCode;
+  if(( errCode = glGetError()) != GL_NO_ERROR)
+    cout << "OpenGl error! - " << gluErrorString(errCode) << endl;;
+}
+
 Renderer::Renderer(int _w, int _h) :
 deviceW(_w),
 deviceH(_h)
@@ -21,7 +28,7 @@ void Renderer::InitShaders()
 	oglPrograms[PHONG] = InitShader("Shaders/phong_vshader.glsl", "Shaders/phong_fshader.glsl");
 	oglPrograms[TOON] = InitShader("Shaders/toon_vshader.glsl", "Shaders/toon_fshader.glsl");
 	oglPrograms[SILHOUETTE] = InitShader("Shaders/silhouette_vshader.glsl", "Shaders/silhouette_fshader.glsl");
-	oglLineProgram = InitShader("Shaders/line_vshader.glsl", "Shaders/line_fshader.glsl");
+	oglPrograms[LINE] = InitShader("Shaders/line_vshader.glsl", "Shaders/line_fshader.glsl");
 }
 
 void Renderer::SetShading(ShadingType _type)
@@ -44,27 +51,17 @@ ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals)
 	}
 
 	ModelBind b;
-	GLuint* buffers = new GLuint[2];
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	glGenBuffers(2, buffers);
-
-	GLuint vPositionLoc = glGetAttribLocation(program, "vPosition");
-	glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * pts.size(), &pts[0], GL_STATIC_DRAW);
-	glEnableVertexAttribArray(vPositionLoc);
-	glVertexAttribPointer(vPositionLoc, 4, GL_FLOAT, 0, 0, 0);
-	
-	GLuint vNormalLoc = glGetAttribLocation(program, "vNormal");
-	glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * normals.size(), &normals[0], GL_STATIC_DRAW);
-	glEnableVertexAttribArray(vNormalLoc);
-	glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
-
-	b.vao = vao;
 	b.size = 2;
-	b.buffers = buffers;
+	b.buffers = new GLuint[b.size];
+	glGenVertexArrays(1, &(b.vao));
+	glBindVertexArray(b.vao);
+	glGenBuffers(b.size, b.buffers);
+
+	glBindBuffer(GL_ARRAY_BUFFER, b.buffers[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * pts.size(), &pts[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, b.buffers[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * normals.size(), &normals[0], GL_STATIC_DRAW);
+	glBindVertexArray(0);
 	RebindModelUniforms(&b);
 	return b;
 }
@@ -85,8 +82,18 @@ void Renderer::RebindModelUniforms( ModelBind* mb)
 	mb->specularLoc = glGetUniformLocation(program, "specular");
 	mb->shininessLoc = glGetUniformLocation(program, "shininess");
 
+	glBindVertexArray(mb->vao);
+
 	GLuint vPositionLoc = glGetAttribLocation(program, "vPosition");
 	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[0]);
+	//if(SILHOUETTE == shading)
+	//{
+	//	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[2]);
+	//}
+	//else
+	//{
+	//	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[0]);
+	//}
 	glEnableVertexAttribArray(vPositionLoc);
 	glVertexAttribPointer(vPositionLoc, 4, GL_FLOAT, 0, 0, 0);
 	
@@ -94,6 +101,7 @@ void Renderer::RebindModelUniforms( ModelBind* mb)
 	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[1]);
 	glEnableVertexAttribArray(vNormalLoc);
 	glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
+	glBindVertexArray(0);
 }
 
 void Renderer::SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors)
@@ -227,20 +235,9 @@ void Renderer::DrawTriangles(GLuint vao, int count)
 	glDrawArrays(GL_TRIANGLES, 0, count);
 }
 
-void Renderer::DrawSilhouette(GLuint vao, int count)
-{
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_FRONT);
-	DrawTriangles(vao, count);
-	glDisable(GL_CULL_FACE);
-}
-
 GLuint Renderer::BindLineBuffer(vector<vec4> verteces, vector<vec3> colors)
 {
-	if (oglLineProgram < 0)
-	{
-		throw std::exception("Problem with line shader");
-	}
+	GLuint oglLineProgram = oglPrograms[LINE];
 
 	GLuint buffers[2];
 	GLuint vao;
@@ -250,8 +247,6 @@ GLuint Renderer::BindLineBuffer(vector<vec4> verteces, vector<vec3> colors)
 
 	GLuint vPositionLoc = glGetAttribLocation(oglLineProgram, "vPosition");
 	GLuint vColorLoc = glGetAttribLocation(oglLineProgram, "vColor");
-
-
 
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * verteces.size(), &verteces[0], GL_STATIC_DRAW);
@@ -268,6 +263,7 @@ GLuint Renderer::BindLineBuffer(vector<vec4> verteces, vector<vec3> colors)
 
 void Renderer::DrawWFLines(vector<vec4> verteces, vector<vec3> colors)
 {
+	GLuint oglLineProgram = oglPrograms[LINE];
 	if (oglLineProgram < 0)
 	{
 		throw std::exception("DrawWFLines program is invalid");
@@ -277,10 +273,10 @@ void Renderer::DrawWFLines(vector<vec4> verteces, vector<vec3> colors)
 	glUseProgram(oglLineProgram);
 	glEnable(GL_DEPTH_TEST);
 	glBindVertexArray(vao );
-	// TODO: delete verteces
-	glLineWidth( 2);
+	glLineWidth(2);
 	glDrawArrays(GL_LINES, 0, min(verteces.size(), colors.size()));
-	glUseProgram(oglPrograms[shading]);
+	glUseProgram(0);
+	glDeleteVertexArrays(1, &vao);
 	return;
 }
 
@@ -322,19 +318,42 @@ void assignCameraTransformations(GLuint program, mat4 view, mat4 projection)
 	glProgramUniformMatrix4fv( program, projectLoc, 1, GL_TRUE, projection);
 }
 
-void Renderer::InitDraw(mat4 view, mat4 projection)
+void Renderer::InitDraw()
 {
 	// clear buffer 
 	// TODO: clear color to backgroundColor
 	glClearColor(1,1,1,1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// Enabling camera's transformations
-	// for line program
-	assignCameraTransformations(oglLineProgram, view, projection);
-	// for current program
-	assignCameraTransformations(oglPrograms[shading], view, projection);
-	// Enable current program
-	glUseProgram(oglPrograms[shading]);
 }
 
+void Renderer::SetCamera(mat4 view, mat4 projection)
+{
+	GLuint viewLoc = glGetUniformLocation(oglPrograms[shading], "view");
+	glProgramUniformMatrix4fv( oglPrograms[shading], viewLoc, 1, GL_TRUE, view);
+	GLuint projectLoc = glGetUniformLocation(oglPrograms[shading], "projection");
+	glProgramUniformMatrix4fv( oglPrograms[shading], projectLoc, 1, GL_TRUE, projection);
+}
+
+void Renderer::FinishDraw()
+{
+	checkOpenGLerror();
+	SwapBuffers();
+}
+
+void Renderer::FinishShading()
+{
+	checkOpenGLerror();
+	glUseProgram(0);
+}
+
+void Renderer::EnableFrontFaceCull()
+{
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+}
+
+void Renderer::DisableFrontFaceCull()
+{
+	glDisable(GL_CULL_FACE);
+}

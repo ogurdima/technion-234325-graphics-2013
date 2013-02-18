@@ -14,7 +14,7 @@ drawCameras(false),
 drawWorldFrame(false),
 drawLights(false)
 {
-	this->renderer->SetShading(FLAT);
+	this->renderer->SetShading(PHONG);
 }
 
 Scene::~Scene() 
@@ -75,43 +75,9 @@ void Scene::SetLights()
 	renderer->SetPointLights(lightPositions, ptlightColors);
 }
 
-void Scene::Draw()
+void Scene::DrawWorldAxes()
 {
-	if(! IsLegal())
-		return;
-	cout << "Scene::Draw" << endl;
-
 	Camera* ac = ActiveCam();
-	renderer->InitDraw(ac->View(), ac->Projection());
-	SetLights();
-
-	if(0)
-	{
-		ShadingType oldSt = renderer->Shading();
-		renderer->SetShading(SILHOUETTE);
-		for (int i = 0; i < models.size(); i++)
-		{
-			models[i]->QuickRebind(renderer);
-			models[i]->Draw(renderer);
-		}
-
-		renderer->SetShading(oldSt);
-		for (int i = 0; i < models.size(); i++)
-		{
-			models[i]->QuickRebind(renderer);
-			models[i]->Draw(renderer);
-		}
-	}
-	else
-	{
-		for (int i = 0; i < models.size(); i++)
-		{
-			cout << "Model[" << i << "]";
-			models[i]->Draw(renderer);
-		}
-	}
-
-
 	vector<vec4> lineEp;
 	vector<vec3> clrs;
 	lineEp.push_back(vec4(0,0,0,1));
@@ -127,10 +93,59 @@ void Scene::Draw()
 	lineEp.push_back(vec4(0,0,10,1));
 	clrs.push_back(vec3(1,0,1));
 
+	renderer->SetShading(LINE);
+	renderer->SetCamera(ac->View(), ac->Projection());
 	renderer->DrawWFLines( lineEp, clrs);
-	
+	renderer->FinishShading();
+}
 
-	renderer->SwapBuffers();
+void Scene::Draw()
+{
+	if(! IsLegal())
+		return;
+	cout << "Scene::Draw" << endl;
+	Camera* ac = ActiveCam();
+	ShadingType oldSt = renderer->Shading();
+
+	renderer->InitDraw();
+	DrawWorldAxes();
+	if(1)
+	{
+		renderer->SetShading(SILHOUETTE);
+		renderer->SetCamera(ac->View(), ac->Projection());
+		renderer->EnableFrontFaceCull();
+		for (int i = 0; i < models.size(); i++)
+		{
+			models[i]->QuickRebind(renderer);
+			models[i]->Draw(renderer);
+		}
+		renderer->DisableFrontFaceCull();
+		renderer->FinishShading();
+
+		renderer->SetShading(oldSt);
+		renderer->SetCamera(ac->View(), ac->Projection());
+		SetLights();
+		for (int i = 0; i < models.size(); i++)
+		{
+			models[i]->QuickRebind(renderer);
+			models[i]->Draw(renderer);
+		}
+		renderer->FinishShading();
+	}
+	else
+	{
+		renderer->SetShading(oldSt);
+		renderer->SetCamera(ac->View(), ac->Projection());
+		SetLights();
+		for (int i = 0; i < models.size(); i++)
+		{
+			cout << "Model[" << i << "]";
+			models[i]->Draw(renderer);
+		}
+		renderer->FinishShading();
+	}
+	
+	renderer->FinishDraw();
 }
 
 void Scene::AddCamera(Camera c)

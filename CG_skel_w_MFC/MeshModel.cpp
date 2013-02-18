@@ -110,17 +110,6 @@ void MeshModel::Draw(Renderer * r)
 {
 	cout << "MeshModel::draw" << endl;
 
-	//r->SetUniformMatrix(_oglBind.modelLoc,  _world_transform * Scale(1.05,1.05,1.05) * _inner_transform);
-	//r->SetUniformMatrix(_oglBind.normalTransformLoc, _normal_transform * _inner_transform);
-
-	/*r->SetUniformVec3( _oglBind.ambientLoc, 0);
-	r->SetUniformVec3( _oglBind.diffuseLoc, 0);
-	r->SetUniformVec3( _oglBind.emissiveLoc, 0);
-	r->SetUniformVec3( _oglBind.specularLoc, 0);
-	r->SetUniform( _oglBind.shininessLoc, 4);*/
-
-	//r->DrawSilhouette(_oglBind.vao, _faces.size() * 3);
-
 	r->SetUniformMatrix(_oglBind.modelLoc, _world_transform * _inner_transform);
 	r->SetUniformMatrix(_oglBind.normalTransformLoc, _normal_transform * _inner_transform);
 
@@ -132,7 +121,6 @@ void MeshModel::Draw(Renderer * r)
 
 	r->DrawTriangles(_oglBind.vao, _faces.size() * 3);
 }
-
 
 // Transformations
 void MeshModel::MFRotate(mat4 m)

@@ -1293,7 +1293,7 @@ int my_main( int argc, char **argv )
 		exit(1);
 	}
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-	//Enable(GL_CULL_FACE);
+	
 
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks

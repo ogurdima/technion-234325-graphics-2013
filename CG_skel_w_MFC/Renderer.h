@@ -17,7 +17,8 @@ typedef enum
 	GOURAUD,
 	PHONG,
 	TOON,
-	SILHOUETTE
+	SILHOUETTE,
+	LINE
 } ShadingType;
 
 typedef struct 
@@ -54,10 +55,9 @@ public:
 	Renderer(int _w, int _h);
 	~Renderer(void);
 
-	ModelBind		BindModel(vector<vec4> pts, vector<vec4> normals);
+	ModelBind		BindModel(vector<vec4> p, vector<vec4> n);
 	void			RebindModelUniforms(ModelBind* mb);
 
-	//CameraBind		BindCamera();
 	void			SetUniformMatrices(vector<GLuint> handles, vector<mat4> values);
 	void			SetUniformMatrix(GLuint handle, mat4 val);
 	void			SetUniformVec3(GLuint handle, vec3 val);
@@ -70,17 +70,18 @@ public:
 	void			DrawTriangles(GLuint vao, int count);
 	void			DrawSilhouette(GLuint vao, int count);
 	void			DrawWFLines(vector<vec4> verteces, vector<vec3> colors);
-	void			SwapBuffers();
-
 	void			ToggleAntialiasing();
 
-	void			InitDraw(mat4 view, mat4 projection);
-	void			FinishDraw();
+	void			InitDraw(); // must
+	void			SetCamera(mat4 view, mat4 projection);
+	void			FinishShading(); // optional
+	void			FinishDraw(); // must
+
+	void			EnableFrontFaceCull();
+	void			DisableFrontFaceCull();
 
 	void			InitShaders();
-	void			SetCameraMatices();
-	void			SetLights();
-	GLuint			BindLineBuffer(vector<vec4> verteces, vector<vec3> colors);
+	
 	void			SetShading(ShadingType _type);
 	ShadingType		Shading();
 
@@ -89,7 +90,10 @@ private:
 	int deviceW;
 
 	ShadingType				shading;
-	GLuint					oglPrograms[5];
-	GLuint					oglLineProgram;
+	GLuint					oglPrograms[6];
+	
+
+	GLuint			BindLineBuffer(vector<vec4> verteces, vector<vec3> colors);
+	void			SwapBuffers();
 };
 
