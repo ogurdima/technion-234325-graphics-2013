@@ -44,5 +44,6 @@ public:
 	inline float ZFar() { return zFar; }
 	inline float Fovy() { return fovy; }
 	inline float Aspect() { return aspect; }
+
 };
 

@@ -1,7 +1,7 @@
 #pragma once
 #include "vec.h"
 
-
+const GLfloat  DegreesToRadians = M_PI / 180.0;
 //----------------------------------------------------------------------------
 //
 //  mat2 - 2D square matrix
@@ -625,4 +625,86 @@ inline mat4 Scale( const vec3& v )
 	return Scale( v.x, v.y, v.z );
 }
 
+//----------------------------------------------------------------------------
+//
+//  Projection transformation matrix geneartors
+//
+//    Note: Microsoft Windows (r) defines the keyword "far" in C/C++.  In
+//          order to avoid any name conflicts, we use the variable names
+//          "zNear" to reprsent "near", and "zFar" to reprsent "far".
+//
 
+
+
+inline
+mat4 OrthoMat( const GLfloat left, const GLfloat right,
+	    const GLfloat bottom, const GLfloat top,
+	    const GLfloat zNear, const GLfloat zFar )
+{
+    mat4 c;
+    c[0][0] = 2.0/(right - left);
+    c[1][1] = 2.0/(top - bottom);
+    c[2][2] = 2.0/(zNear - zFar);
+    c[3][3] = 1.0;
+    c[0][3] = -(right + left)/(right - left);
+    c[1][3] = -(top + bottom)/(top - bottom);
+    c[2][3] = -(zFar + zNear)/(zFar - zNear);
+    return c;
+}
+
+inline
+mat4 Ortho2DMat( const GLfloat left, const GLfloat right,
+	      const GLfloat bottom, const GLfloat top )
+{
+    return OrthoMat( left, right, bottom, top, -1.0, 1.0 );
+}
+
+inline
+mat4 FrustumMat( const GLfloat left, const GLfloat right,
+	      const GLfloat bottom, const GLfloat top,
+	      const GLfloat zNear, const GLfloat zFar )
+{
+    mat4 c;
+    c[0][0] = 2.0*zNear/(right - left);
+    c[0][2] = (right + left)/(right - left);
+    c[1][1] = 2.0*zNear/(top - bottom);
+    c[1][2] = (top + bottom)/(top - bottom);
+    c[2][2] = -(zFar + zNear)/(zFar - zNear);
+    c[2][3] = -2.0*zFar*zNear/(zFar - zNear);
+    c[3][2] = -1.0;
+    return c;
+}
+
+inline
+mat4 PerspectiveMat( const GLfloat fovy, const GLfloat aspect,
+		  const GLfloat zNear, const GLfloat zFar)
+{
+    GLfloat top   = tan(fovy*DegreesToRadians/2) * zNear;
+    GLfloat right = top * aspect;
+
+    mat4 c;
+    c[0][0] = zNear/right;
+    c[1][1] = zNear/top;
+    c[2][2] = -(zFar + zNear)/(zFar - zNear);
+    c[2][3] = -2.0*zFar*zNear/(zFar - zNear);
+    c[3][2] = -1.0;
+    return c;
+}
+
+//----------------------------------------------------------------------------
+//
+//  Viewing transformation matrix generation
+//
+
+inline
+mat4 LookAtMat( const vec4& eye, const vec4& at, const vec4& up )
+{
+    vec4 n = normalize(eye - at);
+    vec4 u = vec4(normalize(cross(up,n)),0);
+    vec4 v = vec4(normalize(cross(n,u)),0);
+    vec4 t = vec4(0.0, 0.0, 0.0, 1.0);
+    mat4 c = mat4(u, v, n, t);
+    return c * Translate( -eye );
+}
+
+//----------------------------------------------------------------------------

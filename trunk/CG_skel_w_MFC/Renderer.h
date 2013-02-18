@@ -18,7 +18,6 @@ typedef enum
 	PHONG
 } ShadingType;
 
-
 typedef struct 
 {
 	GLuint pointMat; // points transformation
@@ -40,22 +39,39 @@ public:
 	Renderer(int _w, int _h);
 	~Renderer(void);
 
-	void SetShadingProgram(GLuint _program);
-	ModelBind BindModel(vector<vec4> pts, vector<vec4> normals /*also textures*/, MaterialColor c);
+	ModelBind		BindModel(vector<vec4> pts, vector<vec4> normals /*also textures*/, MaterialColor c);
 
-	CameraBind BindCamera();
-	void SetUniformMatrices(vector<GLuint> handles, vector<mat4> values);
-	void SetUniformMatrix(GLuint handle, mat4 val);
-	void SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors);
-	void SetPointLights(vector<vec4> lightPositions, vector<vec3> lightColors);
+	//CameraBind		BindCamera();
+	void			SetUniformMatrices(vector<GLuint> handles, vector<mat4> values);
+	void			SetUniformMatrix(GLuint handle, mat4 val);
+	void			SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors);
+	void			SetPointLights(vector<vec4> lightPositions, vector<vec3> lightColors);
 
-	void DrawTriangles(GLuint vao, int count);
-	void SwapBuffers();
+	//void			DrawParallelSource(Rgb col, vec4 dir, mat4 toScreen);
+
+	void			DrawTriangles(GLuint vao, int count);
+	void			DrawWFLines(vector<vec4> verteces, vector<vec3> colors);
+	void			SwapBuffers();
+
+	void			ToggleAntialiasing();
+
+	void			InitDraw(mat4 view, mat4 projection);
+	void			FinishDraw();
+
+	void			InitShaders();
+	void			SetCameraMatices();
+	void			SetLights();
+	GLuint			BindLineBuffer(vector<vec4> verteces, vector<vec3> colors);
+	void			SetShading(ShadingType _type);
+	ShadingType		Shading();
 
 private:
 	int deviceH;
 	int deviceW;
 
-	int program;
+	ShadingType				shading;
+	GLuint					oglPrograms[3];
+	GLuint					oglLineProgram;
+	CameraBind				oglCameraBind;
 };
 

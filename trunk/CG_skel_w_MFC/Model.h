@@ -10,8 +10,8 @@ class Model {
 protected:
 	
 public:
-	virtual void draw(Renderer * r = NULL)=0;
-	virtual vec3 origin() = 0;
+	virtual void Draw(Renderer * r = NULL)=0;
+	virtual vec3 Origin() = 0;
 	virtual ~Model() {}
 };
 
