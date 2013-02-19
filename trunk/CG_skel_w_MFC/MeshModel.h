@@ -21,7 +21,9 @@ public:
 					~MeshModel(void);
 
 	void			LoadFile(string fileName);
+	void			SetTexture(vector<byte>& t, Renderer* r, unsigned int w, unsigned int h);
 	void			BindToRenderer(Renderer* r);
+	void			Unbind(Renderer* r);
 	void			QuickRebind(Renderer* r);
 	void virtual	Draw(Renderer * r);
 
@@ -61,10 +63,12 @@ protected :
 	bool					_drawFN;
 	bool					_drawBB;
 	bool					_drawMF;
+	bool					_drawTexture;
 
 	ModelBind				_oglBind;
 
 	void					CalculateFaceNormals();
 	vector<Vertex>			Triangles();
+	vector<vec2>			Textures();
 	vector<vec4>			Normals(ShadingType st);
 };

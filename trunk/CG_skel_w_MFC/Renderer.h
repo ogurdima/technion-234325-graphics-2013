@@ -30,24 +30,13 @@ typedef struct
 	GLuint		specularLoc;
 	GLuint		diffuseLoc;
 	GLuint		shininessLoc;
+	GLuint		samplerLoc;
+	GLuint		useTexLoc;
 	GLuint		vao;
 	int			size;
 	GLuint*		buffers;
+	GLuint		texture;
 } ModelBind;
-
-typedef struct 
-{
-	GLuint viewHnd;
-	GLuint projectHnd;
-} CameraBind;
-
-class VaoBinding
-{
-public:
-	GLuint vao;
-	GLsizei size;
-	GLuint * buffers;
-};
 
 class Renderer
 {
@@ -55,12 +44,20 @@ public:
 	Renderer(int _w, int _h);
 	~Renderer(void);
 
-	ModelBind		BindModel(vector<vec4> p, vector<vec4> n);
+	ModelBind		BindModel(vector<vec4> p, vector<vec4> n, vector<vec2> textures);
+	void			BindTexture(ModelBind* mb, vector<byte>& tex, unsigned int width, unsigned int height);
+	void			UnbindModel(ModelBind* mb);
 	void			RebindModelUniforms(ModelBind* mb);
+
+	void			SetTexture(GLuint handle);
 
 	void			SetUniformMatrices(vector<GLuint> handles, vector<mat4> values);
 	void			SetUniformMatrix(GLuint handle, mat4 val);
 	void			SetUniformVec3(GLuint handle, vec3 val);
+	void			SetUniformVec2(GLuint handle, vec2 val);
+	void			SetUniform1b(GLuint handle, bool val);
+	void			SetUniform1i(GLuint handle, int i);
+
 	void			SetUniform(GLuint handle, float val);
 	void			SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors);
 	void			SetPointLights(vector<vec4> lightPositions, vector<vec3> lightColors);
