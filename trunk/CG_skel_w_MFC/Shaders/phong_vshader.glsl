@@ -2,9 +2,11 @@
 
 in vec4 vPosition;
 in vec4 vNormal;
+in vec2 vTex;
 
 out vec3 normal;
 out vec4 vertex;
+smooth out vec2 fTex;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -20,6 +22,7 @@ void main()
 	gl_Position = projection * vertexCf;
 	normal = normalCf;
 	vertex = vertexCf;
+	fTex = vTex;
 }
 
 

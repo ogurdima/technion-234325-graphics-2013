@@ -5,6 +5,7 @@
 
 in vec3 normal;
 in vec4 vertex;
+smooth in vec2 fTex;
 
 out vec4 fcolor;
 
@@ -22,6 +23,8 @@ uniform vec3 lightPos[MAX_LIGHTS];
 uniform vec3 ptlightColor[MAX_LIGHTS];
 uniform int pointLightNum;
 
+uniform bool useTex;
+uniform sampler2D texMap;
 
 void main()
 {
@@ -34,12 +37,18 @@ void main()
 	vec3 emissiveFactor = emissive;
 	float NdotL;
 	vec3 veiwDir = normalize(-vertexCf.xyz);
+	
+	vec3 tColor = diffuse;
+	if( useTex)
+	{
+		tColor = texture2D( texMap, fTex).xyz;
+	}
 
 	for (int i = 0; i < parallelLightNum; i++)
 	{
 		vec3 L = normalize(lightDir[i]);
 		NdotL =  max(0.0, dot(normalCf, -L ) );
-		diffuseFactor += diffuse * NdotL * parlightColor[i];
+		diffuseFactor += tColor * NdotL * parlightColor[i];
 		if (NdotL > 0)
 		{
 			specularFactor += specular * parlightColor[i] * pow( max(   dot(reflect(L, normalCf), veiwDir),    0) , shininess);
@@ -50,7 +59,7 @@ void main()
 	{
 		vec3 L = normalize(vertexCf.xyz - lightPos[i]);
 		NdotL =  max(0.0, dot(normalCf, -L ) );
-		diffuseFactor += diffuse * NdotL * ptlightColor[i];
+		diffuseFactor += tColor * NdotL * ptlightColor[i];
 		if (NdotL > 0)
 		{
 			specularFactor += specular * ptlightColor[i] * pow( max(   dot(reflect(L, normalCf), veiwDir),    0) , shininess);
