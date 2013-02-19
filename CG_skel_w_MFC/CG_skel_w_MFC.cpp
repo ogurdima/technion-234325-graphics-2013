@@ -15,6 +15,7 @@
 #include "MColorDialog.h"
 #include "MaterialColor.h"
 #include "ColorSelector.h"
+#include "lodepng.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -46,8 +47,7 @@ typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 #define MODEL_SHOW_FRAME						23
 #define MODEL_NON_UNIFORM_SCALE					24
 #define MODEL_SET_MONOTON_COLOR					25
-#define MODEL_SET_RANDOM_COLOR					26
-#define MODEL_SET_PROGRESSIVE_COLOR				27
+#define MODEL_SET_TEXTURE						26
 
 #define CAMERA_SET_LOCATION						30
 #define CAMERA_SET_FOV							31
@@ -977,6 +977,23 @@ void setMonotonColor()
 		m->SetDefaultColor(cp);
 	}
 }
+void loadTexture()
+{
+	MeshModel* am = scene->ActiveModel();
+	if(NULL == am)
+		return;
+	CFileDialog dlg(TRUE,_T(".png"),NULL,NULL,_T("*.png|*.*"));
+	if(dlg.DoModal()==IDOK)
+	{
+		string s((LPCTSTR)dlg.GetPathName());
+		vector<byte> out;
+		unsigned int height;
+		unsigned int width;
+		lodepng::decode(out, width, height, s);
+		am->SetTexture(out, renderer, width, height);
+	}
+}
+
 
 void menuActiveModel(int id)
 {
@@ -1003,11 +1020,8 @@ void menuActiveModel(int id)
 	case MODEL_SET_MONOTON_COLOR:
 		setMonotonColor();
 		break;
-	case MODEL_SET_RANDOM_COLOR:
-		m->SetRandomColor();
-		break;
-	case MODEL_SET_PROGRESSIVE_COLOR:
-		m->SetProgressiveColor();
+	case MODEL_SET_TEXTURE:
+		loadTexture();
 		break;
 	}
 	glutPostRedisplay();
@@ -1207,8 +1221,7 @@ void initMenu()
 	int activeModelMenuId = glutCreateMenu(menuActiveModel);
 	glutAddMenuEntry("Show Bounding Box",			MODEL_SHOW_BOUNDING_BOX);
 	glutAddMenuEntry("Set Monotone Color",			MODEL_SET_MONOTON_COLOR);
-	glutAddMenuEntry("Set Random Color",			MODEL_SET_RANDOM_COLOR);
-	glutAddMenuEntry("Set Progressive Color",		MODEL_SET_PROGRESSIVE_COLOR);
+	glutAddMenuEntry("Set Texture",					MODEL_SET_TEXTURE);
 	glutAddMenuEntry("Show Model Frame",			MODEL_SHOW_FRAME);
 	glutAddMenuEntry("Show Normals per Vertex",		MODEL_SHOW_VERTEX_NORMALS);
 	glutAddMenuEntry("Show Normals per Face",		MODEL_SHOW_FACE_NORMALS);
@@ -1294,6 +1307,7 @@ int my_main( int argc, char **argv )
 	}
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 	
+	glEnable( GL_TEXTURE_2D);
 
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
@@ -1330,7 +1344,7 @@ int my_main( int argc, char **argv )
 	scene = new Scene(renderer);
 	scene->AddCamera(c1);
 	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), Rgb(0.5,0.5,0.5), vec4(0,0,-1, 0)));
-	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(0,5,-5,0), Rgb(0.5,0.5,0.5), vec4(0,0,0, 0)));
+	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(0,5,-5,1), Rgb(0.5,0.5,0.5), vec4(0,0,0, 0)));
 
 
 	glutMainLoop();

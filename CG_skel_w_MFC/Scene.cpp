@@ -109,6 +109,7 @@ void Scene::Draw()
 
 	renderer->InitDraw();
 	DrawWorldAxes();
+
 	if(1)
 	{
 		renderer->SetShading(SILHOUETTE);
@@ -268,6 +269,7 @@ void Scene::SetShading(ShadingType s)
 	renderer->SetShading(s);
 	for (int i = 0; i < models.size(); i++)
 	{
+		models[i]->Unbind(renderer);
 		models[i]->BindToRenderer(renderer);
 	}
 }

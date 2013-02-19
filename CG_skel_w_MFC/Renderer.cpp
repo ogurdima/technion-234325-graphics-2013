@@ -42,7 +42,7 @@ ShadingType Renderer::Shading()
 	return shading;
 }
 
-ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals)
+ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals, vector<vec2> textures)
 {
 	GLuint program = oglPrograms[shading];
 	if (program < 0)
@@ -51,7 +51,7 @@ ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals)
 	}
 
 	ModelBind b;
-	b.size = 2;
+	b.size = 3;
 	b.buffers = new GLuint[b.size];
 	glGenVertexArrays(1, &(b.vao));
 	glBindVertexArray(b.vao);
@@ -61,9 +61,50 @@ ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * pts.size(), &pts[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, b.buffers[1]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * normals.size(), &normals[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, b.buffers[2]);
+	if (textures.size() > 0) {
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * textures.size(), &textures[0], GL_STATIC_DRAW);
+	}
 	glBindVertexArray(0);
 	RebindModelUniforms(&b);
 	return b;
+}
+
+void Renderer::BindTexture(ModelBind* mb, vector<byte>& tex, unsigned int width, unsigned int height)
+{
+	if(mb->texture > 0)
+	{
+		// delete texture
+		mb->texture = -1;
+	}
+
+	glActiveTexture(GL_TEXTURE0);
+	// TODO: validate next two 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
+	glGenTextures(1, &(mb->texture));
+	glBindTexture(GL_TEXTURE_2D, mb->texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &(tex[0]));
+	glGenerateMipmap(GL_TEXTURE_2D );
+	glBindTexture(GL_TEXTURE_2D, 0);
+	
+
+}
+
+void Renderer::SetTexture(GLuint idx)
+{
+	glBindTexture( GL_TEXTURE_2D, idx);
+}
+
+void Renderer::UnbindModel(ModelBind* mb)
+{
+	glDeleteBuffers(mb->size, mb->buffers);
+	mb->size = 0;
+	delete[] mb->buffers;
+	mb->buffers = NULL;
+	glDeleteVertexArrays(1, &(mb->vao));
+	mb->vao = 0;
 }
 
 void Renderer::RebindModelUniforms( ModelBind* mb)
@@ -81,19 +122,13 @@ void Renderer::RebindModelUniforms( ModelBind* mb)
 	mb->ambientLoc = glGetUniformLocation(program, "ambient");
 	mb->specularLoc = glGetUniformLocation(program, "specular");
 	mb->shininessLoc = glGetUniformLocation(program, "shininess");
+	mb->samplerLoc = glGetUniformLocation(program, "texMap");
+	mb->useTexLoc = glGetUniformLocation(program, "useTex");
 
 	glBindVertexArray(mb->vao);
 
 	GLuint vPositionLoc = glGetAttribLocation(program, "vPosition");
 	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[0]);
-	//if(SILHOUETTE == shading)
-	//{
-	//	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[2]);
-	//}
-	//else
-	//{
-	//	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[0]);
-	//}
 	glEnableVertexAttribArray(vPositionLoc);
 	glVertexAttribPointer(vPositionLoc, 4, GL_FLOAT, 0, 0, 0);
 	
@@ -101,6 +136,12 @@ void Renderer::RebindModelUniforms( ModelBind* mb)
 	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[1]);
 	glEnableVertexAttribArray(vNormalLoc);
 	glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
+
+	GLuint vTexlLoc = glGetAttribLocation(program, "vTex");
+	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[2]);
+	glEnableVertexAttribArray(vTexlLoc);
+	glVertexAttribPointer(vTexlLoc, 2, GL_FLOAT, 0, 0, 0);
+
 	glBindVertexArray(0);
 }
 
@@ -179,6 +220,37 @@ void Renderer::SetUniformVec3(GLuint handle, vec3 val)
 		throw std::exception("Bad arguments in SetUniformMatrices");
 	}
 	glUniform3f(handle, val.x, val.y, val.z);
+}
+
+void Renderer::SetUniformVec2(GLuint handle, vec2 val)
+{
+	GLuint program = oglPrograms[shading];
+	if (program < 0)
+	{
+		throw std::exception("Bad arguments in SetUniformMatrices");
+	}
+	glUniform2f(handle, val.x, val.y);
+}
+
+void Renderer::SetUniform1b(GLuint handle, bool val)
+{
+	GLuint program = oglPrograms[shading];
+	if (program < 0)
+	{
+		throw std::exception("Bad arguments in SetUniformMatrices");
+	}
+	glUniform1i(handle, val);
+}
+
+void Renderer::SetUniform1i(GLuint handle, int val)
+{
+	GLuint program = oglPrograms[shading];
+	if (program < 0)
+	{
+		throw std::exception("Bad arguments in SetUniformMatrices");
+	}
+	glUniform1i(handle, val);
+
 }
 
 void Renderer::SetUniform(GLuint handle, float val)
@@ -324,7 +396,6 @@ void Renderer::InitDraw()
 	// TODO: clear color to backgroundColor
 	glClearColor(1,1,1,1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 }
 
 void Renderer::SetCamera(mat4 view, mat4 projection)

@@ -100,6 +100,7 @@
     <ClCompile Include="InitShader.cpp" />
     <ClCompile Include="InputDialog.cpp" />
     <ClCompile Include="Light.cpp" />
+    <ClCompile Include="lodepng.cpp" />
     <ClCompile Include="MColorDialog.cpp" />
     <ClCompile Include="MeshModel.cpp" />
     <ClCompile Include="PrimMeshModel.cpp" />
@@ -118,6 +119,7 @@
     <ClInclude Include="InitShader.h" />
     <ClInclude Include="InputDialog.h" />
     <ClInclude Include="Light.h" />
+    <ClInclude Include="lodepng.h" />
     <ClInclude Include="mat.h" />
     <ClInclude Include="MaterialColor.h" />
     <ClInclude Include="MColorDialog.h" />

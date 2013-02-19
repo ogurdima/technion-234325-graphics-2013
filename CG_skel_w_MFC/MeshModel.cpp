@@ -17,7 +17,8 @@ MeshModel::MeshModel() :
 _drawBB(false),
 _drawVN(false),
 _drawFN(false),
-_drawMF(false)
+_drawMF(false),
+_drawTexture(false)
 {
 	_world_transform = Identity4();
 	_normal_transform = Identity4();
@@ -28,7 +29,8 @@ MeshModel::MeshModel(string fileName) :
 _drawBB(false),
 _drawVN(false),
 _drawFN(false),
-_drawMF(false)
+_drawMF(false),
+_drawTexture(false)
 {
 	LoadFile(fileName);
 }
@@ -45,6 +47,7 @@ MeshModel::MeshModel(const MeshModel& rhs)
 	_drawFN = rhs._drawFN;
 	_drawBB = rhs._drawBB;
 	_drawMF = rhs._drawMF;
+	_drawTexture = rhs._drawTexture;
 }
 
 MeshModel::~MeshModel(void)
@@ -95,9 +98,20 @@ void MeshModel::LoadFile(string fileName)
 	CalculateFaceNormals();
 }
 
+void MeshModel::SetTexture(vector<byte>& texture, Renderer* r, unsigned int width, unsigned int height)
+{
+	_drawTexture = true;
+	r->BindTexture(&_oglBind, texture, width, height);
+}
+
 void MeshModel::BindToRenderer(Renderer* r)
 {
-	_oglBind = r->BindModel(Triangles(), Normals(r->Shading()));
+	_oglBind = r->BindModel(Triangles(), Normals(r->Shading()), Textures());
+}
+
+void MeshModel::Unbind(Renderer* r)
+{
+	r->UnbindModel(&_oglBind);
 }
 
 void MeshModel::QuickRebind(Renderer* r)
@@ -119,7 +133,15 @@ void MeshModel::Draw(Renderer * r)
 	r->SetUniformVec3( _oglBind.specularLoc, _defaultColor.specular.toVec3());
 	r->SetUniform( _oglBind.shininessLoc, 4);
 
+	r->SetUniform1i(_oglBind.useTexLoc, _drawTexture);
+	if(_drawTexture)
+	{
+		r->SetTexture(_oglBind.texture);
+		r->SetUniform1i(_oglBind.samplerLoc, 0);
+	}
+
 	r->DrawTriangles(_oglBind.vao, _faces.size() * 3);
+	r->SetTexture(0);
 }
 
 // Transformations
@@ -196,6 +218,7 @@ MaterialColor MeshModel::GetDefaultColor()
 
 void MeshModel::SetDefaultColor(MaterialColor _c)
 {
+	_drawTexture = false;
 	_vertexColors.clear();
 	_defaultColor = _c;
 }
@@ -305,6 +328,26 @@ vector<vec4> MeshModel::Normals(ShadingType st)
 		}
 	}
 	return normals;
+}
+
+vector<vec2> MeshModel::Textures()
+{
+	vector<vec2> textures;
+	for (int i = 0; i < _faces.size(); i++)
+	{
+		for (int j = 0; j < 3; j++) // push face normal instead of vertex normal for every vertex
+		{
+			if(_faces[i].vt[j] <= 0) // normal not defined
+			{
+				return vector<vec2>();
+			}
+			else
+			{
+				textures.push_back(_textures[_faces[i].vt[j] - 1]);
+			}
+		}
+	}
+	return textures;
 }
 
 void MeshModel::CalculateFaceNormals()
