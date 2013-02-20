@@ -14,7 +14,7 @@ deviceW(_w),
 deviceH(_h)
 {
 	InitShaders();
-	cout << "Renderer::Renderer: " << deviceW << "x" << deviceH << endl;
+	//cout << "Renderer::Renderer: " << deviceW << "x" << deviceH << endl;
 }
 
 Renderer::~Renderer(void)
@@ -23,12 +23,12 @@ Renderer::~Renderer(void)
 
 void Renderer::InitShaders()
 {
-	oglPrograms[FLAT] = InitShader("Shaders/flat_vshader.glsl", "Shaders/flat_fshader.glsl");
-	oglPrograms[GOURAUD] = InitShader("Shaders/flat_vshader.glsl", "Shaders/flat_fshader.glsl");
-	oglPrograms[PHONG] = InitShader("Shaders/phong_vshader.glsl", "Shaders/phong_fshader.glsl");
-	oglPrograms[TOON] = InitShader("Shaders/toon_vshader.glsl", "Shaders/toon_fshader.glsl");
-	oglPrograms[SILHOUETTE] = InitShader("Shaders/silhouette_vshader.glsl", "Shaders/silhouette_fshader.glsl");
-	oglPrograms[LINE] = InitShader("Shaders/line_vshader.glsl", "Shaders/line_fshader.glsl");
+	oglPrograms[FLAT] = InitShader("Shaders/lighting_vs.glsl", "Shaders/basic_fs.glsl");
+	oglPrograms[GOURAUD] = InitShader("Shaders/lighting_vs.glsl", "Shaders/basic_fs.glsl");
+	oglPrograms[PHONG] = InitShader("Shaders/vnt_vs.glsl", "Shaders/phong_fs.glsl");
+	oglPrograms[TOON] = InitShader("Shaders/vnt_vs.glsl", "Shaders/toon_fs.glsl");
+	oglPrograms[SILHOUETTE] = InitShader("Shaders/silhouette_vs.glsl", "Shaders/basic_fs.glsl");
+	oglPrograms[LINE] = InitShader("Shaders/line_vs.glsl", "Shaders/basic_fs.glsl");
 }
 
 void Renderer::SetShading(ShadingType _type)
@@ -51,7 +51,13 @@ ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals, vector<vec
 	}
 
 	ModelBind b;
+	b.texture = -1;
 	b.size = 3;
+
+	if (textures.size() == 0) { // no texture coordinates
+		b.size = 2;
+	}
+
 	b.buffers = new GLuint[b.size];
 	glGenVertexArrays(1, &(b.vao));
 	glBindVertexArray(b.vao);
@@ -61,8 +67,9 @@ ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals, vector<vec
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * pts.size(), &pts[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, b.buffers[1]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * normals.size(), &normals[0], GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, b.buffers[2]);
-	if (textures.size() > 0) {
+	if (b.size > 2)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, b.buffers[2]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * textures.size(), &textures[0], GL_STATIC_DRAW);
 	}
 	glBindVertexArray(0);
@@ -138,10 +145,11 @@ void Renderer::RebindModelUniforms( ModelBind* mb)
 	glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
 
 	GLuint vTexlLoc = glGetAttribLocation(program, "vTex");
-	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[2]);
-	glEnableVertexAttribArray(vTexlLoc);
-	glVertexAttribPointer(vTexlLoc, 2, GL_FLOAT, 0, 0, 0);
-
+	if (vTexlLoc != -1 && mb->size > 2) {
+		glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[2]);
+		glEnableVertexAttribArray(vTexlLoc);
+		glVertexAttribPointer(vTexlLoc, 2, GL_FLOAT, 0, 0, 0);
+	}
 	glBindVertexArray(0);
 }
 
@@ -165,8 +173,8 @@ void Renderer::SetParallelLights(vector<vec4> lightDirections, vector<vec3> ligh
 		int parlightColorLoc = glGetUniformLocation(program, name);
 		glUniform3f(parlightColorLoc, lightColors[i].x, lightColors[i].y, lightColors[i].z);
 
-		cout << "Renderer::SetParallelLights: (" << lightDirections[i].x << ", " << lightDirections[i].y << ", " << lightDirections[i].z << ")";
-		cout << " RGB: [" << lightColors[i].x << ", " << lightColors[i].y << ", " << lightColors[i].z << "]" << endl;
+		//cout << "Renderer::SetParallelLights: (" << lightDirections[i].x << ", " << lightDirections[i].y << ", " << lightDirections[i].z << ")";
+		//cout << " RGB: [" << lightColors[i].x << ", " << lightColors[i].y << ", " << lightColors[i].z << "]" << endl;
 	}
 	int parallelLightNumLoc = glGetUniformLocation(program, "parallelLightNum");
 	glUniform1i(parallelLightNumLoc, bound);
@@ -192,8 +200,8 @@ void Renderer::SetPointLights(vector<vec4> lightPositions, vector<vec3> lightCol
 		int ptlightColorLoc = glGetUniformLocation(program, name);
 		glUniform3f(ptlightColorLoc, lightColors[i].x, lightColors[i].y, lightColors[i].z);
 
-		cout << "Renderer::SetPointLights: (" << lightPositions[i].x << ", " << lightPositions[i].y << ", " << lightPositions[i].z << ")" << endl;
-		cout << " RGB: [" << lightColors[i].x << ", " << lightColors[i].y << ", " << lightColors[i].z << "]" << endl;
+		//cout << "Renderer::SetPointLights: (" << lightPositions[i].x << ", " << lightPositions[i].y << ", " << lightPositions[i].z << ")" << endl;
+		//cout << " RGB: [" << lightColors[i].x << ", " << lightColors[i].y << ", " << lightColors[i].z << "]" << endl;
 	}
 	int pointLightNumLoc = glGetUniformLocation(program, "pointLightNum");
 	glUniform1i(pointLightNumLoc, bound);
