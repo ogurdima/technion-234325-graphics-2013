@@ -6,6 +6,9 @@
 #include "gl/glew.h"
 #include "gl/glut.h"
 #include "MaterialColor.h"
+#include "MeshModel.h"
+#include "Binds.h"
+#include "Texture.h"
 
 using namespace std;
 
@@ -18,13 +21,16 @@ typedef enum
 	PHONG,
 	TOON,
 	SILHOUETTE,
-	LINE
+	LINE,
+	ENV,
 } ShadingType;
 
 typedef struct 
 {
-	GLuint		modelLoc; // points transformation
-	GLuint		normalTransformLoc; // normals transformation
+	GLuint		viewLoc;
+	GLuint		projectionLoc;
+	GLuint		modelLoc; 
+	GLuint		normalTransformLoc; 
 	GLuint		emissiveLoc;
 	GLuint		ambientLoc;
 	GLuint		specularLoc;
@@ -32,11 +38,8 @@ typedef struct
 	GLuint		shininessLoc;
 	GLuint		samplerLoc;
 	GLuint		useTexLoc;
-	GLuint		vao;
-	int			size;
-	GLuint*		buffers;
-	GLuint		texture;
-} ModelBind;
+	GLuint		envCubeMapLoc;
+} UniformLocations;
 
 class Renderer
 {
@@ -44,10 +47,15 @@ public:
 	Renderer(int _w, int _h);
 	~Renderer(void);
 
-	ModelBind		BindModel(vector<vec4> p, vector<vec4> n, vector<vec2> textures);
-	void			BindTexture(ModelBind* mb, vector<byte>& tex, unsigned int width, unsigned int height);
-	void			UnbindModel(ModelBind* mb);
-	void			RebindModelUniforms(ModelBind* mb);
+	void			BindModel(MeshModel* model);
+
+	//ModelBind		BindModel(vector<vec4> p, vector<vec4> n, vector<vec2> textures);
+	void			BindTexture(MeshModel* m, Texture& t);
+	void			BindEnvTexture(MeshModel* m, vector<Texture>& t);
+	void			UnbindModel(MeshModel* mb);
+	void			SetModelUniforms(MeshModel* m);
+	void			SetModelvao(MeshModel* m);
+	//void			RebindModelUniforms(ModelBind* mb);
 
 	void			SetTexture(GLuint handle);
 
@@ -63,7 +71,7 @@ public:
 	void			SetPointLights(vector<vec4> lightPositions, vector<vec3> lightColors);
 
 	//void			DrawParallelSource(Rgb col, vec4 dir, mat4 toScreen);
-
+	void			DrawModel(MeshModel* m);
 	void			DrawTriangles(GLuint vao, int count);
 	void			DrawSilhouette(GLuint vao, int count);
 	void			DrawWFLines(vector<vec4> verteces, vector<vec3> colors);
@@ -83,13 +91,14 @@ public:
 	ShadingType		Shading();
 
 private:
-	int deviceH;
-	int deviceW;
+	int						deviceH;
+	int						deviceW;
 
 	ShadingType				shading;
-	GLuint					oglPrograms[6];
+	GLuint					oglPrograms[7];
+	UniformLocations		uLoc;
 	
-
+	void			SetUniformLocations();
 	GLuint			BindLineBuffer(vector<vec4> verteces, vector<vec3> colors);
 	void			SwapBuffers();
 };

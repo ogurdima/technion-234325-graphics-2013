@@ -975,6 +975,7 @@ void setMonotonColor()
 		cp.specular = d.m_clr_specular;
 		cp.ambient = d.m_clr_ambient;
 		m->SetDefaultColor(cp);
+		m->SetDrawTexture(false);
 	}
 }
 void loadTexture()
@@ -986,11 +987,9 @@ void loadTexture()
 	if(dlg.DoModal()==IDOK)
 	{
 		string s((LPCTSTR)dlg.GetPathName());
-		vector<byte> out;
-		unsigned int height;
-		unsigned int width;
-		lodepng::decode(out, width, height, s);
-		am->SetTexture(out, renderer, width, height);
+		Texture t;
+		lodepng::decode(t.img, t.width, t.height, s);
+		renderer->BindTexture(am, t);
 	}
 }
 

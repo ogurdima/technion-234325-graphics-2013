@@ -5,15 +5,14 @@
 #include "Vertex.h"
 #include "Face.h"
 #include "Model.h"
-#include "Renderer.h"
 #include "MaterialColor.h"
+#include "Binds.h"
 
 using namespace std;
 
 
 class MeshModel : public Model
 {
-	
 public:
 					MeshModel();
 					MeshModel(string fileName);
@@ -21,11 +20,11 @@ public:
 					~MeshModel(void);
 
 	void			LoadFile(string fileName);
-	void			SetTexture(vector<byte>& t, Renderer* r, unsigned int w, unsigned int h);
-	void			BindToRenderer(Renderer* r);
-	void			Unbind(Renderer* r);
-	void			QuickRebind(Renderer* r);
-	void virtual	Draw(Renderer * r);
+//	void			SetTexture(vector<byte>& t, Renderer* r, unsigned int w, unsigned int h);
+	//void			BindToRenderer(Renderer* r);
+	//void			Unbind(Renderer* r);
+	//void			QuickRebind(Renderer* r);
+	//void virtual	Draw(Renderer * r);
 
 	// Transformations
 	void			WFRotate(mat4 m);
@@ -40,11 +39,28 @@ public:
 	bool			ToggleShowBoundingBox();
 	bool			ToggleShowVertexNormals();
 	bool			ToggleShowModelFrame();
+	bool			SetDrawTexture(bool val);
 	// Color manipulations
 	void			SetDefaultColor(MaterialColor _c);
 	MaterialColor	GetDefaultColor();
 	void			SetRandomColor();
 	void			SetProgressiveColor();
+
+
+	vector<Vertex>			Triangles();
+	vector<vec2>			Textures();
+	vector<vec4>			FaceNormals();
+	vector<vec4>			VertexNormals();
+	mat4					Transformation();
+	mat4					NormalTransformation();
+
+	int						FaceCount();
+
+	bool					GetDrawTexture();
+	bool					GetDrawEnvMap();
+	void					SetDrawEnvMap(bool);
+
+	ModelBind				_oglBind;
 
 protected :
 	vector<Face>			_faces;
@@ -64,11 +80,8 @@ protected :
 	bool					_drawBB;
 	bool					_drawMF;
 	bool					_drawTexture;
-
-	ModelBind				_oglBind;
+	bool					_envMap;
 
 	void					CalculateFaceNormals();
-	vector<Vertex>			Triangles();
-	vector<vec2>			Textures();
-	vector<vec4>			Normals(ShadingType st);
+	
 };

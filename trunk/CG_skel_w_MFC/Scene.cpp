@@ -14,7 +14,7 @@ drawCameras(false),
 drawWorldFrame(false),
 drawLights(false)
 {
-	this->renderer->SetShading(PHONG);
+	this->renderer->SetShading(ENV);
 }
 
 Scene::~Scene() 
@@ -44,7 +44,8 @@ Scene::~Scene()
 void Scene::LoadOBJModel(string fileName)
 {
 	MeshModel *model = new MeshModel(fileName);
-	model->BindToRenderer(renderer);
+	//model->BindToRenderer(renderer);
+	renderer->BindModel(model);
 	models.push_back(model);
 	activeModel = models.size() - 1;
 }
@@ -117,8 +118,7 @@ void Scene::Draw()
 		renderer->EnableFrontFaceCull();
 		for (int i = 0; i < models.size(); i++)
 		{
-			models[i]->QuickRebind(renderer);
-			models[i]->Draw(renderer);
+			renderer->DrawModel(models[i]);
 		}
 		renderer->DisableFrontFaceCull();
 		renderer->FinishShading();
@@ -128,8 +128,8 @@ void Scene::Draw()
 		SetLights();
 		for (int i = 0; i < models.size(); i++)
 		{
-			models[i]->QuickRebind(renderer);
-			models[i]->Draw(renderer);
+			renderer->BindEnvTexture(models[i], vector<Texture>());
+			renderer->DrawModel(models[i]);
 		}
 		renderer->FinishShading();
 	}
@@ -141,7 +141,7 @@ void Scene::Draw()
 		for (int i = 0; i < models.size(); i++)
 		{
 			//cout << "Model[" << i << "]";
-			models[i]->Draw(renderer);
+//			models[i]->Draw(renderer);
 		}
 		renderer->FinishShading();
 	}
@@ -269,7 +269,7 @@ void Scene::SetShading(ShadingType s)
 	renderer->SetShading(s);
 	for (int i = 0; i < models.size(); i++)
 	{
-		models[i]->Unbind(renderer);
-		models[i]->BindToRenderer(renderer);
+//		models[i]->Unbind(renderer);
+//		models[i]->BindToRenderer(renderer);
 	}
 }
