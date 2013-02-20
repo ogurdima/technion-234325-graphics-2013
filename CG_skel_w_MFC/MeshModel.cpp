@@ -18,7 +18,8 @@ _drawBB(false),
 _drawVN(false),
 _drawFN(false),
 _drawMF(false),
-_drawTexture(false)
+_drawTexture(false),
+_envMap(false)
 {
 	_world_transform = Identity4();
 	_normal_transform = Identity4();
@@ -30,7 +31,8 @@ _drawBB(false),
 _drawVN(false),
 _drawFN(false),
 _drawMF(false),
-_drawTexture(false)
+_drawTexture(false),
+_envMap(false)
 {
 	LoadFile(fileName);
 }
@@ -48,6 +50,7 @@ MeshModel::MeshModel(const MeshModel& rhs)
 	_drawBB = rhs._drawBB;
 	_drawMF = rhs._drawMF;
 	_drawTexture = rhs._drawTexture;
+	_envMap = rhs._envMap;
 }
 
 MeshModel::~MeshModel(void)
@@ -98,51 +101,6 @@ void MeshModel::LoadFile(string fileName)
 	CalculateFaceNormals();
 }
 
-void MeshModel::SetTexture(vector<byte>& texture, Renderer* r, unsigned int width, unsigned int height)
-{
-	_drawTexture = true;
-	r->BindTexture(&_oglBind, texture, width, height);
-}
-
-void MeshModel::BindToRenderer(Renderer* r)
-{
-	_oglBind = r->BindModel(Triangles(), Normals(r->Shading()), Textures());
-}
-
-void MeshModel::Unbind(Renderer* r)
-{
-	r->UnbindModel(&_oglBind);
-}
-
-void MeshModel::QuickRebind(Renderer* r)
-{
-	r->RebindModelUniforms(&_oglBind);
-}
-
-// Drawing function
-void MeshModel::Draw(Renderer * r)
-{
-	//cout << "MeshModel::draw" << endl;
-
-	r->SetUniformMatrix(_oglBind.modelLoc, _world_transform * _inner_transform);
-	r->SetUniformMatrix(_oglBind.normalTransformLoc, _normal_transform * _inner_transform);
-
-	r->SetUniformVec3( _oglBind.ambientLoc, _defaultColor.ambient.toVec3());
-	r->SetUniformVec3( _oglBind.diffuseLoc, _defaultColor.diffuse.toVec3());
-	r->SetUniformVec3( _oglBind.emissiveLoc, _defaultColor.emissive.toVec3());
-	r->SetUniformVec3( _oglBind.specularLoc, _defaultColor.specular.toVec3());
-	r->SetUniform( _oglBind.shininessLoc, 4);
-
-	r->SetUniform1i(_oglBind.useTexLoc, _drawTexture);
-	if(_drawTexture)
-	{
-		r->SetTexture(_oglBind.texture);
-		r->SetUniform1i(_oglBind.samplerLoc, 0);
-	}
-
-	r->DrawTriangles(_oglBind.vao, _faces.size() * 3);
-	r->SetTexture(0);
-}
 
 // Transformations
 void MeshModel::MFRotate(mat4 m)
@@ -207,6 +165,13 @@ bool MeshModel::ToggleShowVertexNormals()
 bool MeshModel::ToggleShowModelFrame() {
 	bool oldval = _drawMF;
 	_drawMF = ! _drawMF;
+	return oldval;
+}
+
+bool MeshModel::SetDrawTexture(bool val)
+{
+	bool oldval = _drawTexture;
+	_drawTexture = val;
 	return oldval;
 }
 
@@ -297,34 +262,37 @@ vector<Vertex> MeshModel::Triangles()
 	return vertex_positions;
 }
 
-vector<vec4> MeshModel::Normals(ShadingType st)
+vector<vec4> MeshModel::VertexNormals()
 {
 	vector<vec4> normals;
-	if (st != FLAT)
+
+	for (int i = 0; i < _faces.size(); i++)
 	{
-		for (int i = 0; i < _faces.size(); i++)
+		for (int j = 0; j < 3; j++) // push face normal instead of vertex normal for every vertex
 		{
-			for (int j = 0; j < 3; j++) // push face normal instead of vertex normal for every vertex
+			if(_faces[i].vn[j] <= 0) // normal not defined
 			{
-				if(_faces[i].vn[j] <= 0) // normal not defined
-				{
-					normals.push_back(_faceNormals[i]);
-				}
-				else
-				{
-					normals.push_back(_normals[_faces[i].vn[j] - 1]);
-				}
+				normals.clear();
+				break;
+			}
+			else
+			{
+				normals.push_back(_normals[_faces[i].vn[j] - 1]);
 			}
 		}
 	}
-	else
+	return normals;
+}
+
+vector<vec4> MeshModel::FaceNormals()
+{
+	vector<vec4> normals;
+
+	for (int i = 0; i < _faceNormals.size(); i++)
 	{
-		for (int i = 0; i < _faceNormals.size(); i++)
+		for(int j = 0; j < 3; j++) // push face normal instead of vertex normal for every vertex
 		{
-			for(int j = 0; j < 3; j++) // push face normal instead of vertex normal for every vertex
-			{
-				normals.push_back(_faceNormals[i]);
-			}
+			normals.push_back(_faceNormals[i]);
 		}
 	}
 	return normals;
@@ -348,6 +316,35 @@ vector<vec2> MeshModel::Textures()
 		}
 	}
 	return textures;
+}
+
+mat4 MeshModel::Transformation()
+{
+	return _world_transform * _inner_transform;
+}
+
+mat4 MeshModel::NormalTransformation()
+{
+	return _normal_transform * _inner_transform;
+}
+
+bool MeshModel::GetDrawTexture()
+{
+	return _drawTexture;
+}
+bool MeshModel::GetDrawEnvMap()
+{
+	return _envMap;
+}
+
+void MeshModel::SetDrawEnvMap(bool arg)
+{
+	_envMap = arg;
+}
+
+int MeshModel::FaceCount()
+{
+	return _faces.size();
 }
 
 void MeshModel::CalculateFaceNormals()

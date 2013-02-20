@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include "Renderer.h"
 #include "Vertex.h"
 #include "Rgb.h"
 
@@ -10,7 +9,7 @@ class Model {
 protected:
 	
 public:
-	virtual void Draw(Renderer * r = NULL)=0;
+	//virtual void Draw(Renderer * r = NULL)=0;
 	virtual vec3 Origin() = 0;
 	virtual ~Model() {}
 };

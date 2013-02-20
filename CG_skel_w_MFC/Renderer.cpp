@@ -29,12 +29,30 @@ void Renderer::InitShaders()
 	oglPrograms[TOON] = InitShader("Shaders/vnt_vs.glsl", "Shaders/toon_fs.glsl");
 	oglPrograms[SILHOUETTE] = InitShader("Shaders/silhouette_vs.glsl", "Shaders/basic_fs.glsl");
 	oglPrograms[LINE] = InitShader("Shaders/line_vs.glsl", "Shaders/basic_fs.glsl");
+	oglPrograms[ENV] = InitShader("Shaders/env_vs.glsl", "Shaders/env_fs.glsl");
+}
+
+void Renderer::SetUniformLocations()
+{
+	uLoc.viewLoc =				glGetUniformLocation(oglPrograms[shading], "view");
+	uLoc.projectionLoc =		glGetUniformLocation(oglPrograms[shading], "projection");
+	uLoc.modelLoc =				glGetUniformLocation(oglPrograms[shading], "model");
+	uLoc.normalTransformLoc =	glGetUniformLocation(oglPrograms[shading], "normalTransform");
+	uLoc.emissiveLoc =			glGetUniformLocation(oglPrograms[shading], "emissive");
+	uLoc.diffuseLoc =			glGetUniformLocation(oglPrograms[shading], "diffuse");
+	uLoc.ambientLoc =			glGetUniformLocation(oglPrograms[shading], "ambient");
+	uLoc.specularLoc =			glGetUniformLocation(oglPrograms[shading], "specular");
+	uLoc.shininessLoc =			glGetUniformLocation(oglPrograms[shading], "shininess");
+	uLoc.samplerLoc =			glGetUniformLocation(oglPrograms[shading], "texMap");
+	uLoc.useTexLoc =			glGetUniformLocation(oglPrograms[shading], "useTex");
+	uLoc.envCubeMapLoc =		glGetUniformLocation(oglPrograms[shading], "envCubeMap");
 }
 
 void Renderer::SetShading(ShadingType _type)
 {
 	shading = _type;
 	glUseProgram(oglPrograms[shading]);
+	SetUniformLocations();
 }
 
 ShadingType Renderer::Shading()
@@ -42,115 +60,81 @@ ShadingType Renderer::Shading()
 	return shading;
 }
 
-ModelBind Renderer::BindModel(vector<vec4> pts, vector<vec4> normals, vector<vec2> textures)
+void TryDeleteTextrure(MeshModel* m)
 {
-	GLuint program = oglPrograms[shading];
-	if (program < 0)
+	if(m->_oglBind.texture > 0)
 	{
-		throw std::exception("Binding model without program set");
+		// TODO: delete texture
+		m->_oglBind.texture = -1;
 	}
-
-	ModelBind b;
-	b.texture = -1;
-	b.size = 3;
-
-	if (textures.size() == 0) { // no texture coordinates
-		b.size = 2;
-	}
-
-	b.buffers = new GLuint[b.size];
-	glGenVertexArrays(1, &(b.vao));
-	glBindVertexArray(b.vao);
-	glGenBuffers(b.size, b.buffers);
-
-	glBindBuffer(GL_ARRAY_BUFFER, b.buffers[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * pts.size(), &pts[0], GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, b.buffers[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * normals.size(), &normals[0], GL_STATIC_DRAW);
-	if (b.size > 2)
-	{
-		glBindBuffer(GL_ARRAY_BUFFER, b.buffers[2]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * textures.size(), &textures[0], GL_STATIC_DRAW);
-	}
-	glBindVertexArray(0);
-	RebindModelUniforms(&b);
-	return b;
 }
 
-void Renderer::BindTexture(ModelBind* mb, vector<byte>& tex, unsigned int width, unsigned int height)
+void Renderer::BindTexture(MeshModel* m , Texture& t)
 {
-	if(mb->texture > 0)
-	{
-		// delete texture
-		mb->texture = -1;
-	}
+	TryDeleteTextrure(m);
 
 	glActiveTexture(GL_TEXTURE0);
 	// TODO: validate next two 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	
-	glGenTextures(1, &(mb->texture));
-	glBindTexture(GL_TEXTURE_2D, mb->texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &(tex[0]));
+	glGenTextures(1, &(m->_oglBind.texture));
+	glBindTexture(GL_TEXTURE_2D, m->_oglBind.texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, t.width, t.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &(t.img[0]));
 	glGenerateMipmap(GL_TEXTURE_2D );
 	glBindTexture(GL_TEXTURE_2D, 0);
+	checkOpenGLerror();
+	m->SetDrawTexture(true);
+}
+
+void Renderer::BindEnvTexture(MeshModel* m, vector<Texture>& txs)
+{
+	TryDeleteTextrure(m);
+
+	GLubyte red[3] = {255, 0, 0 };
+	GLubyte green[3] = {0, 255, 0 };
+	GLubyte blue[3] = {0, 0, 255 };
+	GLubyte cyan[3] = {0 , 255, 255 };
+	GLubyte magenta[3] = {255, 0, 255 };
+	GLubyte yellow[3] = {255, 255, 0 };
+
+	glActiveTexture(GL_TEXTURE1);
+	// TODO: validate next two 
+	
+	
+	glGenTextures(1, &(m->_oglBind.envTexture));
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m->_oglBind.envTexture);
+
+	glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, red);
+	glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, green);
+	glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, blue);
+	glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, cyan);
+	glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, magenta);
+	glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, yellow);
+	
 	
 
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glGenerateMipmap(GL_TEXTURE_CUBE_MAP );
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	checkOpenGLerror();
+	m->SetDrawEnvMap(true);
 }
 
-void Renderer::SetTexture(GLuint idx)
+void Renderer::UnbindModel(MeshModel* mb)
 {
-	glBindTexture( GL_TEXTURE_2D, idx);
-}
-
-void Renderer::UnbindModel(ModelBind* mb)
-{
-	glDeleteBuffers(mb->size, mb->buffers);
-	mb->size = 0;
-	delete[] mb->buffers;
-	mb->buffers = NULL;
-	glDeleteVertexArrays(1, &(mb->vao));
-	mb->vao = 0;
-}
-
-void Renderer::RebindModelUniforms( ModelBind* mb)
-{
-	GLuint program = oglPrograms[shading];
-	if (program < 0)
+	for( int i = 0; i < mb->_oglBind.size; i++)
 	{
-		throw std::exception("Binding model without program set");
+		if( -1 != mb->_oglBind.buffers[i])
+			glDeleteBuffers(1, &(mb->_oglBind.buffers[i]));
 	}
-	
-	mb->modelLoc = glGetUniformLocation(program, "model");
-	mb->normalTransformLoc = glGetUniformLocation(program, "normalTransform");
-	mb->emissiveLoc = glGetUniformLocation(program, "emissive");
-	mb->diffuseLoc = glGetUniformLocation(program, "diffuse");
-	mb->ambientLoc = glGetUniformLocation(program, "ambient");
-	mb->specularLoc = glGetUniformLocation(program, "specular");
-	mb->shininessLoc = glGetUniformLocation(program, "shininess");
-	mb->samplerLoc = glGetUniformLocation(program, "texMap");
-	mb->useTexLoc = glGetUniformLocation(program, "useTex");
-
-	glBindVertexArray(mb->vao);
-
-	GLuint vPositionLoc = glGetAttribLocation(program, "vPosition");
-	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[0]);
-	glEnableVertexAttribArray(vPositionLoc);
-	glVertexAttribPointer(vPositionLoc, 4, GL_FLOAT, 0, 0, 0);
-	
-	GLuint vNormalLoc = glGetAttribLocation(program, "vNormal");
-	glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[1]);
-	glEnableVertexAttribArray(vNormalLoc);
-	glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
-
-	GLuint vTexlLoc = glGetAttribLocation(program, "vTex");
-	if (vTexlLoc != -1 && mb->size > 2) {
-		glBindBuffer(GL_ARRAY_BUFFER, mb->buffers[2]);
-		glEnableVertexAttribArray(vTexlLoc);
-		glVertexAttribPointer(vTexlLoc, 2, GL_FLOAT, 0, 0, 0);
-	}
-	glBindVertexArray(0);
+	mb->_oglBind.size = 0;
+	delete[] mb->_oglBind.buffers;
+	mb->_oglBind.buffers = NULL;
+	glDeleteVertexArrays(1, &(mb->_oglBind.vao));
+	mb->_oglBind.vao = 0;
 }
 
 void Renderer::SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors)
@@ -281,38 +265,91 @@ void Renderer::SetUniformMatrix(GLuint handle, mat4 val)
 	glUniformMatrix4fv(handle, 1, GL_TRUE, val);
 }
 
-void Vertex3f(vec4 v)
+void Renderer::DrawTriangles(GLuint vao, int count)
 {
-	glVertex3f( v.x/ v.w, v.y/ v.w, v.z/ v.w);
+	glEnable(GL_DEPTH_TEST);
+	glBindVertexArray(vao);
+	glDrawArrays(GL_TRIANGLES, 0, count);
 }
 
-//void Renderer::DrawWorldAxes(mat4 toCam, GLfloat len)
-//{
-//	vec4 s = toCam * vec4(0,0,0,1);
-//	vec4 x = toCam * vec4(len,0,0,1);
-//	vec4 y = toCam * vec4(0,len,0,1);
-//	vec4 z = toCam * vec4(0,0,len,1);
-//
-//	glBegin( GL_LINES );
-//	glLineWidth((GLfloat)2);
-//	glClearColor(0,0,0,0);
-//	glColor3f( 1.0f, 0.0f, 0.0f );
-//	glVertex3f( 1.0f, 1.0f, 0.0f);
-//	glVertex3f( -1.0f, -1.0f, 0.0f);
-//	glEnd();
-//}
+void Renderer::SetModelUniforms(MeshModel* m)
+{
+	glUniformMatrix4fv(uLoc.modelLoc, 1, GL_TRUE, m->Transformation());
+	glUniformMatrix4fv(uLoc.normalTransformLoc, 1, GL_TRUE, m->NormalTransformation());
+	
+	MaterialColor mc = m->GetDefaultColor();
+	glUniform3f(uLoc.ambientLoc, mc.ambient.r, mc.ambient.g, mc.ambient.b);
+	glUniform3f(uLoc.diffuseLoc, mc.diffuse.r, mc.diffuse.g, mc.diffuse.b);
+	glUniform3f(uLoc.emissiveLoc, mc.emissive.r, mc.emissive.g, mc.emissive.b);
+	glUniform3f(uLoc.specularLoc, mc.specular.r, mc.specular.g, mc.specular.b);
+	glUniform1f(uLoc.shininessLoc, mc.shininess);
+	
+	if(m->GetDrawTexture() && -1 != m->_oglBind.buffers[3])
+	{
+		glUniform1i(uLoc.useTexLoc, true);
+		glBindTexture( GL_TEXTURE_2D, m->_oglBind.texture);
+		glUniform1i(uLoc.samplerLoc, 0);
+		checkOpenGLerror();
+	}
+	else if ( m->GetDrawEnvMap() )
+	{
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture( GL_TEXTURE_CUBE_MAP, m->_oglBind.envTexture);
+		glUniform1i(uLoc.envCubeMapLoc, 1);
+	}
+	else
+	{
+		glUniform1i(uLoc.useTexLoc, false);
+	}
 
-void Renderer::DrawTriangles(GLuint vao, int count)
+}
+
+void Renderer::SetModelvao(MeshModel* m)
+{
+	glBindVertexArray(m->_oglBind.vao);
+
+	GLuint vPositionLoc = glGetAttribLocation(oglPrograms[shading], "vPosition");
+	glBindBuffer(GL_ARRAY_BUFFER, m->_oglBind.buffers[0]);
+	glEnableVertexAttribArray(vPositionLoc);
+	glVertexAttribPointer(vPositionLoc, 4, GL_FLOAT, 0, 0, 0);
+	glBindBuffer(GL_ARRAY_BUFFER,0);
+
+	GLuint vNormalLoc = glGetAttribLocation(oglPrograms[shading], "vNormal");
+	if( FLAT != shading && -1 != m->_oglBind.buffers[1])
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, m->_oglBind.buffers[1]);
+		glEnableVertexAttribArray(vNormalLoc);
+		glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
+	} else if( -1 != m->_oglBind.buffers[2] )
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, m->_oglBind.buffers[2]);
+		glEnableVertexAttribArray(vNormalLoc);
+		glVertexAttribPointer(vNormalLoc, 4, GL_FLOAT, 0, 0, 0);
+	}
+	
+	GLuint vTexlLoc = glGetAttribLocation(oglPrograms[shading], "vTex");
+	if (vTexlLoc != -1 && -1 != m->_oglBind.buffers[3]) {
+		glBindBuffer(GL_ARRAY_BUFFER, m->_oglBind.buffers[3]);
+		glEnableVertexAttribArray(vTexlLoc);
+		glVertexAttribPointer(vTexlLoc, 2, GL_FLOAT, 0, 0, 0);
+	}
+}
+
+void Renderer::DrawModel(MeshModel* m)
 {
 	GLuint program = oglPrograms[shading];
 	if (program < 0)
 	{
 		throw std::exception("DrawTriangles called with no program set");
 	}
+
+	SetModelUniforms(m);
+	SetModelvao(m);
 	
 	glEnable(GL_DEPTH_TEST);
-	glBindVertexArray(vao);
-	glDrawArrays(GL_TRIANGLES, 0, count);
+	glDrawArrays(GL_TRIANGLES, 0, m->FaceCount() * 3);
+	glBindVertexArray(0);
+
 }
 
 GLuint Renderer::BindLineBuffer(vector<vec4> verteces, vector<vec3> colors)
@@ -360,21 +397,6 @@ void Renderer::DrawWFLines(vector<vec4> verteces, vector<vec3> colors)
 	return;
 }
 
-//void Renderer::DrawParallelSource(Rgb col, vec4 dir, mat4 toScreen)
-//{
-//	glColor3f(col.r, col.g, col.b);
-//
-//	glBegin(GL_LINES);
-//
-//	vec4 origin = toScreen * vec4(0,0,0,1);
-//	dir = toScreen * dir;
-//	
-//	glVertex2f(origin.x, origin.y);
-//	glVertex2f(dir.x, dir.y);
-//
-//	glEnd();
-//}
-
 void Renderer::SwapBuffers()
 {
 	glutSwapBuffers();
@@ -402,16 +424,20 @@ void Renderer::InitDraw()
 {
 	// clear buffer 
 	// TODO: clear color to backgroundColor
+	
 	glClearColor(1,1,1,1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	/*float pixs[1000];
+	glReadPixels(0,0, 10, 10, GL_RGBA, GL_FLOAT, pixs );
+	glReadPixels(0,0, 10, 10, GL_RGBA, GL_FLOAT, pixs );*/
+
 }
 
 void Renderer::SetCamera(mat4 view, mat4 projection)
 {
-	GLuint viewLoc = glGetUniformLocation(oglPrograms[shading], "view");
-	glProgramUniformMatrix4fv( oglPrograms[shading], viewLoc, 1, GL_TRUE, view);
-	GLuint projectLoc = glGetUniformLocation(oglPrograms[shading], "projection");
-	glProgramUniformMatrix4fv( oglPrograms[shading], projectLoc, 1, GL_TRUE, projection);
+	glUniformMatrix4fv( uLoc.viewLoc, 1, GL_TRUE, view);
+	glUniformMatrix4fv( uLoc.projectionLoc, 1, GL_TRUE, projection);
 }
 
 void Renderer::FinishDraw()
@@ -435,4 +461,59 @@ void Renderer::EnableFrontFaceCull()
 void Renderer::DisableFrontFaceCull()
 {
 	glDisable(GL_CULL_FACE);
+}
+
+void Renderer::BindModel(MeshModel* model)
+{
+	ModelBind b;
+	b.texture = -1;
+	b.size = 4;
+	b.vao = -1;
+	b.buffers = NULL;
+
+	vector<vec4> pts = model->Triangles();
+	vector<vec4> vnormals = model->VertexNormals(); 
+	vector<vec4> fnormals = model->FaceNormals();
+	vector<vec2> textures = model->Textures();
+
+	if( 0 >= pts.size())
+	{
+		model->_oglBind = b;
+		return;
+	}
+
+	b.buffers = new GLuint[b.size];
+	glGenVertexArrays(1, &(b.vao));
+	glBindVertexArray(b.vao);
+	glGenBuffers(b.size, b.buffers);
+
+	glBindBuffer(GL_ARRAY_BUFFER, b.buffers[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * pts.size(), &pts[0], GL_STATIC_DRAW);
+
+	if( vnormals.size()  < pts.size())
+	{
+		glDeleteBuffers(1, (&b.buffers[1]) );
+		b.buffers[1] = -1;
+	}
+	else
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, b.buffers[1]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * vnormals.size(), &vnormals[0], GL_STATIC_DRAW);
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, b.buffers[2]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * fnormals.size(), &fnormals[0], GL_STATIC_DRAW);
+	
+	if( textures.size()  < pts.size())
+	{
+		glDeleteBuffers(1, (&b.buffers[3]) );
+		b.buffers[3] = -1;
+	}
+	else
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, b.buffers[3]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * textures.size(), &textures[0], GL_STATIC_DRAW);
+	}
+	glBindVertexArray(0);
+	model->_oglBind = b;
 }

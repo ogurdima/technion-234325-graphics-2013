@@ -131,6 +131,12 @@
     <ClInclude Include="lodepng.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Binds.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CG_skel_w_MFC.rc">
@@ -163,6 +169,12 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="Shaders\normal_fs.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\env_vs.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\env_fs.glsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

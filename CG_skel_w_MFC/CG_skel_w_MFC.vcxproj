@@ -116,6 +116,8 @@
     <ClInclude Include="CG_skel_w_MFC.h" />
     <ClInclude Include="ColorSelector.h" />
     <ClInclude Include="Face.h" />
+    <ClInclude Include="Binds.h" />
+    <ClInclude Include="Texture.h" />
     <ClInclude Include="InitShader.h" />
     <ClInclude Include="InputDialog.h" />
     <ClInclude Include="Light.h" />
@@ -150,6 +152,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\basic_fs.glsl" />
+    <None Include="Shaders\env_fs.glsl" />
+    <None Include="Shaders\env_vs.glsl" />
     <None Include="Shaders\lighting_vs.glsl" />
     <None Include="Shaders\line_vs.glsl" />
     <None Include="Shaders\normal_fs.glsl" />
