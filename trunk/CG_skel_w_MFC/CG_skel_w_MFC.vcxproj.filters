@@ -138,34 +138,31 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\flat_fshader.glsl">
+    <None Include="Shaders\basic_fs.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\flat_vshader.glsl">
+    <None Include="Shaders\lighting_vs.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\phong_vshader.glsl">
+    <None Include="Shaders\line_vs.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\phong_fshader.glsl">
+    <None Include="Shaders\phong_fs.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\line_fshader.glsl">
+    <None Include="Shaders\silhouette_vs.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\line_vshader.glsl">
+    <None Include="Shaders\toon_fs.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\toon_fshader.glsl">
+    <None Include="Shaders\vn_vs.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\toon_vshader.glsl">
+    <None Include="Shaders\vnt_vs.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\silhouette_fshader.glsl">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\silhouette_vshader.glsl">
+    <None Include="Shaders\normal_fs.glsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

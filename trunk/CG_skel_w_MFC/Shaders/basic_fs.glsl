@@ -1,3 +1,4 @@
+// Fragment shader for FLAT and GOURAUD rendering
 #version 150 
 
 in vec4 color;

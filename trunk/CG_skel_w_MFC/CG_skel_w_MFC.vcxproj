@@ -139,18 +139,6 @@
     <ResourceCompile Include="CG_skel_w_MFC.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\flat_fshader.glsl" />
-    <None Include="Shaders\flat_vshader.glsl" />
-    <None Include="Shaders\line_fshader.glsl" />
-    <None Include="Shaders\line_vshader.glsl" />
-    <None Include="Shaders\phong_fshader.glsl" />
-    <None Include="Shaders\phong_vshader.glsl" />
-    <None Include="Shaders\silhouette_fshader.glsl" />
-    <None Include="Shaders\silhouette_vshader.glsl" />
-    <None Include="Shaders\toon_fshader.glsl" />
-    <None Include="Shaders\toon_vshader.glsl" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\freeglut\freeglut.vcxproj">
       <Project>{7ffb8bd3-9807-4b3b-867f-cdbd36bc48a1}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -159,6 +147,17 @@
       <Project>{e354a711-c2d4-4492-a756-1000564dccb8}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\basic_fs.glsl" />
+    <None Include="Shaders\lighting_vs.glsl" />
+    <None Include="Shaders\line_vs.glsl" />
+    <None Include="Shaders\normal_fs.glsl" />
+    <None Include="Shaders\phong_fs.glsl" />
+    <None Include="Shaders\silhouette_vs.glsl" />
+    <None Include="Shaders\toon_fs.glsl" />
+    <None Include="Shaders\vnt_vs.glsl" />
+    <None Include="Shaders\vn_vs.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

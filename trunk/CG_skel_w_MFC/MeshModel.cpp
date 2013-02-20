@@ -122,7 +122,7 @@ void MeshModel::QuickRebind(Renderer* r)
 // Drawing function
 void MeshModel::Draw(Renderer * r)
 {
-	cout << "MeshModel::draw" << endl;
+	//cout << "MeshModel::draw" << endl;
 
 	r->SetUniformMatrix(_oglBind.modelLoc, _world_transform * _inner_transform);
 	r->SetUniformMatrix(_oglBind.normalTransformLoc, _normal_transform * _inner_transform);

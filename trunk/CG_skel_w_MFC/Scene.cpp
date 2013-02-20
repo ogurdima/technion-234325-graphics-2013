@@ -103,7 +103,7 @@ void Scene::Draw()
 {
 	if(! IsLegal())
 		return;
-	cout << "Scene::Draw" << endl;
+	//cout << "Scene::Draw" << endl;
 	Camera* ac = ActiveCam();
 	ShadingType oldSt = renderer->Shading();
 
@@ -140,7 +140,7 @@ void Scene::Draw()
 		SetLights();
 		for (int i = 0; i < models.size(); i++)
 		{
-			cout << "Model[" << i << "]";
+			//cout << "Model[" << i << "]";
 			models[i]->Draw(renderer);
 		}
 		renderer->FinishShading();

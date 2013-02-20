@@ -1,3 +1,4 @@
+// Vertex shader for PHONG shading
 #version 150 
 
 in vec4 vPosition;
@@ -10,7 +11,6 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 normalTransform;
-
 
 void main()
 {
