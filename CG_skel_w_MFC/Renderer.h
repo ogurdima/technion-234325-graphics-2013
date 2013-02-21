@@ -51,11 +51,11 @@ public:
 
 	//ModelBind		BindModel(vector<vec4> p, vector<vec4> n, vector<vec2> textures);
 	void			BindTexture(MeshModel* m, Texture& t);
-	void			BindEnvTexture(MeshModel* m, vector<Texture>& t);
+	void			GenEnvTexture(MeshModel* m);
 	void			UnbindModel(MeshModel* mb);
 	void			SetModelUniforms(MeshModel* m);
 	void			SetModelvao(MeshModel* m);
-	//void			RebindModelUniforms(ModelBind* mb);
+	void			CopyFrameToTexture(GLenum dir, MeshModel* m);
 
 	void			SetTexture(GLuint handle);
 

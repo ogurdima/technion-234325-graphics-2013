@@ -15,6 +15,7 @@ deviceH(_h)
 {
 	InitShaders();
 	//cout << "Renderer::Renderer: " << deviceW << "x" << deviceH << endl;
+	glViewport(0,0, deviceW, deviceH);
 }
 
 Renderer::~Renderer(void)
@@ -87,40 +88,37 @@ void Renderer::BindTexture(MeshModel* m , Texture& t)
 	m->SetDrawTexture(true);
 }
 
-void Renderer::BindEnvTexture(MeshModel* m, vector<Texture>& txs)
+void Renderer::GenEnvTexture(MeshModel* m)
 {
 	TryDeleteTextrure(m);
-
-	GLubyte red[3] = {255, 0, 0 };
-	GLubyte green[3] = {0, 255, 0 };
-	GLubyte blue[3] = {0, 0, 255 };
-	GLubyte cyan[3] = {0 , 255, 255 };
-	GLubyte magenta[3] = {255, 0, 255 };
-	GLubyte yellow[3] = {255, 255, 0 };
-
 	glActiveTexture(GL_TEXTURE1);
-	// TODO: validate next two 
-	
-	
 	glGenTextures(1, &(m->_oglBind.envTexture));
+	checkOpenGLerror();
+}
+
+void Renderer::CopyFrameToTexture(GLenum dir, MeshModel* m)
+{
+	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, m->_oglBind.envTexture);
 
-	glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, red);
-	glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, green);
-	glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, blue);
-	glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, cyan);
-	glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, magenta);
-	glTexImage2D( GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, GL_RGB, 1,1,0, GL_RGB, GL_UNSIGNED_BYTE, yellow);
-	
-	
-
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	glGenerateMipmap(GL_TEXTURE_CUBE_MAP );
+	GLint m_viewport[4];
+	glGetIntegerv( GL_VIEWPORT, m_viewport );
+	int side = min(m_viewport[3],m_viewport[2]);
+	int size = side*side * 4;
+	if(size> 0)
+	{
+		/*GLubyte red[4] = {255,0,0, 1};
+		GLubyte* pixs = new GLubyte[size];
+		glReadPixels(m_viewport[0],m_viewport[1],side,side,GL_RGBA, GL_UNSIGNED_BYTE, pixs);
+		glTexImage2D( dir, 0, GL_RGB, side,side,0, GL_RGBA, GL_UNSIGNED_BYTE, pixs);
+		glGenerateMipmap(GL_TEXTURE_CUBE_MAP );
+		//glTexImage2D( dir, 0, GL_RGB, 1,1,0, GL_RGBA, GL_UNSIGNED_BYTE, red);
+		delete[] pixs;
+		*/
+		glCopyTexImage2D(dir, 0, GL_RGB, 0, 0, side, side, 0);
+		glGenerateMipmap(GL_TEXTURE_CUBE_MAP );
+	}
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	checkOpenGLerror();
-	m->SetDrawEnvMap(true);
 }
 
 void Renderer::UnbindModel(MeshModel* mb)
@@ -428,9 +426,7 @@ void Renderer::InitDraw()
 	glClearColor(1,1,1,1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	/*float pixs[1000];
-	glReadPixels(0,0, 10, 10, GL_RGBA, GL_FLOAT, pixs );
-	glReadPixels(0,0, 10, 10, GL_RGBA, GL_FLOAT, pixs );*/
+	
 
 }
 

@@ -64,6 +64,10 @@ public:
 	bool ToggleShowLights();
 
 	void DrawWorldAxes();
+
+	void AddReflectionTexture(GLenum dir, mat4 view, mat4 projection, MeshModel* m );
+	void foo();
+
 	//void DrawModelAxes(Model* m);
 	//void DrawSnowflake(vec4 at, float len, Rgb col = Rgb(0,0,0));
 	//void DrawLights();

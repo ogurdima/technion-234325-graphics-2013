@@ -1291,7 +1291,7 @@ int my_main( int argc, char **argv )
 							GLUT_RGBA |
 							GLUT_MULTISAMPLE );
 
-	glutInitWindowSize( 800, 600 );
+	glutInitWindowSize( 800, 800 );
 	glutInitContextVersion( 3, 3 );
 	glutInitContextProfile( GLUT_CORE_PROFILE );
 	glutCreateWindow( "The Awesome" );
@@ -1324,7 +1324,7 @@ int my_main( int argc, char **argv )
 	//----------------------------------------------------------------------------
 	// Create initial renderer
 	//----------------------------------------------------------------------------
-	renderer = new Renderer(800, 600);
+	renderer = new Renderer(800, 800);
 	
 	//----------------------------------------------------------------------------
 	// Create initial cameras

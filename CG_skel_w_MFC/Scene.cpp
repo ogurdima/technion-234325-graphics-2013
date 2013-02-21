@@ -14,7 +14,7 @@ drawCameras(false),
 drawWorldFrame(false),
 drawLights(false)
 {
-	this->renderer->SetShading(ENV);
+	this->renderer->SetShading(PHONG);
 }
 
 Scene::~Scene() 
@@ -100,6 +100,59 @@ void Scene::DrawWorldAxes()
 	renderer->FinishShading();
 }
 
+void Scene::foo()
+{
+	Camera* ac = ActiveCam();
+	for (int i = 0; i < models.size(); i++)
+	{
+		if(!models[i]->GetDrawEnvMap())
+		{
+			continue;
+		}
+		GLint viewport[4];
+		glGetIntegerv( GL_VIEWPORT, viewport );
+		glViewport(0,0,256,256);
+		bool aaWasEnabled = glIsEnabled( GL_MULTISAMPLE );
+		glDisable( GL_MULTISAMPLE );
+		vec3 bbCenter = models[i]->Origin(); //models[i]->getBBCenter();
+		vec3 v = bbCenter - ac->Eye();
+		vec3 uppp = cross( cross( ac->At() - ac->Eye(), ac->Up()), ac->At() - ac->Eye());
+		vec3 xxx = normalize(cross(v, uppp));
+		vec3 yyy = normalize(cross(xxx, v));
+		vec3 zzz = normalize(cross(xxx, yyy));
+
+		renderer->GenEnvTexture(models[i]);
+		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, LookAtMat(bbCenter, bbCenter-xxx, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
+		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, LookAtMat(bbCenter, bbCenter+yyy, zzz), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
+		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, LookAtMat(bbCenter, bbCenter-yyy, -zzz), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
+		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, LookAtMat(bbCenter, bbCenter+zzz, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
+		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, LookAtMat(bbCenter, bbCenter-zzz, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
+		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X, LookAtMat(bbCenter, bbCenter+xxx, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
+		glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+		//break;
+		if (aaWasEnabled) {
+			glEnable(GL_MULTISAMPLE);
+		}
+	}
+	
+
+}
+
+void Scene::AddReflectionTexture(GLenum dir, mat4 view, mat4 projection, MeshModel* m)
+{
+	renderer->InitDraw();
+	renderer->SetCamera(view, projection);
+	SetLights();
+	for (int j = 0; j < models.size(); j++)
+	{
+		if(models[j]->GetDrawEnvMap() || models[j] == m)
+			continue;
+		renderer->DrawModel(models[j]);
+	}
+	renderer->CopyFrameToTexture(dir, m);
+}
+
+
 void Scene::Draw()
 {
 	if(! IsLegal())
@@ -108,9 +161,11 @@ void Scene::Draw()
 	Camera* ac = ActiveCam();
 	ShadingType oldSt = renderer->Shading();
 
+
+	foo();
+
 	renderer->InitDraw();
 	DrawWorldAxes();
-
 	if(1)
 	{
 		renderer->SetShading(SILHOUETTE);
@@ -128,10 +183,21 @@ void Scene::Draw()
 		SetLights();
 		for (int i = 0; i < models.size(); i++)
 		{
-			renderer->BindEnvTexture(models[i], vector<Texture>());
-			renderer->DrawModel(models[i]);
+			if(!models[i]->GetDrawEnvMap())
+				renderer->DrawModel(models[i]);
 		}
 		renderer->FinishShading();
+
+		renderer->SetShading(ENV);
+		renderer->SetCamera(ac->View(), ac->Projection());
+		SetLights();
+		for (int i = 0; i < models.size(); i++)
+		{
+			if(models[i]->GetDrawEnvMap())
+				renderer->DrawModel(models[i]);
+		}
+		renderer->FinishShading();
+
 	}
 	else
 	{
@@ -145,7 +211,7 @@ void Scene::Draw()
 		}
 		renderer->FinishShading();
 	}
-	
+	renderer->SetShading(oldSt);
 	renderer->FinishDraw();
 }
 

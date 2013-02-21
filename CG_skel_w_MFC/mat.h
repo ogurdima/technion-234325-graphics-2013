@@ -707,4 +707,18 @@ mat4 LookAtMat( const vec4& eye, const vec4& at, const vec4& up )
     return c * Translate( -eye );
 }
 
+inline
+mat4 LookAtMat( const vec3& _eye, const vec3& _at, const vec3& _up )
+{
+	vec4 eye = vec4(_eye, 0);
+	vec4 at = vec4(_at, 0);
+	vec4 up = vec4(_up, 0);
+    vec4 n = normalize(eye - at);
+    vec4 u = vec4(normalize(cross(up,n)),0);
+    vec4 v = vec4(normalize(cross(n,u)),0);
+    vec4 t = vec4(0.0, 0.0, 0.0, 1.0);
+    mat4 c = mat4(u, v, n, t);
+    return c * Translate( -eye );
+}
+
 //----------------------------------------------------------------------------
