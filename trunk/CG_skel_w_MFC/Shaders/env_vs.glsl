@@ -1,5 +1,6 @@
+#version 150
 // Vertex shader for PHONG shading
-#version 150 
+ 
 
 in vec4 vPosition;
 in vec4 vNormal;
