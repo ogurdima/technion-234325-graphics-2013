@@ -47,6 +47,8 @@ void Renderer::SetUniformLocations()
 	uLoc.samplerLoc =			glGetUniformLocation(oglPrograms[shading], "texMap");
 	uLoc.useTexLoc =			glGetUniformLocation(oglPrograms[shading], "useTex");
 	uLoc.envCubeMapLoc =		glGetUniformLocation(oglPrograms[shading], "envCubeMap");
+	uLoc.useNormalMapLoc =		glGetUniformLocation(oglPrograms[shading], "useNormalMap");
+	uLoc.normalMapLoc =			glGetUniformLocation(oglPrograms[shading], "normalMap");
 }
 
 void Renderer::SetShading(ShadingType _type)
@@ -84,6 +86,22 @@ void Renderer::BindTexture(MeshModel* m , Texture& t)
 	glBindTexture(GL_TEXTURE_2D, 0);
 	checkOpenGLerror();
 	m->SetDrawTexture(true);
+}
+
+void Renderer::BindNormalTexture(MeshModel* m , Texture& t)
+{
+	glActiveTexture(GL_TEXTURE2);
+	if( -1 == m->_oglBind.normalTexture)
+	{
+		glGenTextures(1, &(m->_oglBind.normalTexture));
+	}
+	glBindTexture(GL_TEXTURE_2D, m->_oglBind.normalTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, t.width, t.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &(t.img[0]));
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glGenerateMipmap(GL_TEXTURE_2D );
+	glBindTexture(GL_TEXTURE_2D, 0);
+	checkOpenGLerror();
 }
 
 void Renderer::GenEnvTexture(MeshModel* m)
@@ -273,22 +291,26 @@ void Renderer::SetModelUniforms(MeshModel* m)
 	glUniform3f(uLoc.specularLoc, mc.specular.r, mc.specular.g, mc.specular.b);
 	glUniform1f(uLoc.shininessLoc, mc.shininess);
 	
+	glUniform1i(uLoc.useTexLoc, m->GetDrawTexture());
 	if(m->GetDrawTexture() && -1 != m->_oglBind.buffers[3])
 	{
-		glUniform1i(uLoc.useTexLoc, true);
 		glBindTexture( GL_TEXTURE_2D, m->_oglBind.texture);
 		glUniform1i(uLoc.samplerLoc, 0);
 		checkOpenGLerror();
 	}
-	else if ( m->GetDrawEnvMap() )
+	else if ( m->GetDrawEnvMap())
 	{
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture( GL_TEXTURE_CUBE_MAP, m->_oglBind.envTexture);
 		glUniform1i(uLoc.envCubeMapLoc, 1);
 	}
-	else
+
+	glUniform1i(uLoc.useNormalMapLoc, m->GetNormalMap());
+	if(m->GetNormalMap())
 	{
-		glUniform1i(uLoc.useTexLoc, false);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture( GL_TEXTURE_2D, m->_oglBind.normalTexture);
+		glUniform1i(uLoc.normalMapLoc , 2);
 	}
 
 }
@@ -454,14 +476,17 @@ void Renderer::BindModel(MeshModel* model)
 {
 	ModelBind b;
 	b.texture = -1;
-	b.size = 4;
+	b.size = 6;
 	b.vao = -1;
 	b.buffers = NULL;
 
 	vector<vec4> pts = model->Triangles();
 	vector<vec4> vnormals = model->VertexNormals(); 
 	vector<vec4> fnormals = model->FaceNormals();
-	vector<vec2> textures = model->Textures();
+	vector<vec2> textures = model->TextureCoords();
+	vector<vec3> tangents;
+	vector<vec3> bitangents;
+	model->TangentBitangent(tangents, bitangents);
 
 	if( 0 >= pts.size())
 	{
@@ -501,6 +526,22 @@ void Renderer::BindModel(MeshModel* model)
 		glBindBuffer(GL_ARRAY_BUFFER, b.buffers[3]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * textures.size(), &textures[0], GL_STATIC_DRAW);
 	}
+
+	if( tangents.size()  < pts.size() || bitangents.size() < pts.size())
+	{
+		glDeleteBuffers(1, (&b.buffers[4]) );
+		b.buffers[4] = -1;
+		glDeleteBuffers(1, (&b.buffers[5]) );
+		b.buffers[5] = -1;
+	}
+	else
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, b.buffers[4]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * tangents.size(), &tangents[0], GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, b.buffers[5]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * bitangents.size(), &bitangents[0], GL_STATIC_DRAW);
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 	model->_oglBind = b;
 }

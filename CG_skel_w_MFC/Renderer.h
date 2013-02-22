@@ -39,6 +39,8 @@ typedef struct
 	GLuint		samplerLoc;
 	GLuint		useTexLoc;
 	GLuint		envCubeMapLoc;
+	GLuint		useNormalMapLoc;
+	GLuint		normalMapLoc;
 } UniformLocations;
 
 class Renderer
@@ -51,6 +53,7 @@ public:
 
 	//ModelBind		BindModel(vector<vec4> p, vector<vec4> n, vector<vec2> textures);
 	void			BindTexture(MeshModel* m, Texture& t);
+	void			BindNormalTexture(MeshModel* m, Texture& t);
 	void			GenEnvTexture(MeshModel* m);
 	void			UnbindModel(MeshModel* mb);
 	void			SetModelUniforms(MeshModel* m);

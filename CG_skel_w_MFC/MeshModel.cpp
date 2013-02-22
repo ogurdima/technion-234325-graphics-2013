@@ -309,7 +309,7 @@ vector<vec4> MeshModel::FaceNormals()
 	return normals;
 }
 
-vector<vec2> MeshModel::Textures()
+vector<vec2> MeshModel::TextureCoords()
 {
 	if (_texCoordSource == SPHERICAL) {
 		return SphereTextures();
@@ -331,6 +331,57 @@ vector<vec2> MeshModel::Textures()
 		}
 	}
 	return textures;
+}
+
+void MeshModel::TangentBitangent(vector<vec3>& outTangent, vector<vec3>& outBitangent)
+{
+	
+	vector<vec2> textureCoords = TextureCoords();
+	if(0 == textureCoords.size())
+	{
+		outTangent = vector<vec3>();
+		outBitangent = vector<vec3>();
+		return;
+	}
+	vector<vec4> vertices = Triangles();
+	if(textureCoords.size() < vertices.size())
+	{
+		outTangent = vector<vec3>();
+		outBitangent = vector<vec3>();
+		return;
+	}
+
+	for( int i = 0; i < vertices.size(); i+=3)
+	{
+		// Shortcuts for vertices
+		vec4& v0 = vertices[i+0];
+		vec4& v1 = vertices[i+1];
+		vec4& v2 = vertices[i+2];
+ 
+		// Shortcuts for UVs
+		vec2& uv0 = textureCoords[i+0];
+		vec2& uv1 = textureCoords[i+1];
+		vec2& uv2 = textureCoords[i+2];
+ 
+		// Edges of the triangle : postion delta
+		vec3 deltaPos1 = vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
+		vec3 deltaPos2 = vec3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
+ 
+		// UV delta
+		vec2 deltaUV1 = uv1-uv0;
+		vec2 deltaUV2 = uv2-uv0;
+
+		float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+		vec3 tangent = (deltaPos1 * deltaUV2.y   - deltaPos2 * deltaUV1.y)*r;
+		vec3 bitangent = (deltaPos2 * deltaUV1.x   - deltaPos1 * deltaUV2.x)*r;
+
+		outTangent.push_back( tangent);
+		outTangent.push_back( tangent);
+		outTangent.push_back( tangent);
+		outBitangent.push_back(bitangent);
+		outBitangent.push_back(bitangent);
+		outBitangent.push_back(bitangent);
+	}
 }
 
 vector<vec2> MeshModel::SphereTextures()
@@ -432,6 +483,22 @@ vec3 MeshModel::BoundingBoxCenter()
 	float z = (maxY + minY) / 2;
 	return vec3(x,y,z);
 }
+
+void MeshModel::EnableNormalMap()
+{
+	_normalMap = true;
+}
+
+void MeshModel::DisableNormalMap()
+{
+	_normalMap = false;
+}
+
+bool MeshModel::GetNormalMap()
+{
+	return _normalMap;
+}
+
 
 // static helper functions
 static vec3 vec3fFromStream(std::istream & aStream)
