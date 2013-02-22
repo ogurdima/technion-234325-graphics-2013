@@ -75,13 +75,11 @@ void Renderer::BindTexture(MeshModel* m , Texture& t)
 	TryDeleteTextrure(m);
 
 	glActiveTexture(GL_TEXTURE0);
-	// TODO: validate next two 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	
 	glGenTextures(1, &(m->_oglBind.texture));
 	glBindTexture(GL_TEXTURE_2D, m->_oglBind.texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, t.width, t.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &(t.img[0]));
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glGenerateMipmap(GL_TEXTURE_2D );
 	glBindTexture(GL_TEXTURE_2D, 0);
 	checkOpenGLerror();
@@ -107,14 +105,6 @@ void Renderer::CopyFrameToTexture(GLenum dir, MeshModel* m)
 	int size = side*side * 4;
 	if(size> 0)
 	{
-		/*GLubyte red[4] = {255,0,0, 1};
-		GLubyte* pixs = new GLubyte[size];
-		glReadPixels(m_viewport[0],m_viewport[1],side,side,GL_RGBA, GL_UNSIGNED_BYTE, pixs);
-		glTexImage2D( dir, 0, GL_RGB, side,side,0, GL_RGBA, GL_UNSIGNED_BYTE, pixs);
-		glGenerateMipmap(GL_TEXTURE_CUBE_MAP );
-		//glTexImage2D( dir, 0, GL_RGB, 1,1,0, GL_RGBA, GL_UNSIGNED_BYTE, red);
-		delete[] pixs;
-		*/
 		glCopyTexImage2D(dir, 0, GL_RGB, 0, 0, side, side, 0);
 		glGenerateMipmap(GL_TEXTURE_CUBE_MAP );
 	}
@@ -123,6 +113,7 @@ void Renderer::CopyFrameToTexture(GLenum dir, MeshModel* m)
 
 void Renderer::UnbindModel(MeshModel* mb)
 {
+	// TODO:
 	for( int i = 0; i < mb->_oglBind.size; i++)
 	{
 		if( -1 != mb->_oglBind.buffers[i])
