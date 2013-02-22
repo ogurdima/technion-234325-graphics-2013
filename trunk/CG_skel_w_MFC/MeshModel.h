@@ -10,6 +10,8 @@
 
 using namespace std;
 
+typedef enum {SPHERICAL, USER_GIVEN, FLATTENED} TexCoordSource_t;
+
 
 class MeshModel : public Model
 {
@@ -34,6 +36,7 @@ public:
 	void			MFTranslate(mat4 m);
 	void			MFScale(mat4 m);
 	virtual vec3	Origin();
+	vec3			BoundingBoxCenter();
 	// Drawing options
 	bool			ToggleShowFaceNormals();
 	bool			ToggleShowBoundingBox();
@@ -45,10 +48,11 @@ public:
 	MaterialColor	GetDefaultColor();
 	void			SetRandomColor();
 	void			SetProgressiveColor();
-
+	void			SetTextureCoordinatesSource(TexCoordSource_t _s);
 
 	vector<Vertex>			Triangles();
 	vector<vec2>			Textures();
+	vector<vec2>			SphereTextures();
 	vector<vec4>			FaceNormals();
 	vector<vec4>			VertexNormals();
 	mat4					Transformation();
@@ -81,6 +85,8 @@ protected :
 	bool					_drawMF;
 	bool					_drawTexture;
 	bool					_envMap;
+
+	TexCoordSource_t		_texCoordSource;
 
 	void					CalculateFaceNormals();
 	

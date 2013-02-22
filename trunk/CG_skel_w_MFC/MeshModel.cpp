@@ -5,13 +5,15 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <math.h>
 
 using namespace std;
 
 static vec3 vec3fFromStream(std::istream & aStream);
 static vec2 vec2fFromStream(std::istream & aStream);
 static Rgb interpolate(float t, Rgb a, Rgb b);
-
+static vec2 unitSphereAngles(vec3 center, vec3 pt);
+static vec2 unitSphereAngles(vec3 pt);
 
 MeshModel::MeshModel() :
 _drawBB(false),
@@ -19,7 +21,8 @@ _drawVN(false),
 _drawFN(false),
 _drawMF(false),
 _drawTexture(false),
-_envMap(false)
+_envMap(false),
+_texCoordSource(SPHERICAL)
 {
 	_world_transform = Identity4();
 	_normal_transform = Identity4();
@@ -32,7 +35,8 @@ _drawVN(false),
 _drawFN(false),
 _drawMF(false),
 _drawTexture(false),
-_envMap(false)
+_envMap(false),
+_texCoordSource(SPHERICAL)
 {
 	LoadFile(fileName);
 }
@@ -51,6 +55,7 @@ MeshModel::MeshModel(const MeshModel& rhs)
 	_drawMF = rhs._drawMF;
 	_drawTexture = rhs._drawTexture;
 	_envMap = rhs._envMap;
+	_texCoordSource = rhs._texCoordSource;
 }
 
 MeshModel::~MeshModel(void)
@@ -251,6 +256,12 @@ void MeshModel::SetProgressiveColor()
 	}
 }
 
+void MeshModel::SetTextureCoordinatesSource(TexCoordSource_t _s)
+{
+	_texCoordSource = _s;
+	// send ne textures (Textures()) to the renderer, so it could rebind the buffer.
+}
+
 vector<Vertex> MeshModel::Triangles()
 {
 	vector<Vertex> vertex_positions;
@@ -300,6 +311,10 @@ vector<vec4> MeshModel::FaceNormals()
 
 vector<vec2> MeshModel::Textures()
 {
+	if (_texCoordSource == SPHERICAL) {
+		return SphereTextures();
+	}
+
 	vector<vec2> textures;
 	for (int i = 0; i < _faces.size(); i++)
 	{
@@ -307,12 +322,29 @@ vector<vec2> MeshModel::Textures()
 		{
 			if(_faces[i].vt[j] <= 0) // normal not defined
 			{
-				return vector<vec2>();
+				return SphereTextures();
 			}
 			else
 			{
 				textures.push_back(_textures[_faces[i].vt[j] - 1]);
 			}
+		}
+	}
+	return textures;
+}
+
+vector<vec2> MeshModel::SphereTextures()
+{
+	vector<vec2> textures;
+	vec3 center = BoundingBoxCenter();
+	for (int i = 0; i < _faces.size(); i++)
+	{
+		for (int j = 0; j < 3; j++) // push face normal instead of vertex normal for every vertex
+		{
+			Vertex v = _vertices[_faces[i].v[j] - 1];
+			vec2 angles = unitSphereAngles(center, vec3(v.x, v.y, v.z));
+			vec2 uv = vec2( angles.x / (2 * M_PI), angles.y / M_PI );
+			textures.push_back(uv);
 		}
 	}
 	return textures;
@@ -362,6 +394,45 @@ void MeshModel::CalculateFaceNormals()
 	}
 }
 
+
+vec3 MeshModel::BoundingBoxCenter()
+{
+	float maxX = 0, minX = 0, maxY = 0, minY = 0, maxZ = 0, minZ = 0;
+	if (_vertices.size() < 1) {
+		return vec3(0,0,0);
+	}
+	Vertex v = _vertices[0];
+	maxX = minX = v.x;
+	maxY = minY = v.y;
+	maxZ = minZ = v.z;
+
+	for(int i = 1; i < _vertices.size(); i++) {
+		Vertex& v = _vertices[i];
+		if (v.x < minX) {
+			minX = v.x;
+		}
+		if (v.x > maxX) {
+			maxX = v.x;
+		}
+		if (v.y < minY) {
+			minY = v.y;
+		}
+		if (v.y > maxY) {
+			maxY = v.y;
+		}
+		if (v.z < minZ) {
+			minZ = v.z;
+		}
+		if (v.z > maxZ) {
+			maxZ = v.z;
+		}
+	}
+	float x = (maxX + minX) / 2;
+	float y = (maxY + minY) / 2;
+	float z = (maxY + minY) / 2;
+	return vec3(x,y,z);
+}
+
 // static helper functions
 static vec3 vec3fFromStream(std::istream & aStream)
 {
@@ -380,4 +451,25 @@ static vec2 vec2fFromStream(std::istream & aStream)
 static Rgb interpolate(float t, Rgb a, Rgb b)
 {
 	return Rgb(  a.r + t * (b.r - a.r),  a.g + t * (b.g - a.g), a.b + t * (b.b - a.b) );
+}
+
+static vec2 unitSphereAngles(vec3 center, vec3 pt)
+{
+	return unitSphereAngles(pt - center);
+}
+
+static vec2 unitSphereAngles(vec3 pt) 
+{
+	vec3 z = vec3(0,0,1);
+	pt = normalize(pt);
+	float cost = dot(pt, z);
+	if (cost > 1) cost = 1;
+	if (cost < -1) cost = -1;
+	float t = acosf(cost);
+	float f = atan2f(pt.y, pt.x);
+	if (f < 0) {
+		f += 2 * M_PI;
+	}
+	// 0 < t < pi; 0 < f < 2pi
+	return vec2(f, t);
 }
