@@ -48,6 +48,8 @@ typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 #define MODEL_NON_UNIFORM_SCALE					24
 #define MODEL_SET_MONOTON_COLOR					25
 #define MODEL_SET_TEXTURE						26
+#define MODEL_ENABLE_ENV_MAP					27
+#define MODEL_DISABLE_ENV_MAP					28
 
 #define CAMERA_SET_LOCATION						30
 #define CAMERA_SET_FOV							31
@@ -1022,6 +1024,12 @@ void menuActiveModel(int id)
 	case MODEL_SET_TEXTURE:
 		loadTexture();
 		break;
+	case MODEL_ENABLE_ENV_MAP:
+		m->SetDrawEnvMap(true);
+		break;
+	case MODEL_DISABLE_ENV_MAP:
+		m->SetDrawEnvMap(false);
+		break;
 	}
 	glutPostRedisplay();
 }
@@ -1225,6 +1233,8 @@ void initMenu()
 	glutAddMenuEntry("Show Normals per Vertex",		MODEL_SHOW_VERTEX_NORMALS);
 	glutAddMenuEntry("Show Normals per Face",		MODEL_SHOW_FACE_NORMALS);
 	glutAddMenuEntry("Nonuniform Scale",			MODEL_NON_UNIFORM_SCALE);
+	glutAddMenuEntry("Enable environment map",		MODEL_ENABLE_ENV_MAP);
+	glutAddMenuEntry("Disable environment map",		MODEL_DISABLE_ENV_MAP);
 	
 	int lensMenu = glutCreateMenu(menuLens);
 	glutAddMenuEntry("Ortho",			LENS_ORTHO);
