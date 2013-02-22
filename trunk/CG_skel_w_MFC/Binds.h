@@ -10,4 +10,5 @@ typedef struct
 	GLuint*		buffers;
 	GLuint		texture;
 	GLuint		envTexture;
+	GLuint		normalTexture;
 } ModelBind;

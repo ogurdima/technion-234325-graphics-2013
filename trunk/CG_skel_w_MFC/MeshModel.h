@@ -22,39 +22,40 @@ public:
 					~MeshModel(void);
 
 	void			LoadFile(string fileName);
-//	void			SetTexture(vector<byte>& t, Renderer* r, unsigned int w, unsigned int h);
-	//void			BindToRenderer(Renderer* r);
-	//void			Unbind(Renderer* r);
-	//void			QuickRebind(Renderer* r);
-	//void virtual	Draw(Renderer * r);
 
 	// Transformations
-	void			WFRotate(mat4 m);
-	void			WFScale(mat4 m);
-	void			WFTranslate(mat4 m);
-	void			MFRotate(mat4 m);
-	void			MFTranslate(mat4 m);
-	void			MFScale(mat4 m);
-	virtual vec3	Origin();
-	vec3			BoundingBoxCenter();
+	void					WFRotate(mat4 m);
+	void					WFScale(mat4 m);
+	void					WFTranslate(mat4 m);
+	void					MFRotate(mat4 m);
+	void					MFTranslate(mat4 m);
+	void					MFScale(mat4 m);
+	virtual vec3			Origin();
+	vec3					BoundingBoxCenter();
 	// Drawing options
-	bool			ToggleShowFaceNormals();
-	bool			ToggleShowBoundingBox();
-	bool			ToggleShowVertexNormals();
-	bool			ToggleShowModelFrame();
-	bool			SetDrawTexture(bool val);
+	bool					ToggleShowFaceNormals();
+	bool					ToggleShowBoundingBox();
+	bool					ToggleShowVertexNormals();
+	bool					ToggleShowModelFrame();
+	bool					SetDrawTexture(bool val);
+	void					EnableNormalMap();
+	void					DisableNormalMap();
+	bool					GetNormalMap();
 	// Color manipulations
-	void			SetDefaultColor(MaterialColor _c);
-	MaterialColor	GetDefaultColor();
-	void			SetRandomColor();
-	void			SetProgressiveColor();
-	void			SetTextureCoordinatesSource(TexCoordSource_t _s);
+	void					SetDefaultColor(MaterialColor _c);
+	MaterialColor			GetDefaultColor();
+	void					SetRandomColor();
+	void					SetProgressiveColor();
+	void					SetTextureCoordinatesSource(TexCoordSource_t _s);
 
 	vector<Vertex>			Triangles();
-	vector<vec2>			Textures();
+	vector<vec2>			TextureCoords();
 	vector<vec2>			SphereTextures();
 	vector<vec4>			FaceNormals();
 	vector<vec4>			VertexNormals();
+	
+	void					TangentBitangent(vector<vec3>& outTangent, vector<vec3>& outBitangent);
+
 	mat4					Transformation();
 	mat4					NormalTransformation();
 
@@ -85,6 +86,7 @@ protected :
 	bool					_drawMF;
 	bool					_drawTexture;
 	bool					_envMap;
+	bool					_normalMap;
 
 	TexCoordSource_t		_texCoordSource;
 

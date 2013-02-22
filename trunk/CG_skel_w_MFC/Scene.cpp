@@ -100,7 +100,7 @@ void Scene::DrawWorldAxes()
 	renderer->FinishShading();
 }
 
-void Scene::foo()
+void Scene::BindReflectionMaps()
 {
 	Camera* ac = ActiveCam();
 	for (int i = 0; i < models.size(); i++)
@@ -123,13 +123,13 @@ void Scene::foo()
 
 		renderer->GenEnvTexture(models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, LookAtMat(bbCenter, bbCenter-xxx, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
-		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, LookAtMat(bbCenter, bbCenter+yyy, zzz), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
+		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, LookAtMat(bbCenter, bbCenter+yyy, zzz),  PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, LookAtMat(bbCenter, bbCenter-yyy, -zzz), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, LookAtMat(bbCenter, bbCenter+zzz, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, LookAtMat(bbCenter, bbCenter-zzz, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X, LookAtMat(bbCenter, bbCenter+xxx, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
+		
 		glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-		//break;
 		if (aaWasEnabled) {
 			glEnable(GL_MULTISAMPLE);
 		}
@@ -152,7 +152,6 @@ void Scene::AddReflectionTexture(GLenum dir, mat4 view, mat4 projection, MeshMod
 	renderer->CopyFrameToTexture(dir, m);
 }
 
-
 void Scene::Draw()
 {
 	if(! IsLegal())
@@ -162,7 +161,7 @@ void Scene::Draw()
 	ShadingType oldSt = renderer->Shading();
 
 
-	foo();
+	BindReflectionMaps();
 
 	renderer->InitDraw();
 	DrawWorldAxes();

@@ -38,19 +38,21 @@ typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 #define MAIN_ADD_CAMERA							7
 #define MAIN_ADD_MODEL							8
 #define MAIN_ADD_PRIMITIVE						9						
-#define MAIN_SET_BACKGROUND_COLOR				10						
+#define MAIN_SET_BACKGROUND_COLOR				10
 
 
-#define MODEL_SHOW_VERTEX_NORMALS				20
-#define MODEL_SHOW_FACE_NORMALS					21
-#define MODEL_SHOW_BOUNDING_BOX					22
-#define MODEL_SHOW_FRAME						23
-#define MODEL_NON_UNIFORM_SCALE					24
-#define MODEL_SET_MONOTON_COLOR					25
-#define MODEL_SET_TEXTURE						26
-#define MODEL_ENABLE_ENV_MAP					27
-#define MODEL_DISABLE_ENV_MAP					28
-#define MODEL_ENABLE_SPHERICAL_TEX_COORD		29
+#define MODEL_SHOW_VERTEX_NORMALS				200
+#define MODEL_SHOW_FACE_NORMALS					201
+#define MODEL_SHOW_BOUNDING_BOX					202
+#define MODEL_SHOW_FRAME						203
+#define MODEL_NON_UNIFORM_SCALE					204
+#define MODEL_SET_MONOTON_COLOR					205
+#define MODEL_SET_TEXTURE						206
+#define MODEL_ENABLE_ENV_MAP					207
+#define MODEL_DISABLE_ENV_MAP					208
+#define MODEL_ENABLE_SPHERICAL_TEX_COORD		209
+#define MODEL_ENABLE_NORMAL_MAP					210
+#define MODEL_DISABLE_NORMAL_MAP				211
 
 #define CAMERA_SET_LOCATION						30
 #define CAMERA_SET_FOV							31
@@ -993,9 +995,25 @@ void loadTexture()
 		Texture t;
 		lodepng::decode(t.img, t.width, t.height, s);
 		renderer->BindTexture(am, t);
+		am->SetDrawTexture(true);
 	}
 }
 
+void loadNormalTexture()
+{
+	MeshModel* am = scene->ActiveModel();
+	if(NULL == am)
+		return;
+	CFileDialog dlg(TRUE,_T(".png"),NULL,NULL,_T("*.png|*.*"));
+	if(dlg.DoModal()==IDOK)
+	{
+		string s((LPCTSTR)dlg.GetPathName());
+		Texture t;
+		lodepng::decode(t.img, t.width, t.height, s);
+		renderer->BindNormalTexture(am, t);
+		am->EnableNormalMap();
+	}
+}
 
 void menuActiveModel(int id)
 {
@@ -1033,6 +1051,12 @@ void menuActiveModel(int id)
 		break;
 	case MODEL_ENABLE_SPHERICAL_TEX_COORD:
 		m->SetTextureCoordinatesSource(SPHERICAL);
+		break;
+	case MODEL_ENABLE_NORMAL_MAP:
+		loadNormalTexture();
+		break;
+	case MODEL_DISABLE_NORMAL_MAP:
+		m->DisableNormalMap();
 		break;
 	}
 	glutPostRedisplay();
