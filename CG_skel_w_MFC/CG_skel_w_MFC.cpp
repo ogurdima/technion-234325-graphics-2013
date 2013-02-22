@@ -50,6 +50,7 @@ typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 #define MODEL_SET_TEXTURE						26
 #define MODEL_ENABLE_ENV_MAP					27
 #define MODEL_DISABLE_ENV_MAP					28
+#define MODEL_ENABLE_SPHERICAL_TEX_COORD		29
 
 #define CAMERA_SET_LOCATION						30
 #define CAMERA_SET_FOV							31
@@ -1030,6 +1031,9 @@ void menuActiveModel(int id)
 	case MODEL_DISABLE_ENV_MAP:
 		m->SetDrawEnvMap(false);
 		break;
+	case MODEL_ENABLE_SPHERICAL_TEX_COORD:
+		m->SetTextureCoordinatesSource(SPHERICAL);
+		break;
 	}
 	glutPostRedisplay();
 }
@@ -1235,6 +1239,7 @@ void initMenu()
 	glutAddMenuEntry("Nonuniform Scale",			MODEL_NON_UNIFORM_SCALE);
 	glutAddMenuEntry("Enable environment map",		MODEL_ENABLE_ENV_MAP);
 	glutAddMenuEntry("Disable environment map",		MODEL_DISABLE_ENV_MAP);
+	glutAddMenuEntry("Spherical texture coords",	MODEL_ENABLE_SPHERICAL_TEX_COORD);
 	
 	int lensMenu = glutCreateMenu(menuLens);
 	glutAddMenuEntry("Ortho",			LENS_ORTHO);
