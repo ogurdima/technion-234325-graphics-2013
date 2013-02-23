@@ -156,7 +156,6 @@
     <None Include="Shaders\env_vs.glsl" />
     <None Include="Shaders\lighting_vs.glsl" />
     <None Include="Shaders\line_vs.glsl" />
-    <None Include="Shaders\normal_fs.glsl" />
     <None Include="Shaders\phong_fs.glsl" />
     <None Include="Shaders\silhouette_vs.glsl" />
     <None Include="Shaders\toon_fs.glsl" />
