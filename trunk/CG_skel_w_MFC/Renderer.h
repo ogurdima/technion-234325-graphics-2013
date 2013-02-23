@@ -41,6 +41,8 @@ typedef struct
 	GLuint		envCubeMapLoc;
 	GLuint		useNormalMapLoc;
 	GLuint		normalMapLoc;
+	GLuint		useVertexAnimation;
+	GLuint		vertexAnimationParamLoc;
 } UniformLocations;
 
 class Renderer
@@ -49,49 +51,28 @@ public:
 	Renderer(int _w, int _h);
 	~Renderer(void);
 
-	void			BindModel(MeshModel* model);
+	void			SetShading(ShadingType _type);
+	ShadingType		Shading();
 
-	//ModelBind		BindModel(vector<vec4> p, vector<vec4> n, vector<vec2> textures);
+	void			BindModel(MeshModel* model);
+	void			UnbindModel(MeshModel* mb);
+	void			DrawModel(MeshModel* m);
 	void			BindTexture(MeshModel* m, Texture& t);
 	void			BindNormalTexture(MeshModel* m, Texture& t);
-	void			GenEnvTexture(MeshModel* m);
-	void			UnbindModel(MeshModel* mb);
-	void			SetModelUniforms(MeshModel* m);
-	void			SetModelvao(MeshModel* m);
 	void			CopyFrameToTexture(GLenum dir, MeshModel* m);
 
-	void			SetTexture(GLuint handle);
-
-	void			SetUniformMatrices(vector<GLuint> handles, vector<mat4> values);
-	void			SetUniformMatrix(GLuint handle, mat4 val);
-	void			SetUniformVec3(GLuint handle, vec3 val);
-	void			SetUniformVec2(GLuint handle, vec2 val);
-	void			SetUniform1b(GLuint handle, bool val);
-	void			SetUniform1i(GLuint handle, int i);
-
-	void			SetUniform(GLuint handle, float val);
+	void			DrawWFLines(vector<vec4> verteces, vector<vec3> colors);
+	
+	void			InitDraw();
+	void			SetCamera(mat4 view, mat4 projection);
 	void			SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors);
 	void			SetPointLights(vector<vec4> lightPositions, vector<vec3> lightColors);
-
-	//void			DrawParallelSource(Rgb col, vec4 dir, mat4 toScreen);
-	void			DrawModel(MeshModel* m);
-	void			DrawTriangles(GLuint vao, int count);
-	void			DrawSilhouette(GLuint vao, int count);
-	void			DrawWFLines(vector<vec4> verteces, vector<vec3> colors);
-	void			ToggleAntialiasing();
-
-	void			InitDraw(); // must
-	void			SetCamera(mat4 view, mat4 projection);
-	void			FinishShading(); // optional
-	void			FinishDraw(); // must
+	void			FinishShading();
+	void			FinishDraw();
 
 	void			EnableFrontFaceCull();
 	void			DisableFrontFaceCull();
-
-	void			InitShaders();
-	
-	void			SetShading(ShadingType _type);
-	ShadingType		Shading();
+	void			ToggleAntialiasing();
 
 private:
 	int						deviceH;
@@ -101,8 +82,24 @@ private:
 	GLuint					oglPrograms[7];
 	UniformLocations		uLoc;
 	
-	void			SetUniformLocations();
+	void			InitShaders();
+	void			SaveUniformLocations();
 	GLuint			BindLineBuffer(vector<vec4> verteces, vector<vec3> colors);
 	void			SwapBuffers();
+
+	void			SetModelUniforms(MeshModel* m);
+	void			SetModelvao(MeshModel* m);
+	void			DrawTriangles(GLuint vao, int count);
+
+	// deprecated
+	void			SetTexture(GLuint handle);
+	void			SetUniformMatrices(vector<GLuint> handles, vector<mat4> values);
+	void			SetUniformMatrix(GLuint handle, mat4 val);
+	void			SetUniformVec3(GLuint handle, vec3 val);
+	void			SetUniformVec2(GLuint handle, vec2 val);
+	void			SetUniform1b(GLuint handle, bool val);
+	void			SetUniform1i(GLuint handle, int i);
+	void			SetUniform(GLuint handle, float val);
+	void			DrawSilhouette(GLuint vao, int count);
 };
 
