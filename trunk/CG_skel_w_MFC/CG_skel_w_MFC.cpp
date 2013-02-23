@@ -16,6 +16,7 @@
 #include "MaterialColor.h"
 #include "ColorSelector.h"
 #include "lodepng.h"
+#include <ctime>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -39,6 +40,7 @@ typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 #define MAIN_ADD_MODEL							8
 #define MAIN_ADD_PRIMITIVE						9						
 #define MAIN_SET_BACKGROUND_COLOR				10
+#define MAIN_RENDER_SILHOUETTE					11
 
 
 #define MODEL_SHOW_VERTEX_NORMALS				200
@@ -55,6 +57,8 @@ typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 #define MODEL_DISABLE_NORMAL_MAP				211
 #define MODEL_ENABLE_VERTEX_ANIM				212
 #define MODEL_DISABLE_VERTEX_ANIM				213
+#define MODEL_ENABLE_COLOR_ANIM					214
+#define MODEL_DISABLE_COLOR_ANIM				215
 
 #define CAMERA_SET_LOCATION						30
 #define CAMERA_SET_FOV							31
@@ -87,6 +91,7 @@ Renderer *renderer;
 int last_x,last_y;
 bool lb_down, rb_down, mb_down, ctr_down, shift_down, alt_down;
 float smoothFactor = 2;
+int timerInterval = 100;
 
 ActiveMode activeMode = MODEL_MODE;
 ModelActiveFrame modelActiveFrame = M_WORLD_FRAME;
@@ -953,6 +958,9 @@ void mainMenu(int id)
 	case MAIN_SET_BACKGROUND_COLOR:
 		setBackground();
 		break;
+	case MAIN_RENDER_SILHOUETTE:
+		scene->ToggleShowSilhouette();
+		break;
 	}
 	glutPostRedisplay();
 
@@ -1065,6 +1073,12 @@ void menuActiveModel(int id)
 		break;
 	case MODEL_DISABLE_VERTEX_ANIM:
 		m->SetVertexAnimation(false);
+		break;
+	case MODEL_ENABLE_COLOR_ANIM:
+		m->SetColorAnimation(true);
+		break;
+	case MODEL_DISABLE_COLOR_ANIM:
+		m->SetColorAnimation(false);
 		break;
 	}
 	glutPostRedisplay();
@@ -1262,12 +1276,12 @@ void menuRenderer(int id)
 void initMenu()
 {
 	int activeModelMenuId = glutCreateMenu(menuActiveModel);
-	glutAddMenuEntry("Show Bounding Box",			MODEL_SHOW_BOUNDING_BOX);
+	//glutAddMenuEntry("Show Bounding Box",			MODEL_SHOW_BOUNDING_BOX);
 	glutAddMenuEntry("Set Monotone Color",			MODEL_SET_MONOTON_COLOR);
 	glutAddMenuEntry("Set Texture",					MODEL_SET_TEXTURE);
-	glutAddMenuEntry("Show Model Frame",			MODEL_SHOW_FRAME);
-	glutAddMenuEntry("Show Normals per Vertex",		MODEL_SHOW_VERTEX_NORMALS);
-	glutAddMenuEntry("Show Normals per Face",		MODEL_SHOW_FACE_NORMALS);
+	//glutAddMenuEntry("Show Model Frame",			MODEL_SHOW_FRAME);
+	//glutAddMenuEntry("Show Normals per Vertex",		MODEL_SHOW_VERTEX_NORMALS);
+	//glutAddMenuEntry("Show Normals per Face",		MODEL_SHOW_FACE_NORMALS);
 	glutAddMenuEntry("Nonuniform Scale",			MODEL_NON_UNIFORM_SCALE);
 	glutAddMenuEntry("Enable environment map",		MODEL_ENABLE_ENV_MAP);
 	glutAddMenuEntry("Disable environment map",		MODEL_DISABLE_ENV_MAP);
@@ -1276,7 +1290,9 @@ void initMenu()
 	glutAddMenuEntry("Disable normal mapping",		MODEL_DISABLE_NORMAL_MAP);
 	glutAddMenuEntry("On vertex animation",			MODEL_ENABLE_VERTEX_ANIM);
 	glutAddMenuEntry("Off vertex animation",		MODEL_DISABLE_VERTEX_ANIM);
-	
+	glutAddMenuEntry("On color animation",			MODEL_ENABLE_COLOR_ANIM);
+	glutAddMenuEntry("Off color animation",			MODEL_DISABLE_COLOR_ANIM);
+
 	int lensMenu = glutCreateMenu(menuLens);
 	glutAddMenuEntry("Ortho",			LENS_ORTHO);
 	glutAddMenuEntry("Perspective",		LENS_PERSPECTIVE);
@@ -1289,17 +1305,17 @@ void initMenu()
 	glutAddSubMenu("Set lens type", lensMenu);
 
 	int rendererMenuId = glutCreateMenu(menuRenderer);
-	glutAddMenuEntry("Wireframe",		RENDERER_SHADING_WIREFRAME);
+	//glutAddMenuEntry("Wireframe",		RENDERER_SHADING_WIREFRAME);
 	glutAddMenuEntry("Flat",			RENDERER_SHADING_FLAT);
 	glutAddMenuEntry("Gouraud",			RENDERER_SHADING_GOURAUD);
 	glutAddMenuEntry("Phong",			RENDERER_SHADING_PHONG);
 	glutAddMenuEntry("Toon",			RENDERER_SHADING_TOON);
 	glutAddMenuEntry("Antialiasing",	RENDERER_SET_ANTIALIASING);
-	glutAddMenuEntry("Toggle Fog",		RENDERER_TOGGLE_FOG);
-	glutAddMenuEntry("Set Fog Color",	RENDERER_SET_FOG_COLOR);
+	//glutAddMenuEntry("Toggle Fog",		RENDERER_TOGGLE_FOG);
+	//glutAddMenuEntry("Set Fog Color",	RENDERER_SET_FOG_COLOR);
 	
 	int lightMenuId = glutCreateMenu(menuLight);
-	glutAddMenuEntry("Ambient",				LIGHT_AMBIENT);
+	//glutAddMenuEntry("Ambient",				LIGHT_AMBIENT);
 	glutAddMenuEntry("Point Source",		LIGHT_POINT_SOURCE);
 	glutAddMenuEntry("Parallel Source",		LIGHT_PARALLEL_SOURCE);
 
@@ -1311,15 +1327,16 @@ void initMenu()
 	glutAddSubMenu("Add Light",				lightMenuId);
 	glutAddSubMenu("Renderer",				rendererMenuId);
 
-	glutAddMenuEntry("Add Primitive",		MAIN_ADD_PRIMITIVE);
+	//glutAddMenuEntry("Add Primitive",		MAIN_ADD_PRIMITIVE);
 	glutAddMenuEntry("Remove all Models",	MAIN_REMOVE_GEOMETRY);
 	glutAddMenuEntry("Remove all Cameras",	MAIN_REMOVE_CAMERAS);
 	glutAddMenuEntry("Remove all Lights",	MAIN_REMOVE_LIGHTS);
 
-	glutAddMenuEntry("Show world frame",	MAIN_SHOW_WORLD_FRAME);
-	glutAddMenuEntry("Show Cameras",		MAIN_RENDER_CAMERAS);
-	glutAddMenuEntry("Show Lights",			MAIN_RENDER_LIGHTS);
-	glutAddMenuEntry("Set Background Color",MAIN_SET_BACKGROUND_COLOR);
+	glutAddMenuEntry("Show silhouette",		MAIN_RENDER_SILHOUETTE);
+	//glutAddMenuEntry("Show world frame",	MAIN_SHOW_WORLD_FRAME);
+	//glutAddMenuEntry("Show Cameras",		MAIN_RENDER_CAMERAS);
+	//glutAddMenuEntry("Show Lights",			MAIN_RENDER_LIGHTS);
+	//glutAddMenuEntry("Set Background Color",MAIN_SET_BACKGROUND_COLOR);
 
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
@@ -1329,6 +1346,13 @@ void onDestruction()
 {
 	delete scene;
 	delete renderer;
+}
+
+void onTimer(int val) {
+	bool OK = true;
+	scene->Animation();
+	glutPostRedisplay();
+	glutTimerFunc(timerInterval, &onTimer, 0);
 }
 
 int my_main( int argc, char **argv )
@@ -1359,6 +1383,8 @@ int my_main( int argc, char **argv )
 	
 	glEnable( GL_TEXTURE_2D);
 
+
+
 	//----------------------------------------------------------------------------
 	// Initialize Callbacks
 	//----------------------------------------------------------------------------
@@ -1367,7 +1393,7 @@ int my_main( int argc, char **argv )
 	glutMouseFunc( mouse );
 	glutMotionFunc ( motion );
 	glutReshapeFunc( reshape );
-	
+	glutTimerFunc(timerInterval, &onTimer, 0);
 	glutCloseFunc( onDestruction ); 	
 
 	initMenu();
@@ -1395,6 +1421,7 @@ int my_main( int argc, char **argv )
 	scene->AddCamera(c1);
 	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), Rgb(0.5,0.5,0.5), vec4(0,0,-1, 0)));
 	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(0,5,-5,1), Rgb(0.5,0.5,0.5), vec4(0,0,0, 0)));
+
 
 
 	glutMainLoop();

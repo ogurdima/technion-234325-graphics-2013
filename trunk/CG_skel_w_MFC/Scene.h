@@ -28,6 +28,7 @@ protected:
 	bool					drawCameras;
 	bool					drawWorldFrame;
 	bool					drawLights;
+	bool					drawSilhouette;
 
 
 	void					SetLights();
@@ -51,6 +52,7 @@ public:
 	MeshModel* ActiveModel();
 
 	bool IsLegal();
+	void Animation();
 
 	void SetShading(ShadingType s);
 
@@ -62,6 +64,7 @@ public:
 	bool ToggleShowCameras();
 	bool ToggleShowWorldFrame();
 	bool ToggleShowLights();
+	bool ToggleShowSilhouette();
 
 	void DrawWorldAxes();
 

@@ -32,7 +32,7 @@ void Renderer::InitShaders()
 	oglPrograms[TOON] = InitShader("Shaders/vnt_vs.glsl", "Shaders/toon_fs.glsl");
 	oglPrograms[SILHOUETTE] = InitShader("Shaders/silhouette_vs.glsl", "Shaders/basic_fs.glsl");
 	oglPrograms[LINE] = InitShader("Shaders/line_vs.glsl", "Shaders/basic_fs.glsl");
-	oglPrograms[ENV] = InitShader("Shaders/env_vs.glsl", "Shaders/env_fs.glsl");
+	oglPrograms[ENV] = InitShader("Shaders/vnt_vs.glsl", "Shaders/env_fs.glsl");
 }
 #pragma endregion
 
@@ -176,7 +176,7 @@ void Renderer::SetPointLights(vector<vec4> lightPositions, vector<vec3> lightCol
 void Renderer::BindModel(MeshModel* model)
 {
 	ModelBind b;
-	b.size = 7;
+	b.size = 8;
 	glGenTextures(1, &(b.texture));
 	glGenTextures(1, &(b.envTexture));
 	glGenTextures(1, &(b.normalTexture));
@@ -189,6 +189,7 @@ void Renderer::BindModel(MeshModel* model)
 	vector<vec3> bitangents;
 	model->TangentBitangent(tangents, bitangents);
 	vector<vec4> avgnormals = model->AverageVertexNormals();
+	vector<vec3> vrands = model->Randoms();
 
 	if( 0 >= pts.size())
 	{
@@ -254,6 +255,17 @@ void Renderer::BindModel(MeshModel* model)
 		glBindBuffer(GL_ARRAY_BUFFER, b.buffers[6]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * avgnormals.size(), &avgnormals[0], GL_STATIC_DRAW);
 	}
+	if( vrands.size() < pts.size())
+	{
+		glDeleteBuffers(1, (&b.buffers[7]) );
+		b.buffers[7] = -1;
+	}
+	else
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, b.buffers[7]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * vrands.size(), &vrands[0], GL_STATIC_DRAW);
+	}
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 	model->_oglBind = b;
@@ -294,7 +306,7 @@ void Renderer::BindNormalTexture(MeshModel* m , Texture& t)
 void Renderer::CopyFrameToTexture(GLenum dir, MeshModel* m)
 {
 	glActiveTexture(GL_TEXTURE1);
-	if( -1 != m->_oglBind.envTexture)
+	if( -1 == m->_oglBind.envTexture)
 	{
 		glGenTextures(1, &(m->_oglBind.envTexture));
 	}
@@ -329,12 +341,24 @@ void Renderer::UnbindModel(MeshModel* mb)
 	mb->_oglBind.vao = 0;
 }
 
+MaterialColor calcColor(MeshModel* m)
+{
+	MaterialColor mc = m->GetDefaultColor();
+	if( !m->GetColorAnimation())
+		return mc;
+	
+	vec3 hsl = mc.diffuse.toHSL();
+	hsl.x = m->GetColorAnimationParam();
+	mc.diffuse.setHSL(hsl);
+	return mc;
+}
+
 void Renderer::SetModelUniforms(MeshModel* m)
 {
 	glUniformMatrix4fv(uLoc.modelLoc, 1, GL_TRUE, m->Transformation());
 	glUniformMatrix4fv(uLoc.normalTransformLoc, 1, GL_TRUE, m->NormalTransformation());
 	
-	MaterialColor mc = m->GetDefaultColor();
+	MaterialColor mc = calcColor(m);
 	glUniform3f(uLoc.ambientLoc, mc.ambient.r, mc.ambient.g, mc.ambient.b);
 	glUniform3f(uLoc.diffuseLoc, mc.diffuse.r, mc.diffuse.g, mc.diffuse.b);
 	glUniform3f(uLoc.emissiveLoc, mc.emissive.r, mc.emissive.g, mc.emissive.b);
@@ -430,7 +454,12 @@ void Renderer::SetModelvao(MeshModel* m)
 		glVertexAttribPointer(vBitanlLoc, 3, GL_FLOAT, 0, 0, 0);
 	}
 
-
+	GLuint vRandlLoc = glGetAttribLocation(oglPrograms[shading], "vRand");
+	if (vRandlLoc != -1 && -1 != m->_oglBind.buffers[7]) {
+		glBindBuffer(GL_ARRAY_BUFFER, m->_oglBind.buffers[7]);
+		glEnableVertexAttribArray(vRandlLoc);
+		glVertexAttribPointer(vRandlLoc, 3, GL_FLOAT, 0, 0, 0);
+	}
 }
 
 void Renderer::DrawModel(MeshModel* m)

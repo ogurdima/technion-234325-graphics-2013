@@ -168,9 +168,6 @@
     <None Include="Shaders\vnt_vs.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\normal_fs.glsl">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="Shaders\env_vs.glsl">
       <Filter>Shaders</Filter>
     </None>

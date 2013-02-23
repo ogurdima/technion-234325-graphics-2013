@@ -47,6 +47,7 @@ public:
 	vector<vec4>			FaceNormals();
 	vector<vec4>			VertexNormals();
 	vector<vec4>			AverageVertexNormals();
+	vector<vec3>			Randoms();
 	void					TangentBitangent(vector<vec3>& outTangent, vector<vec3>& outBitangent);
 	int						FaceCount();
 	
@@ -66,6 +67,10 @@ public:
 
 	void					SetVertexAnimation(bool val);
 	bool					GetVertexAnimation();
+	void					SetColorAnimation(bool val);
+	bool					GetColorAnimation();
+	void					ChangeColorAnimationParam(float factor);
+	float					GetColorAnimationParam();
 	
 protected :
 	vector<Face>			_faces;
@@ -89,6 +94,9 @@ protected :
 	bool					_drawMF;
 
 	bool					_vertexAnimation;
+	bool					_colorAnimation;
+
+	float					_colorAnimationParam;
 
 	bool					_drawTexture;
 	bool					_envMap;

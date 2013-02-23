@@ -12,7 +12,8 @@ activeLight(-1),
 activeCamera(-1),
 drawCameras(false),
 drawWorldFrame(false),
-drawLights(false)
+drawLights(false),
+drawSilhouette(false)
 {
 	this->renderer->SetShading(PHONG);
 }
@@ -114,7 +115,8 @@ void Scene::BindReflectionMaps()
 		glViewport(0,0,256,256);
 		bool aaWasEnabled = glIsEnabled( GL_MULTISAMPLE );
 		glDisable( GL_MULTISAMPLE );
-		vec3 bbCenter = models[i]->BoundingBoxCenter();
+		vec4 bbc = models[i]->Transformation() * vec4( models[i]->BoundingBoxCenter(), 1);
+		vec3 bbCenter = vec3( bbc.x/bbc.w , bbc.y/ bbc.w, bbc.z/bbc.w);
 		vec3 v = bbCenter - ac->Eye();
 		vec3 uppp = cross( cross( ac->At() - ac->Eye(), ac->Up()), ac->At() - ac->Eye());
 		vec3 xxx = normalize(cross(v, uppp));
@@ -144,11 +146,19 @@ void Scene::AddReflectionTexture(GLenum dir, mat4 view, mat4 projection, MeshMod
 	SetLights();
 	for (int j = 0; j < models.size(); j++)
 	{
-		if(models[j]->GetDrawEnvMap() || models[j] == m)
+		if( models[j] == m)
 			continue;
 		renderer->DrawModel(models[j]);
 	}
 	renderer->CopyFrameToTexture(dir, m);
+}
+
+void Scene::Animation()
+{
+	for(int i = 0; i < models.size(); ++i)
+	{
+		models[i]->ChangeColorAnimationParam(0.02);
+	}
 }
 
 void Scene::Draw()
@@ -164,7 +174,7 @@ void Scene::Draw()
 
 	renderer->InitDraw();
 	DrawWorldAxes();
-	if(1)
+	if(drawSilhouette)
 	{
 		renderer->SetShading(SILHOUETTE);
 		renderer->SetCamera(ac->View(), ac->Projection());
@@ -176,39 +186,28 @@ void Scene::Draw()
 		renderer->DisableFrontFaceCull();
 		renderer->FinishShading();
 
-		renderer->SetShading(oldSt);
-		renderer->SetCamera(ac->View(), ac->Projection());
-		SetLights();
-		for (int i = 0; i < models.size(); i++)
-		{
-			if(!models[i]->GetDrawEnvMap())
-				renderer->DrawModel(models[i]);
-		}
-		renderer->FinishShading();
-
-		renderer->SetShading(ENV);
-		renderer->SetCamera(ac->View(), ac->Projection());
-		SetLights();
-		for (int i = 0; i < models.size(); i++)
-		{
-			if(models[i]->GetDrawEnvMap())
-				renderer->DrawModel(models[i]);
-		}
-		renderer->FinishShading();
-
 	}
-	else
+	
+	renderer->SetShading(oldSt);
+	renderer->SetCamera(ac->View(), ac->Projection());
+	SetLights();
+	for (int i = 0; i < models.size(); i++)
 	{
-		renderer->SetShading(oldSt);
-		renderer->SetCamera(ac->View(), ac->Projection());
-		SetLights();
-		for (int i = 0; i < models.size(); i++)
-		{
-			//cout << "Model[" << i << "]";
-//			models[i]->Draw(renderer);
-		}
-		renderer->FinishShading();
+		if(!models[i]->GetDrawEnvMap())
+			renderer->DrawModel(models[i]);
 	}
+	renderer->FinishShading();
+
+	renderer->SetShading(ENV);
+	renderer->SetCamera(ac->View(), ac->Projection());
+	SetLights();
+	for (int i = 0; i < models.size(); i++)
+	{
+		if(models[i]->GetDrawEnvMap())
+			renderer->DrawModel(models[i]);
+	}
+	renderer->FinishShading();
+
 	renderer->SetShading(oldSt);
 	renderer->FinishDraw();
 }
@@ -320,6 +319,13 @@ bool Scene::ToggleShowLights()
 {
 	bool oldval = drawLights;
 	drawLights = !drawLights;
+	return oldval;
+}
+
+bool Scene::ToggleShowSilhouette()
+{
+	bool oldval = drawSilhouette;
+	drawSilhouette = !drawSilhouette;
 	return oldval;
 }
 

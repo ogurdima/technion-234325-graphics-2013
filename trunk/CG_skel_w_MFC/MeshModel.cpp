@@ -25,7 +25,9 @@ _drawTexture(false),
 _envMap(false),
 _texCoordSource(USER_GIVEN),
 _normalMap(false),
-_vertexAnimation(false)
+_vertexAnimation(false),
+_colorAnimation(false),
+_colorAnimationParam(0)
 {
 	_world_transform = Identity4();
 	_normal_transform = Identity4();
@@ -43,7 +45,9 @@ _drawTexture(false),
 _envMap(false),
 _texCoordSource(USER_GIVEN),
 _normalMap(false),
-_vertexAnimation(false)
+_vertexAnimation(false),
+_colorAnimation(false),
+_colorAnimationParam(0)
 {
 	_vertexPositionIdxs = new vector<int>;
 	_vNormalSets = new vector<vector<int> >;
@@ -69,6 +73,8 @@ MeshModel::MeshModel(const MeshModel& rhs)
 	_texCoordSource = rhs._texCoordSource;
 	_normalMap = rhs._normalMap;
 	_vertexAnimation = rhs._vertexAnimation;
+	_colorAnimation = rhs._colorAnimation;
+	_colorAnimationParam = rhs._colorAnimationParam;
 }
 
 MeshModel::~MeshModel(void)
@@ -424,6 +430,23 @@ vector<vec2> MeshModel::SphereTextures()
 	}
 	return textures;
 }
+
+vector<vec3> MeshModel::Randoms()
+{
+	vector<vec3> rands;
+	rands.resize(_vertices.size());
+	for(int i = 0; i < _vertices.size(); ++i)
+	{
+		rands[i] = normalize( normalize(vec3( rand(), rand(), rand())) * 2 - vec3(1,1,1) );
+	}
+	vector<vec3> outRands;
+	outRands.resize(_vertexPositionIdxs->size());
+	for(int i = 0; i < (*_vertexPositionIdxs).size(); ++i)
+	{
+		outRands[i] = rands[(*_vertexPositionIdxs)[i]];
+	}
+	return outRands;
+}
 #pragma endregion
 
 #pragma region Transformations
@@ -528,6 +551,26 @@ void MeshModel::SetVertexAnimation(bool val)
 bool MeshModel::GetVertexAnimation()
 {
 	return _vertexAnimation;
+}
+
+void MeshModel::SetColorAnimation(bool val)
+{
+	_colorAnimation = val;
+}
+
+bool MeshModel::GetColorAnimation()
+{
+	return _colorAnimation;
+}
+
+void MeshModel::ChangeColorAnimationParam(float factor)
+{
+	_colorAnimationParam = fmodf ( ( _colorAnimationParam + factor ), 1.0);
+}
+
+float MeshModel::GetColorAnimationParam()
+{
+	return _colorAnimationParam;
 }
 #pragma endregion
 
