@@ -114,14 +114,13 @@ void Scene::BindReflectionMaps()
 		glViewport(0,0,256,256);
 		bool aaWasEnabled = glIsEnabled( GL_MULTISAMPLE );
 		glDisable( GL_MULTISAMPLE );
-		vec3 bbCenter = models[i]->Origin(); //models[i]->getBBCenter();
+		vec3 bbCenter = models[i]->BoundingBoxCenter();
 		vec3 v = bbCenter - ac->Eye();
 		vec3 uppp = cross( cross( ac->At() - ac->Eye(), ac->Up()), ac->At() - ac->Eye());
 		vec3 xxx = normalize(cross(v, uppp));
 		vec3 yyy = normalize(cross(xxx, v));
 		vec3 zzz = normalize(cross(xxx, yyy));
 
-		renderer->GenEnvTexture(models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, LookAtMat(bbCenter, bbCenter-xxx, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, LookAtMat(bbCenter, bbCenter+yyy, zzz),  PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, LookAtMat(bbCenter, bbCenter-yyy, -zzz), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);

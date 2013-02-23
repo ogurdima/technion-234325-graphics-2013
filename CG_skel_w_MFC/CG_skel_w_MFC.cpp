@@ -53,6 +53,8 @@ typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 #define MODEL_ENABLE_SPHERICAL_TEX_COORD		209
 #define MODEL_ENABLE_NORMAL_MAP					210
 #define MODEL_DISABLE_NORMAL_MAP				211
+#define MODEL_ENABLE_VERTEX_ANIM				212
+#define MODEL_DISABLE_VERTEX_ANIM				213
 
 #define CAMERA_SET_LOCATION						30
 #define CAMERA_SET_FOV							31
@@ -1011,7 +1013,7 @@ void loadNormalTexture()
 		Texture t;
 		lodepng::decode(t.img, t.width, t.height, s);
 		renderer->BindNormalTexture(am, t);
-		am->EnableNormalMap();
+		am->SetNormalMap(true);
 	}
 }
 
@@ -1056,7 +1058,13 @@ void menuActiveModel(int id)
 		loadNormalTexture();
 		break;
 	case MODEL_DISABLE_NORMAL_MAP:
-		m->DisableNormalMap();
+		m->SetNormalMap(false);
+		break;
+	case MODEL_ENABLE_VERTEX_ANIM:
+		m->SetVertexAnimation(true);
+		break;
+	case MODEL_DISABLE_VERTEX_ANIM:
+		m->SetVertexAnimation(false);
 		break;
 	}
 	glutPostRedisplay();
@@ -1264,6 +1272,10 @@ void initMenu()
 	glutAddMenuEntry("Enable environment map",		MODEL_ENABLE_ENV_MAP);
 	glutAddMenuEntry("Disable environment map",		MODEL_DISABLE_ENV_MAP);
 	glutAddMenuEntry("Spherical texture coords",	MODEL_ENABLE_SPHERICAL_TEX_COORD);
+	glutAddMenuEntry("Set normal mapping texture",	MODEL_ENABLE_NORMAL_MAP);
+	glutAddMenuEntry("Disable normal mapping",		MODEL_DISABLE_NORMAL_MAP);
+	glutAddMenuEntry("On vertex animation",			MODEL_ENABLE_VERTEX_ANIM);
+	glutAddMenuEntry("Off vertex animation",		MODEL_DISABLE_VERTEX_ANIM);
 	
 	int lensMenu = glutCreateMenu(menuLens);
 	glutAddMenuEntry("Ortho",			LENS_ORTHO);

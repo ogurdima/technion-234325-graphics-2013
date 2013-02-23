@@ -16,13 +16,11 @@ typedef enum {SPHERICAL, USER_GIVEN, FLATTENED} TexCoordSource_t;
 class MeshModel : public Model
 {
 public:
-					MeshModel();
-					MeshModel(string fileName);
-					MeshModel(const MeshModel& rhs);
-					~MeshModel(void);
-
-	void			LoadFile(string fileName);
-
+							MeshModel();
+							MeshModel(string fileName);
+							MeshModel(const MeshModel& rhs);
+							~MeshModel(void);
+	void					LoadFile(string fileName);
 	// Transformations
 	void					WFRotate(mat4 m);
 	void					WFScale(mat4 m);
@@ -37,36 +35,38 @@ public:
 	bool					ToggleShowBoundingBox();
 	bool					ToggleShowVertexNormals();
 	bool					ToggleShowModelFrame();
-	bool					SetDrawTexture(bool val);
-	void					EnableNormalMap();
-	void					DisableNormalMap();
-	bool					GetNormalMap();
 	// Color manipulations
 	void					SetDefaultColor(MaterialColor _c);
 	MaterialColor			GetDefaultColor();
 	void					SetRandomColor();
 	void					SetProgressiveColor();
-	void					SetTextureCoordinatesSource(TexCoordSource_t _s);
-
+	
 	vector<Vertex>			Triangles();
 	vector<vec2>			TextureCoords();
 	vector<vec2>			SphereTextures();
 	vector<vec4>			FaceNormals();
 	vector<vec4>			VertexNormals();
-	
+	vector<vec4>			AverageVertexNormals();
 	void					TangentBitangent(vector<vec3>& outTangent, vector<vec3>& outBitangent);
-
-	mat4					Transformation();
-	mat4					NormalTransformation();
-
 	int						FaceCount();
+	
 
+	void					SetTextureCoordinatesSource(TexCoordSource_t _s);
+	bool					SetDrawTexture(bool val);
 	bool					GetDrawTexture();
+	void					SetNormalMap(bool);
+	bool					GetNormalMap();
 	bool					GetDrawEnvMap();
 	void					SetDrawEnvMap(bool);
 
 	ModelBind				_oglBind;
 
+	mat4					Transformation();
+	mat4					NormalTransformation();
+
+	void					SetVertexAnimation(bool val);
+	bool					GetVertexAnimation();
+	
 protected :
 	vector<Face>			_faces;
 	vector<Vertex>			_vertices;
@@ -76,6 +76,9 @@ protected :
 	vector<MaterialColor>	_vertexColors;
 	MaterialColor			_defaultColor;
 
+	vector<int>*			_vertexPositionIdxs;
+	vector<vector<int> >*	_vNormalSets;
+
 	mat4					_world_transform;
 	mat4					_normal_transform;
 	mat4					_inner_transform;
@@ -84,12 +87,15 @@ protected :
 	bool					_drawFN;
 	bool					_drawBB;
 	bool					_drawMF;
+
+	bool					_vertexAnimation;
+
 	bool					_drawTexture;
 	bool					_envMap;
 	bool					_normalMap;
-
 	TexCoordSource_t		_texCoordSource;
 
 	void					CalculateFaceNormals();
+	void					CalculateIdxs();
 	
 };

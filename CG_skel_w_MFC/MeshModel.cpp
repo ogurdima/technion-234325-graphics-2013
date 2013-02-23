@@ -6,15 +6,16 @@
 #include <fstream>
 #include <sstream>
 #include <math.h>
-
 using namespace std;
-
+#pragma region
 static vec3 vec3fFromStream(std::istream & aStream);
 static vec2 vec2fFromStream(std::istream & aStream);
 static Rgb interpolate(float t, Rgb a, Rgb b);
 static vec2 unitSphereAngles(vec3 center, vec3 pt);
 static vec2 unitSphereAngles(vec3 pt);
+#pragma endregion
 
+#pragma region Custruction destruction
 MeshModel::MeshModel() :
 _drawBB(false),
 _drawVN(false),
@@ -22,11 +23,15 @@ _drawFN(false),
 _drawMF(false),
 _drawTexture(false),
 _envMap(false),
-_texCoordSource(SPHERICAL)
+_texCoordSource(USER_GIVEN),
+_normalMap(false),
+_vertexAnimation(false)
 {
 	_world_transform = Identity4();
 	_normal_transform = Identity4();
 	_inner_transform = Identity4();
+	_vertexPositionIdxs = new vector<int>;
+	_vNormalSets = new vector<vector<int> >;
 }
 
 MeshModel::MeshModel(string fileName) :
@@ -36,13 +41,19 @@ _drawFN(false),
 _drawMF(false),
 _drawTexture(false),
 _envMap(false),
-_texCoordSource(SPHERICAL)
+_texCoordSource(USER_GIVEN),
+_normalMap(false),
+_vertexAnimation(false)
 {
+	_vertexPositionIdxs = new vector<int>;
+	_vNormalSets = new vector<vector<int> >;
 	LoadFile(fileName);
 }
 
 MeshModel::MeshModel(const MeshModel& rhs) 
 {
+	_vertexPositionIdxs = new vector<int>( *rhs._vertexPositionIdxs);
+	_vNormalSets = new vector<vector<int> >(*rhs._vNormalSets);
 	_world_transform = rhs._world_transform;
 	_normal_transform = rhs._normal_transform;
 	_faces = rhs._faces;
@@ -56,10 +67,14 @@ MeshModel::MeshModel(const MeshModel& rhs)
 	_drawTexture = rhs._drawTexture;
 	_envMap = rhs._envMap;
 	_texCoordSource = rhs._texCoordSource;
+	_normalMap = rhs._normalMap;
+	_vertexAnimation = rhs._vertexAnimation;
 }
 
 MeshModel::~MeshModel(void)
 {
+	delete _vertexPositionIdxs;
+	delete _vNormalSets;
 }
 
 void MeshModel::LoadFile(string fileName)
@@ -102,12 +117,12 @@ void MeshModel::LoadFile(string fileName)
 			cout<< "Found unknown line Type \"" << lineType << "\"" << endl;
 		}
 	}
-
 	CalculateFaceNormals();
+	CalculateIdxs();
 }
+#pragma endregion
 
-
-// Transformations
+#pragma region Transformations
 void MeshModel::MFRotate(mat4 m)
 {
 	_inner_transform = m * _inner_transform;
@@ -144,8 +159,9 @@ vec3 MeshModel::Origin()
 	vec4 orig4 = _world_transform * vec4(0,0,0,1);
 	return vec3( orig4.x, orig4.y, orig4.z );
 }
+#pragma endregion
 
-// Drawing options
+#pragma region Drawing options
 bool MeshModel::ToggleShowFaceNormals()
 {
 	bool oldval = _drawFN;
@@ -172,15 +188,9 @@ bool MeshModel::ToggleShowModelFrame() {
 	_drawMF = ! _drawMF;
 	return oldval;
 }
+#pragma endregion
 
-bool MeshModel::SetDrawTexture(bool val)
-{
-	bool oldval = _drawTexture;
-	_drawTexture = val;
-	return oldval;
-}
-
-// Color manipulations
+#pragma region Color manipulations
 MaterialColor MeshModel::GetDefaultColor()
 {
 	return _defaultColor;
@@ -255,13 +265,9 @@ void MeshModel::SetProgressiveColor()
 		_vertexColors.push_back(mc);
 	}
 }
+#pragma endregion
 
-void MeshModel::SetTextureCoordinatesSource(TexCoordSource_t _s)
-{
-	_texCoordSource = _s;
-	// send ne textures (Textures()) to the renderer, so it could rebind the buffer.
-}
-
+#pragma region Arrays
 vector<Vertex> MeshModel::Triangles()
 {
 	vector<Vertex> vertex_positions;
@@ -290,6 +296,30 @@ vector<vec4> MeshModel::VertexNormals()
 			{
 				normals.push_back(_normals[_faces[i].vn[j] - 1]);
 			}
+		}
+	}
+	return normals;
+}
+
+vector<vec4> MeshModel::AverageVertexNormals()
+{
+	vector<vec4> normals;
+	for(int i = 0; i < _vertexPositionIdxs->size(); ++i)
+	{
+		int vIdx = (*_vertexPositionIdxs)[i];
+		vector<int>& normalIdxs = (*_vNormalSets)[vIdx];
+		if(0 == normalIdxs.size())
+		{
+			normals.push_back(normalize(_faceNormals[i/3]));
+		}
+		else
+		{
+			vec4 avgNormal(0,0,0,0);
+			for( int j = 0; j < normalIdxs.size(); j++)
+			{
+				avgNormal += normalize(_normals[ normalIdxs[j]]);
+			}
+			normals.push_back(normalize(avgNormal));
 		}
 	}
 	return normals;
@@ -335,16 +365,9 @@ vector<vec2> MeshModel::TextureCoords()
 
 void MeshModel::TangentBitangent(vector<vec3>& outTangent, vector<vec3>& outBitangent)
 {
-	
 	vector<vec2> textureCoords = TextureCoords();
-	if(0 == textureCoords.size())
-	{
-		outTangent = vector<vec3>();
-		outBitangent = vector<vec3>();
-		return;
-	}
 	vector<vec4> vertices = Triangles();
-	if(textureCoords.size() < vertices.size())
+	if(0 == textureCoords.size() || textureCoords.size() < vertices.size())
 	{
 		outTangent = vector<vec3>();
 		outBitangent = vector<vec3>();
@@ -375,6 +398,7 @@ void MeshModel::TangentBitangent(vector<vec3>& outTangent, vector<vec3>& outBita
 		vec3 tangent = (deltaPos1 * deltaUV2.y   - deltaPos2 * deltaUV1.y)*r;
 		vec3 bitangent = (deltaPos2 * deltaUV1.x   - deltaPos1 * deltaUV2.x)*r;
 
+
 		outTangent.push_back( tangent);
 		outTangent.push_back( tangent);
 		outTangent.push_back( tangent);
@@ -400,7 +424,9 @@ vector<vec2> MeshModel::SphereTextures()
 	}
 	return textures;
 }
+#pragma endregion
 
+#pragma region Transformations
 mat4 MeshModel::Transformation()
 {
 	return _world_transform * _inner_transform;
@@ -410,11 +436,25 @@ mat4 MeshModel::NormalTransformation()
 {
 	return _normal_transform * _inner_transform;
 }
+#pragma endregion
+
+#pragma region Mapping
+bool MeshModel::SetDrawTexture(bool val)
+{
+	bool oldval = _drawTexture;
+	_drawTexture = val;
+	return oldval;
+}
 
 bool MeshModel::GetDrawTexture()
+{ return _drawTexture; }
+
+void MeshModel::SetTextureCoordinatesSource(TexCoordSource_t _s)
 {
-	return _drawTexture;
+	_texCoordSource = _s;
+	// send ne textures (Textures()) to the renderer, so it could rebind the buffer.
 }
+
 bool MeshModel::GetDrawEnvMap()
 {
 	return _envMap;
@@ -425,26 +465,21 @@ void MeshModel::SetDrawEnvMap(bool arg)
 	_envMap = arg;
 }
 
+void MeshModel::SetNormalMap(bool val)
+{
+	_normalMap = val;
+}
+
+bool MeshModel::GetNormalMap()
+{
+	return _normalMap;
+}
+#pragma endregion
+
 int MeshModel::FaceCount()
 {
 	return _faces.size();
 }
-
-void MeshModel::CalculateFaceNormals()
-{
-	vec4 p1, p2, p3, d1, d2, crs;
-	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it)
-	{
-		p1 = _vertices[it->v[0] - 1];
-		p2 = _vertices[it->v[1] - 1];
-		p3 = _vertices[it->v[2] - 1];
-		d1 = p2 - p1; //assuming counterclockwise enumeration
-		d2 = p3 - p2;
-		crs = normalize(vec4(cross(d1, d2), 0));
-		_faceNormals.push_back(crs);
-	}
-}
-
 
 vec3 MeshModel::BoundingBoxCenter()
 {
@@ -484,21 +519,86 @@ vec3 MeshModel::BoundingBoxCenter()
 	return vec3(x,y,z);
 }
 
-void MeshModel::EnableNormalMap()
+#pragma region	Animation
+void MeshModel::SetVertexAnimation(bool val)
 {
-	_normalMap = true;
+	_vertexAnimation = val;
 }
 
-void MeshModel::DisableNormalMap()
+bool MeshModel::GetVertexAnimation()
 {
-	_normalMap = false;
+	return _vertexAnimation;
+}
+#pragma endregion
+
+#pragma region Precalculations
+void MeshModel::CalculateIdxs()
+{
+	vector<vector<int> >* _vTextureIdxsSet = new vector<vector<int> >(_vertices.size());
+	_vNormalSets->resize(_vertices.size());
+	for (int i=0; i < _faces.size(); ++i)
+	{
+		for (int j = 0; j < 3; ++j)
+		{
+			int idx = _faces[i].v[j] - 1;
+			_vertexPositionIdxs->push_back( idx );
+
+			if(_faces[i].vn[j] > 0) 
+			{
+				int normalIdx = _faces[i].vn[j] - 1;
+				vector<int>& normalSet = (*_vNormalSets)[idx];
+				bool found = false;
+				for( int k = 0; k < normalSet.size(); ++k)
+				{
+					if( normalSet[k] == normalIdx)
+					{
+						found = true;
+					}
+				}
+				if(!found)
+				{
+					normalSet.push_back(normalIdx);
+				}
+			}
+
+			if(_faces[i].vt[j] > 0) 
+			{
+				int textureIdx = _faces[i].vt[j] - 1;
+				vector<int>& texIdxSet = (*_vTextureIdxsSet)[idx];
+				bool found = false;
+				for( int k = 0; k < texIdxSet.size(); ++k)
+				{
+					if( texIdxSet[k] == textureIdx)
+					{
+						found = true;
+					}
+				}
+				if(!found)
+				{
+					texIdxSet.push_back(textureIdx);
+				}
+			}
+		}
+	}
 }
 
-bool MeshModel::GetNormalMap()
+void MeshModel::CalculateFaceNormals()
 {
-	return _normalMap;
+	vec4 p1, p2, p3, d1, d2, crs;
+	for (vector<Face>::iterator it = _faces.begin(); it != _faces.end(); ++it)
+	{
+		p1 = _vertices[it->v[0] - 1];
+		p2 = _vertices[it->v[1] - 1];
+		p3 = _vertices[it->v[2] - 1];
+		d1 = p2 - p1; //assuming counterclockwise enumeration
+		d2 = p3 - p2;
+		crs = normalize(vec4(cross(d1, d2), 0));
+		_faceNormals.push_back(crs);
+	}
 }
+#pragma endregion
 
+#pragma region helper functions
 
 // static helper functions
 static vec3 vec3fFromStream(std::istream & aStream)
@@ -540,3 +640,4 @@ static vec2 unitSphereAngles(vec3 pt)
 	// 0 < t < pi; 0 < f < 2pi
 	return vec2(f, t);
 }
+#pragma endregion

@@ -16,8 +16,8 @@ vec3 calcColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc);
 in vec3 normal;
 in vec4 vertex;
 in vec2 fTex;
-in vec3 fTan;
-in vec3 fBitan;
+
+in mat3 tbn;
 
 out vec4 fcolor;
 
@@ -37,11 +37,9 @@ uniform int pointLightNum;
 
 uniform bool useTex;
 uniform sampler2D texMap;
+
 uniform bool useNormalMap;
 uniform sampler2D normalMap;
-
-uniform mat4 view;
-uniform mat4 normalTransform;
 
 void main()
 {
@@ -54,26 +52,19 @@ void main()
 	mc.ambient = ambient;
 	mc.shininess = shininess;
 
+	vec3 newNormal = normal;
+	if( useNormalMap)
+	{
+		newNormal =  tbn * normalize( texture2D( normalMap, fTex ).rgb*2.0 - 1.0);
+	}
+
 	if ( useTex )
 	{
 		mc.diffuse = texture2D(texMap, fTex).rgb;
 	}
-	vec3 newNormal = normal;
-	if(useNormalMap)
-	{
-		
-	}
-	vec3 totalColor = calcColor(vertex.xyz, normal, viewDir, mc);
+
+	vec3 totalColor = calcColor(vertex.xyz, newNormal, viewDir, mc);
 	fcolor = vec4(totalColor, 1);
-}
-
-vec3 calcNormal()
-{
-	vertexNormal_cameraspace = MV3x3 * normalize(vertexNormal_modelspace);
-	vertexTangent_cameraspace = MV3x3 * normalize(vertexTangent_modelspace);
-	vertexBitangent_cameraspace = MV3x3 * normalize(vertexBitangent_modelspace);
-
-	vec3 TextureNormal_tangentspace = normalize(texture2D( normalMap, UV ).rgb*2.0 - 1.0);
 }
 
 vec3 calcColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc) 
