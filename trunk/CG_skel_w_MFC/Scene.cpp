@@ -16,12 +16,14 @@ drawLights(false),
 drawSilhouette(false)
 {
 	this->renderer->SetShading(PHONG);
+	GenerateNoise();
 }
 
 Scene::~Scene() 
 {
 	for (int i = 0; i < models.size(); i++) {
 		if (NULL != models[i]) {
+			renderer->UnbindModel(models[i]);
 			delete models[i];
 			models[i] = NULL;
 		}
@@ -237,18 +239,37 @@ void Scene::AddMeshModel(MeshModel m )
 void Scene::RemoveLights()
 {
 	activeLight = -1;
+	for (int i = 0; i < lights.size(); i++) {
+		if (NULL != lights[i]) {
+			delete lights[i];
+			lights[i] = NULL;
+		}
+	}
 	lights.clear();
 }
 
 void Scene::RemoveCameras()
 {
 	activeCamera = -1;
+	for (int i = 0; i < cameras.size(); i++) {
+		if (NULL != cameras[i]) {
+			delete cameras[i];
+			cameras[i] = NULL;
+		}
+	}
 	cameras.clear();
 }
 
 void Scene::RemoveGeometry()
 {
 	activeModel = -1;
+	for (int i = 0; i < models.size(); i++) {
+		if (NULL != models[i]) {
+			renderer->UnbindModel(models[i]);
+			delete models[i];
+			models[i] = NULL;
+		}
+	}
 	models.clear();
 }
 
@@ -343,4 +364,77 @@ void Scene::SetShading(ShadingType s)
 //		models[i]->Unbind(renderer);
 //		models[i]->BindToRenderer(renderer);
 	}
+}
+
+void Scene::GenerateNoise()
+{
+	for (int x = 0; x < NOISE_WIDTH; x++)
+    for (int y = 0; y < NOISE_HEIGHT; y++)
+    {
+        noise[x][y] = (rand() % 32768) / 32768.0;
+    }
+}
+
+double Scene::SmoothNoise(double x, double y)
+{  
+   //get fractional part of x and y
+   double fractX = x - int(x);
+   double fractY = y - int(y);
+   
+   //wrap around
+   int x1 = (int(x) + NOISE_WIDTH) % NOISE_WIDTH;
+   int y1 = (int(y) + NOISE_HEIGHT) % NOISE_HEIGHT;
+   
+   //neighbor values
+   int x2 = (x1 + NOISE_WIDTH - 1) % NOISE_WIDTH;
+   int y2 = (y1 + NOISE_HEIGHT - 1) % NOISE_HEIGHT;
+
+   //smooth the noise with bilinear interpolation
+   double value = 0.0;
+   value += fractX       * fractY       * noise[x1][y1];
+   value += fractX       * (1 - fractY) * noise[x1][y2];
+   value += (1 - fractX) * fractY       * noise[x2][y1];
+   value += (1 - fractX) * (1 - fractY) * noise[x2][y2];
+
+   return value;
+}
+
+double Scene::Turbulence(double x, double y, double size)
+{
+    double value = 0.0, initialSize = size;
+    
+    while(size >= 1)
+    {
+        value += SmoothNoise(x / size, y / size) * size;
+        size /= 2.0;
+    }
+    
+    return  value / initialSize;
+}
+
+Texture Scene::CalculateMarbleTexture()
+{
+	int size = 1024;
+	Texture marble;
+	marble.height = marble.width = size;
+	marble.img.resize(size*size*4);
+
+	Rgb color;
+	double xPeriod = 0.1; 
+    double yPeriod = 0.5; 
+    //turbPower = 0 ==> it becomes a normal sine pattern
+    double turbPower = 2.0; //makes twists
+    double turbSize = 32.0; //initial size of the turbulence
+    
+    for(int x = 0; x < size; x++)
+    for(int y = 0; y < size; y++)
+    {    
+        double xyValue = x * xPeriod / NOISE_HEIGHT + y * yPeriod / NOISE_WIDTH + turbPower * Turbulence(x, y, turbSize);
+        byte sineValue =  (byte)(fabs(sin(xyValue * 3.14159)) * 255) % 256 ;
+		marble.img[ 4*(y + x*size)]   =	sineValue;
+		marble.img[ 4*(y + x*size)+1] = sineValue;
+		marble.img[ 4*(y + x*size)+2] = sineValue;
+		marble.img[ 4*(y + x*size)+3] = (byte)1;
+    }
+	return marble;
 }

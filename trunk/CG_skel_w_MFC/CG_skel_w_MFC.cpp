@@ -60,6 +60,7 @@ typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 #define MODEL_ENABLE_HUE_COLOR_ANIM				214
 #define MODEL_DISABLE_COLOR_ANIM				215
 #define MODEL_ENABLE_LERP_COLOR_ANIM			216
+#define MODEL_SET_MARBLE						217
 
 #define CAMERA_SET_LOCATION						30
 #define CAMERA_SET_FOV							31
@@ -1009,7 +1010,6 @@ void loadTexture()
 		am->SetDrawTexture(true);
 	}
 }
-
 void loadNormalTexture()
 {
 	MeshModel* am = scene->ActiveModel();
@@ -1024,6 +1024,16 @@ void loadNormalTexture()
 		renderer->BindNormalTexture(am, t);
 		am->SetNormalMap(true);
 	}
+}
+void loadMarbleTexture()
+{
+	MeshModel* am = scene->ActiveModel();
+	if(NULL == am)
+		return;
+
+	Texture t = scene->CalculateMarbleTexture();
+	renderer->BindTexture(am, t);
+	am->SetDrawTexture(true);
 }
 
 void menuActiveModel(int id)
@@ -1083,6 +1093,9 @@ void menuActiveModel(int id)
 		break;
 	case MODEL_DISABLE_COLOR_ANIM:
 		m->SetColorAnimation(NONE);
+		break;
+	case MODEL_SET_MARBLE:
+		loadMarbleTexture();
 		break;
 	}
 	glutPostRedisplay();
@@ -1283,6 +1296,7 @@ void initMenu()
 	//glutAddMenuEntry("Show Bounding Box",			MODEL_SHOW_BOUNDING_BOX);
 	glutAddMenuEntry("Set Monotone Color",			MODEL_SET_MONOTON_COLOR);
 	glutAddMenuEntry("Set Texture",					MODEL_SET_TEXTURE);
+	glutAddMenuEntry("Set marble texture",			MODEL_SET_MARBLE);
 	//glutAddMenuEntry("Show Model Frame",			MODEL_SHOW_FRAME);
 	//glutAddMenuEntry("Show Normals per Vertex",		MODEL_SHOW_VERTEX_NORMALS);
 	//glutAddMenuEntry("Show Normals per Face",		MODEL_SHOW_FACE_NORMALS);
@@ -1291,6 +1305,7 @@ void initMenu()
 	glutAddMenuEntry("Disable environment map",		MODEL_DISABLE_ENV_MAP);
 	glutAddMenuEntry("Spherical texture coords",	MODEL_ENABLE_SPHERICAL_TEX_COORD);
 	glutAddMenuEntry("Set normal mapping texture",	MODEL_ENABLE_NORMAL_MAP);
+
 	glutAddMenuEntry("Disable normal mapping",		MODEL_DISABLE_NORMAL_MAP);
 	glutAddMenuEntry("On vertex animation",			MODEL_ENABLE_VERTEX_ANIM);
 	glutAddMenuEntry("Off vertex animation",		MODEL_DISABLE_VERTEX_ANIM);

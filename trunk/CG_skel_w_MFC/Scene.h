@@ -9,6 +9,9 @@
 #include "Rgb.h"
 #include "Light.h"
 
+#define NOISE_WIDTH		128
+#define NOISE_HEIGHT	128
+
 
 using namespace std;
 
@@ -16,6 +19,8 @@ class Scene
 {
 
 protected:
+	double noise[NOISE_WIDTH][NOISE_HEIGHT]; 
+
 	vector<MeshModel*>		models;
 	vector<Light*>			lights;
 	vector<Camera*>			cameras;
@@ -32,8 +37,9 @@ protected:
 
 
 	void					SetLights();
-
-
+	void					GenerateNoise();
+	double					SmoothNoise(double x, double y);
+	double					Turbulence(double x, double y, double size);
 public:
 	
 	Scene(Renderer *renderer);
@@ -71,15 +77,7 @@ public:
 	void AddReflectionTexture(GLenum dir, mat4 view, mat4 projection, MeshModel* m );
 	void BindReflectionMaps();
 
-	//void DrawModelAxes(Model* m);
-	//void DrawSnowflake(vec4 at, float len, Rgb col = Rgb(0,0,0));
-	//void DrawLights();
-	//void DrawCameras();
 
-	//void SetActiveModelAnchor();
-	//vector<vec3> getAnchoredModelCoordinates();
-	//void RotateActiveModel(mat4 rotMatrix);
-	//void TranslateActiveModel(mat4 transMatrix);
-	//void AddActiveModelTransform(mat4 trans);
+	Texture					CalculateMarbleTexture();
 	
 };
