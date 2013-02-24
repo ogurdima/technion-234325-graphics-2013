@@ -2,7 +2,7 @@
 #include "Renderer.h"
 #include "InitShader.h"
 
-#pragma region Ctor Dtor
+//#pragma region Ctor Dtor
 void checkOpenGLerror()
 {
   GLenum errCode;
@@ -34,9 +34,9 @@ void Renderer::InitShaders()
 	oglPrograms[LINE] = InitShader("Shaders/line_vs.glsl", "Shaders/basic_fs.glsl");
 	oglPrograms[ENV] = InitShader("Shaders/vnt_vs.glsl", "Shaders/env_fs.glsl");
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Draw pipeline
+//#pragma region Draw pipeline
 void Renderer::InitDraw()
 {
 	// clear buffer 
@@ -106,17 +106,17 @@ void Renderer::ToggleAntialiasing()
 	}
 	glEnable( GL_MULTISAMPLE);
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Camera
+//#pragma region Camera
 void Renderer::SetCamera(mat4 view, mat4 projection)
 {
 	glUniformMatrix4fv( uLoc.viewLoc, 1, GL_TRUE, view);
 	glUniformMatrix4fv( uLoc.projectionLoc, 1, GL_TRUE, projection);
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Lights
+//#pragma region Lights
 void Renderer::SetParallelLights(vector<vec4> lightDirections, vector<vec3> lightColors)
 {
 	GLuint program = oglPrograms[shading];
@@ -170,9 +170,9 @@ void Renderer::SetPointLights(vector<vec4> lightPositions, vector<vec3> lightCol
 	int pointLightNumLoc = glGetUniformLocation(program, "pointLightNum");
 	glUniform1i(pointLightNumLoc, bound);
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Model
+//#pragma region Model
 void Renderer::BindModel(MeshModel* model)
 {
 	ModelBind b;
@@ -341,24 +341,13 @@ void Renderer::UnbindModel(MeshModel* mb)
 	mb->_oglBind.vao = 0;
 }
 
-MaterialColor calcColor(MeshModel* m)
-{
-	MaterialColor mc = m->GetDefaultColor();
-	if( !m->GetColorAnimation())
-		return mc;
-	
-	vec3 hsl = mc.diffuse.toHSL();
-	hsl.x = m->GetColorAnimationParam();
-	mc.diffuse.setHSL(hsl);
-	return mc;
-}
 
 void Renderer::SetModelUniforms(MeshModel* m)
 {
 	glUniformMatrix4fv(uLoc.modelLoc, 1, GL_TRUE, m->Transformation());
 	glUniformMatrix4fv(uLoc.normalTransformLoc, 1, GL_TRUE, m->NormalTransformation());
 	
-	MaterialColor mc = calcColor(m);
+	MaterialColor mc = m->GetDefaultColor();
 	glUniform3f(uLoc.ambientLoc, mc.ambient.r, mc.ambient.g, mc.ambient.b);
 	glUniform3f(uLoc.diffuseLoc, mc.diffuse.r, mc.diffuse.g, mc.diffuse.b);
 	glUniform3f(uLoc.emissiveLoc, mc.emissive.r, mc.emissive.g, mc.emissive.b);
@@ -478,9 +467,9 @@ void Renderer::DrawModel(MeshModel* m)
 	glBindVertexArray(0);
 
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Lines
+//#pragma region Lines
 GLuint Renderer::BindLineBuffer(vector<vec4> verteces, vector<vec3> colors)
 {
 	GLuint oglLineProgram = oglPrograms[LINE];
@@ -525,9 +514,9 @@ void Renderer::DrawWFLines(vector<vec4> verteces, vector<vec3> colors)
 	glDeleteVertexArrays(1, &vao);
 	return;
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Deprecated
+//#pragma region Deprecated
 //void Renderer::SetUniformMatrices(vector<GLuint> handles, vector<mat4> values)
 //{
 //	GLuint program = oglPrograms[shading];
@@ -609,4 +598,4 @@ void Renderer::DrawWFLines(vector<vec4> verteces, vector<vec3> colors)
 //	glDrawArrays(GL_TRIANGLES, 0, count);
 //}
 
-#pragma endregion
+//#pragma endregion

@@ -7,15 +7,15 @@
 #include <sstream>
 #include <math.h>
 using namespace std;
-#pragma region
+//#pragma region
 static vec3 vec3fFromStream(std::istream & aStream);
 static vec2 vec2fFromStream(std::istream & aStream);
 static Rgb interpolate(float t, Rgb a, Rgb b);
 static vec2 unitSphereAngles(vec3 center, vec3 pt);
 static vec2 unitSphereAngles(vec3 pt);
-#pragma endregion
+//#pragma endregion
 
-#pragma region Custruction destruction
+//#pragma region Custruction destruction
 MeshModel::MeshModel() :
 _drawBB(false),
 _drawVN(false),
@@ -25,9 +25,7 @@ _drawTexture(false),
 _envMap(false),
 _texCoordSource(USER_GIVEN),
 _normalMap(false),
-_vertexAnimation(false),
-_colorAnimation(false),
-_colorAnimationParam(0)
+_vertexAnimation(false)
 {
 	_world_transform = Identity4();
 	_normal_transform = Identity4();
@@ -45,9 +43,7 @@ _drawTexture(false),
 _envMap(false),
 _texCoordSource(USER_GIVEN),
 _normalMap(false),
-_vertexAnimation(false),
-_colorAnimation(false),
-_colorAnimationParam(0)
+_vertexAnimation(false)
 {
 	_vertexPositionIdxs = new vector<int>;
 	_vNormalSets = new vector<vector<int> >;
@@ -73,8 +69,6 @@ MeshModel::MeshModel(const MeshModel& rhs)
 	_texCoordSource = rhs._texCoordSource;
 	_normalMap = rhs._normalMap;
 	_vertexAnimation = rhs._vertexAnimation;
-	_colorAnimation = rhs._colorAnimation;
-	_colorAnimationParam = rhs._colorAnimationParam;
 }
 
 MeshModel::~MeshModel(void)
@@ -126,9 +120,9 @@ void MeshModel::LoadFile(string fileName)
 	CalculateFaceNormals();
 	CalculateIdxs();
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Transformations
+//#pragma region Transformations
 void MeshModel::MFRotate(mat4 m)
 {
 	_inner_transform = m * _inner_transform;
@@ -165,9 +159,9 @@ vec3 MeshModel::Origin()
 	vec4 orig4 = _world_transform * vec4(0,0,0,1);
 	return vec3( orig4.x, orig4.y, orig4.z );
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Drawing options
+//#pragma region Drawing options
 bool MeshModel::ToggleShowFaceNormals()
 {
 	bool oldval = _drawFN;
@@ -194,11 +188,29 @@ bool MeshModel::ToggleShowModelFrame() {
 	_drawMF = ! _drawMF;
 	return oldval;
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Color manipulations
+//#pragma region Color manipulations
+
 MaterialColor MeshModel::GetDefaultColor()
 {
+	MaterialColor mc = _defaultColor;
+	if( NONE == _colorAnimation )
+	{
+		return mc;
+	}
+	if ( HUE == _colorAnimation ) 
+	{
+		vec3 hsl = mc.diffuse.toHSL();
+		hsl.x = _colorAnimationSharedCoeff;
+		mc.diffuse.setHSL(hsl);
+		return mc;
+	}
+	if ( LERP == _colorAnimation ) 
+	{
+		mc.diffuse = interpolate(_colorAnimationSharedCoeff, mc.diffuse, _colorAnimationLerpRandom);
+		return mc;
+	}
 	return _defaultColor;
 }
 
@@ -271,9 +283,9 @@ void MeshModel::SetProgressiveColor()
 		_vertexColors.push_back(mc);
 	}
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Arrays
+//#pragma region Arrays
 vector<Vertex> MeshModel::Triangles()
 {
 	vector<Vertex> vertex_positions;
@@ -447,9 +459,9 @@ vector<vec3> MeshModel::Randoms()
 	}
 	return outRands;
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Transformations
+//#pragma region Transformations
 mat4 MeshModel::Transformation()
 {
 	return _world_transform * _inner_transform;
@@ -459,9 +471,9 @@ mat4 MeshModel::NormalTransformation()
 {
 	return _normal_transform * _inner_transform;
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region Mapping
+//#pragma region Mapping
 bool MeshModel::SetDrawTexture(bool val)
 {
 	bool oldval = _drawTexture;
@@ -497,7 +509,7 @@ bool MeshModel::GetNormalMap()
 {
 	return _normalMap;
 }
-#pragma endregion
+//#pragma endregion
 
 int MeshModel::FaceCount()
 {
@@ -542,7 +554,7 @@ vec3 MeshModel::BoundingBoxCenter()
 	return vec3(x,y,z);
 }
 
-#pragma region	Animation
+//#pragma region	Animation
 void MeshModel::SetVertexAnimation(bool val)
 {
 	_vertexAnimation = val;
@@ -553,16 +565,70 @@ bool MeshModel::GetVertexAnimation()
 	return _vertexAnimation;
 }
 
-void MeshModel::SetColorAnimation(bool val)
+void MeshModel::Animation()
 {
+	VertexAnimation();
+	ColorAnimation();
+}
+
+void MeshModel::VertexAnimation()
+{
+	// nothing to do here - animation is handeled in shader
+}
+
+void MeshModel::ColorAnimation()
+{
+	if( NONE == _colorAnimation )
+	{
+		return;
+	}
+	if ( HUE == _colorAnimation ) 
+	{
+		_colorAnimationSharedCoeff = fmodf ( ( _colorAnimationSharedCoeff + 0.02 ), 1.0);
+		return;
+	}
+	if ( LERP == _colorAnimation ) 
+	{
+		if (_colorAnimationLerpSubtract) {
+			_colorAnimationSharedCoeff -= 0.02;
+			if (_colorAnimationSharedCoeff <= 0) {
+				_colorAnimationSharedCoeff = 0;
+				_colorAnimationLerpSubtract = false;
+			}
+		}
+		else {
+			_colorAnimationSharedCoeff += 0.02;
+			if (_colorAnimationSharedCoeff >= 1) {
+				_colorAnimationSharedCoeff = 1;
+				_colorAnimationLerpSubtract = true;
+			}
+		}
+		return;
+	}
+}
+
+void MeshModel::SetColorAnimation(ColorAnim_t val)
+{
+	if (NONE == val) {
+		_colorAnimationLerpRandom = Rgb(0,0,0);
+		_colorAnimationLerpSubtract = false;
+		_colorAnimationSharedCoeff = 0;
+	}
+	if (LERP == val) {
+		float randR = ( (float)(rand() % 10000) ) / (10000 - 1);
+		float randG = ( (float)(rand() % 10000) ) / (10000 - 1);
+		float randB = ( (float)(rand() % 10000) ) / (10000 - 1);
+		_colorAnimationLerpRandom = Rgb(randR, randG, randB);
+	}
 	_colorAnimation = val;
 }
 
-bool MeshModel::GetColorAnimation()
+ColorAnim_t MeshModel::GetColorAnimation()
 {
 	return _colorAnimation;
 }
 
+/*
 void MeshModel::ChangeColorAnimationParam(float factor)
 {
 	_colorAnimationParam = fmodf ( ( _colorAnimationParam + factor ), 1.0);
@@ -572,9 +638,12 @@ float MeshModel::GetColorAnimationParam()
 {
 	return _colorAnimationParam;
 }
-#pragma endregion
 
-#pragma region Precalculations
+*/
+
+//#pragma endregion
+
+//#pragma region Precalculations
 void MeshModel::CalculateIdxs()
 {
 	vector<vector<int> >* _vTextureIdxsSet = new vector<vector<int> >(_vertices.size());
@@ -639,9 +708,9 @@ void MeshModel::CalculateFaceNormals()
 		_faceNormals.push_back(crs);
 	}
 }
-#pragma endregion
+//#pragma endregion
 
-#pragma region helper functions
+//#pragma region helper functions
 
 // static helper functions
 static vec3 vec3fFromStream(std::istream & aStream)
@@ -683,4 +752,4 @@ static vec2 unitSphereAngles(vec3 pt)
 	// 0 < t < pi; 0 < f < 2pi
 	return vec2(f, t);
 }
-#pragma endregion
+//#pragma endregion
