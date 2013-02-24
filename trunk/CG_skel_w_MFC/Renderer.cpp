@@ -189,7 +189,7 @@ void Renderer::BindModel(MeshModel* model)
 	vector<vec3> bitangents;
 	model->TangentBitangent(tangents, bitangents);
 	vector<vec4> avgnormals = model->AverageVertexNormals();
-	vector<vec3> vrands = model->Randoms();
+	vector<float> vrands = model->RandomFloatPerVertex();
 
 	if( 0 >= pts.size())
 	{
@@ -263,7 +263,7 @@ void Renderer::BindModel(MeshModel* model)
 	else
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, b.buffers[7]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * vrands.size(), &vrands[0], GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vrands.size(), &vrands[0], GL_STATIC_DRAW);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -354,7 +354,6 @@ void Renderer::SetModelUniforms(MeshModel* m)
 	glUniform3f(uLoc.specularLoc, mc.specular.r, mc.specular.g, mc.specular.b);
 	glUniform1f(uLoc.shininessLoc, mc.shininess);
 	
-	
 	if(m->GetDrawTexture() && -1 != m->_oglBind.buffers[3])
 	{
 		glUniform1i(uLoc.useTexLoc, m->GetDrawTexture());
@@ -374,7 +373,6 @@ void Renderer::SetModelUniforms(MeshModel* m)
 		glUniform1i(uLoc.envCubeMapLoc, 1);
 	}
 
-	
 	if(m->GetNormalMap() && -1 != m->_oglBind.buffers[3] && -1 != m->_oglBind.normalTexture)
 	{
 		glUniform1i(uLoc.useNormalMapLoc, m->GetNormalMap());
@@ -386,12 +384,17 @@ void Renderer::SetModelUniforms(MeshModel* m)
 	{
 		glUniform1i(uLoc.useNormalMapLoc, false);
 	}
-
-	bool anim = m->GetVertexAnimation();
-	glUniform1i(uLoc.useVertexAnimation, m->GetVertexAnimation());
-	vec3 param = normalize( vec3( rand(), rand(), rand()));
-	glUniform3f(uLoc.vertexAnimationParamLoc, param.x, param.y, param.z);
-
+	
+	if (m->GetVertexAnimation() && -1 != m->_oglBind.buffers[7] )
+	{
+		glUniform1i(uLoc.useVertexAnimation, m->GetVertexAnimation());
+		float param = m->GetVertexAnimationParam();
+		glUniform1f(uLoc.vertexAnimationParamLoc, param);
+	}
+	else
+	{
+		glUniform1i(uLoc.useVertexAnimation, false);
+	}
 }
 
 void Renderer::SetModelvao(MeshModel* m)
@@ -447,7 +450,7 @@ void Renderer::SetModelvao(MeshModel* m)
 	if (vRandlLoc != -1 && -1 != m->_oglBind.buffers[7]) {
 		glBindBuffer(GL_ARRAY_BUFFER, m->_oglBind.buffers[7]);
 		glEnableVertexAttribArray(vRandlLoc);
-		glVertexAttribPointer(vRandlLoc, 3, GL_FLOAT, 0, 0, 0);
+		glVertexAttribPointer(vRandlLoc, 1, GL_FLOAT, 0, 0, 0);
 	}
 }
 

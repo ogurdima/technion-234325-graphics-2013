@@ -5,7 +5,7 @@ in vec4 vPosition;
 in vec4 vNormal;
 in vec4 avgNormal;
 in vec2 vTex;
-in vec3 vRand;
+in float vRand;
 
 in vec3 vTan;
 in vec3 vBitan;
@@ -22,7 +22,7 @@ uniform mat4 normalTransform;
 
 uniform bool useNormalMap;
 uniform bool useVertexAnimation;
-uniform vec3 vertexAnimationParam;
+uniform float vertexAnimationParam;
 
 void main()
 {	
@@ -34,12 +34,12 @@ void main()
 	
 	if( useVertexAnimation )
 	{
-		float ppp = dot(vertexAnimationParam, vRand) / 10;
-		vertexCf += (vec4(avgNormalCf,0) * ppp);
+		vec3 other = vertexCf.xyz + (avgNormalCf * vRand * 0.1);
+		vec3 loc = mix(vertexCf.xyz, other, vertexAnimationParam);
+		vertexCf = vec4(loc, vertexCf.w);
 	}
 
-	vec4 posCf = projection * vertexCf;
-	gl_Position = posCf;
+	gl_Position = projection * vertexCf;
 	normal = normalCf;
 	vertex = vertexCf;
 	fTex = vTex;

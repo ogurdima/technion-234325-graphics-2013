@@ -49,6 +49,7 @@ public:
 	vector<vec4>			VertexNormals();
 	vector<vec4>			AverageVertexNormals();
 	vector<vec3>			Randoms();
+	vector<float>			RandomFloatPerVertex();
 	void					TangentBitangent(vector<vec3>& outTangent, vector<vec3>& outBitangent);
 	int						FaceCount();
 	
@@ -68,6 +69,7 @@ public:
 
 	void					SetVertexAnimation(bool val);
 	bool					GetVertexAnimation();
+	float					GetVertexAnimationParam();
 	void					SetColorAnimation(ColorAnim_t val);
 	ColorAnim_t				GetColorAnimation();
 	//void					ChangeColorAnimationParam(float factor);
@@ -99,8 +101,10 @@ protected :
 	bool					_drawMF;
 
 	bool					_vertexAnimation;
-	ColorAnim_t				_colorAnimation;
+	float					_vertexAnimationCoeff;
+	bool					_vertexAnimationSubtract;
 
+	ColorAnim_t				_colorAnimation;
 	float					_colorAnimationSharedCoeff;
 	Rgb						_colorAnimationLerpRandom;
 	bool					_colorAnimationLerpSubtract;
