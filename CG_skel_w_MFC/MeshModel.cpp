@@ -729,6 +729,7 @@ void MeshModel::CalculateIdxs()
 			}
 		}
 	}
+	delete _vTextureIdxsSet;
 }
 
 void MeshModel::CalculateFaceNormals()
