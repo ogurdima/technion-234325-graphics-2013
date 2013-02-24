@@ -57,8 +57,9 @@ typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 #define MODEL_DISABLE_NORMAL_MAP				211
 #define MODEL_ENABLE_VERTEX_ANIM				212
 #define MODEL_DISABLE_VERTEX_ANIM				213
-#define MODEL_ENABLE_COLOR_ANIM					214
+#define MODEL_ENABLE_HUE_COLOR_ANIM				214
 #define MODEL_DISABLE_COLOR_ANIM				215
+#define MODEL_ENABLE_LERP_COLOR_ANIM			216
 
 #define CAMERA_SET_LOCATION						30
 #define CAMERA_SET_FOV							31
@@ -1074,11 +1075,14 @@ void menuActiveModel(int id)
 	case MODEL_DISABLE_VERTEX_ANIM:
 		m->SetVertexAnimation(false);
 		break;
-	case MODEL_ENABLE_COLOR_ANIM:
-		m->SetColorAnimation(true);
+	case MODEL_ENABLE_HUE_COLOR_ANIM:
+		m->SetColorAnimation(HUE);
+		break;
+	case MODEL_ENABLE_LERP_COLOR_ANIM:
+		m->SetColorAnimation(LERP);
 		break;
 	case MODEL_DISABLE_COLOR_ANIM:
-		m->SetColorAnimation(false);
+		m->SetColorAnimation(NONE);
 		break;
 	}
 	glutPostRedisplay();
@@ -1290,7 +1294,8 @@ void initMenu()
 	glutAddMenuEntry("Disable normal mapping",		MODEL_DISABLE_NORMAL_MAP);
 	glutAddMenuEntry("On vertex animation",			MODEL_ENABLE_VERTEX_ANIM);
 	glutAddMenuEntry("Off vertex animation",		MODEL_DISABLE_VERTEX_ANIM);
-	glutAddMenuEntry("On color animation",			MODEL_ENABLE_COLOR_ANIM);
+	glutAddMenuEntry("Hue color animation",			MODEL_ENABLE_HUE_COLOR_ANIM);
+	glutAddMenuEntry("LERP color animation",		MODEL_ENABLE_LERP_COLOR_ANIM);
 	glutAddMenuEntry("Off color animation",			MODEL_DISABLE_COLOR_ANIM);
 
 	int lensMenu = glutCreateMenu(menuLens);

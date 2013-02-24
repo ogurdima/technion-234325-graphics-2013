@@ -11,6 +11,7 @@
 using namespace std;
 
 typedef enum {SPHERICAL, USER_GIVEN, FLATTENED} TexCoordSource_t;
+typedef enum {NONE, HUE, LERP} ColorAnim_t;
 
 
 class MeshModel : public Model
@@ -67,10 +68,14 @@ public:
 
 	void					SetVertexAnimation(bool val);
 	bool					GetVertexAnimation();
-	void					SetColorAnimation(bool val);
-	bool					GetColorAnimation();
-	void					ChangeColorAnimationParam(float factor);
-	float					GetColorAnimationParam();
+	void					SetColorAnimation(ColorAnim_t val);
+	ColorAnim_t				GetColorAnimation();
+	//void					ChangeColorAnimationParam(float factor);
+	//float					GetColorAnimationParam();
+
+	void					Animation();
+	void					VertexAnimation();
+	void					ColorAnimation();
 	
 protected :
 	vector<Face>			_faces;
@@ -94,9 +99,11 @@ protected :
 	bool					_drawMF;
 
 	bool					_vertexAnimation;
-	bool					_colorAnimation;
+	ColorAnim_t				_colorAnimation;
 
-	float					_colorAnimationParam;
+	float					_colorAnimationSharedCoeff;
+	Rgb						_colorAnimationLerpRandom;
+	bool					_colorAnimationLerpSubtract;
 
 	bool					_drawTexture;
 	bool					_envMap;

@@ -32,7 +32,7 @@ void main()
 	vec3 bitanCf = normalize( view * normalTransform * vec4(vBitan,0) ).xyz;
 	vec3 avgNormalCf = normalize(view * normalTransform * avgNormal).xyz;
 	
-	if( useVertexAnimation)
+	if( useVertexAnimation )
 	{
 		float ppp = dot(vertexAnimationParam, vRand) / 10;
 		vertexCf += (vec4(avgNormalCf,0) * ppp);

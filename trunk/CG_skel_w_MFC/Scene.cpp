@@ -157,7 +157,8 @@ void Scene::Animation()
 {
 	for(int i = 0; i < models.size(); ++i)
 	{
-		models[i]->ChangeColorAnimationParam(0.02);
+		//models[i]->ChangeColorAnimationParam(0.02);
+		models[i]->Animation();
 	}
 }
 
