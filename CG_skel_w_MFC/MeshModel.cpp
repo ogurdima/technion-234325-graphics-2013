@@ -459,6 +459,24 @@ vector<vec3> MeshModel::Randoms()
 	}
 	return outRands;
 }
+
+vector<float> MeshModel::RandomFloatPerVertex()
+{
+	vector<float> rands;
+	rands.resize(_vertices.size());
+	for(int i = 0; i < _vertices.size(); ++i)
+	{
+		rands[i] = ( ((float)(rand() % 10000)) / (10000 + 1) ) * 2 - 1;
+	}
+	vector<float> outRands;
+	outRands.resize(_vertexPositionIdxs->size());
+	for(int i = 0; i < (*_vertexPositionIdxs).size(); ++i)
+	{
+		outRands[i] = rands[(*_vertexPositionIdxs)[i]];
+	}
+	return outRands;
+}
+
 //#pragma endregion
 
 //#pragma region Transformations
@@ -558,11 +576,18 @@ vec3 MeshModel::BoundingBoxCenter()
 void MeshModel::SetVertexAnimation(bool val)
 {
 	_vertexAnimation = val;
+	_vertexAnimationCoeff = 0;
+	_vertexAnimationSubtract = false;
 }
 
 bool MeshModel::GetVertexAnimation()
 {
 	return _vertexAnimation;
+}
+
+float MeshModel::GetVertexAnimationParam()
+{
+	return _vertexAnimationCoeff;
 }
 
 void MeshModel::Animation()
@@ -573,7 +598,21 @@ void MeshModel::Animation()
 
 void MeshModel::VertexAnimation()
 {
-	// nothing to do here - animation is handeled in shader
+	if (_vertexAnimationSubtract) {
+		_vertexAnimationCoeff -= 0.05;
+		if (_vertexAnimationCoeff <= 0) {
+			_vertexAnimationCoeff = 0;
+			_vertexAnimationSubtract = false;
+		}
+	}
+	else {
+		_vertexAnimationCoeff += 0.05;
+		if (_vertexAnimationCoeff >= 1) {
+			_vertexAnimationCoeff = 1;
+			_vertexAnimationSubtract = true;
+		}
+	}
+	return;
 }
 
 void MeshModel::ColorAnimation()
@@ -609,11 +648,9 @@ void MeshModel::ColorAnimation()
 
 void MeshModel::SetColorAnimation(ColorAnim_t val)
 {
-	if (NONE == val) {
-		_colorAnimationLerpRandom = Rgb(0,0,0);
-		_colorAnimationLerpSubtract = false;
-		_colorAnimationSharedCoeff = 0;
-	}
+	_colorAnimationLerpRandom = Rgb(0,0,0);
+	_colorAnimationLerpSubtract = false;
+	_colorAnimationSharedCoeff = 0;
 	if (LERP == val) {
 		float randR = ( (float)(rand() % 10000) ) / (10000 - 1);
 		float randG = ( (float)(rand() % 10000) ) / (10000 - 1);
