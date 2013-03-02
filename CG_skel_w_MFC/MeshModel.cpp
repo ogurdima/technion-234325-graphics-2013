@@ -505,7 +505,6 @@ bool MeshModel::GetDrawTexture()
 void MeshModel::SetTextureCoordinatesSource(TexCoordSource_t _s)
 {
 	_texCoordSource = _s;
-	// send ne textures (Textures()) to the renderer, so it could rebind the buffer.
 }
 
 bool MeshModel::GetDrawEnvMap()

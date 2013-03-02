@@ -11,7 +11,7 @@ struct MaterialColor {
 	float	shininess;
 };
 
-vec3 calcColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc);
+vec3 calcToonColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc);
 float quant(in float val);
 
 in vec3 normal;
@@ -43,7 +43,7 @@ void main()
 
 	MaterialColor mc;
 	mc.diffuse = diffuse;
-	mc.specular = vec3(0,0,0); // no specular in TOON
+	mc.specular = specular; 
 	mc.emissive = emissive; 
 	mc.ambient = ambient;
 	mc.shininess = shininess;
@@ -53,13 +53,12 @@ void main()
 		mc.diffuse = texture2D(texMap, fTex).rgb;
 	}
 
-	vec3 totalColor = calcColor(vertex.xyz, normal, viewDir, mc);
-	vec3 tooned = vec3(quant(totalColor.r), quant(totalColor.g), quant(totalColor.b));
-	fcolor = vec4(tooned, 1);
+	vec3 totalColor = calcToonColor(vertex.xyz, normal, viewDir, mc);
+	fcolor = vec4(totalColor, 1);
 }
 
 
-vec3 calcColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc) 
+vec3 calcToonColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc) 
 {
 	vec3 df = vec3(0,0,0);
 	vec3 af = vec3(0,0,0);
@@ -69,6 +68,7 @@ vec3 calcColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc)
 	{
 		vec3 L = normalize(lightDir[i]);
 		float NdotL =  max(0.0, dot(N, -L ) );
+		NdotL = quant(NdotL);
 		df += mc.diffuse * NdotL * parlightColor[i];
 		if (NdotL > 0)
 		{
@@ -79,6 +79,7 @@ vec3 calcColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc)
 	{
 		vec3 L = normalize(V - lightPos[i]);
 		float NdotL =  max(0.0, dot(N, -L ) );
+		NdotL = quant(NdotL);
 		df += mc.diffuse * NdotL * ptlightColor[i];
 		if (NdotL > 0)
 		{
@@ -91,19 +92,19 @@ vec3 calcColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc)
 
 float quant(in float val)
 {
-	if (val > 0.95)
-		val = 0.95;
-	else if (val > 0.7)
-		val = 0.7;
-	else if (val > 0.4)
-		val = 0.4;
-	else if (val > 0.3)
-		val = 0.3;
-	else if (val > 0.2)
-		val = 0.2;
-	else if (val > 0.1)
-		val = 0.1;
-	else
+	if (val < 0)
 		val = 0;
+	else if (val < 0.2)
+		val = 0.1;
+	else if (val < 0.4)
+		val = 0.3;
+	else if (val < 0.6)
+		val = 0.5;
+	else if (val < 0.8)
+		val = 0.7;
+	else if (val < 0.9)
+		val = 0.8;
+	else
+		val = 0.99;
 	return val;
 }
