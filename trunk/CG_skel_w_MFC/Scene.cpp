@@ -125,12 +125,13 @@ void Scene::BindReflectionMaps()
 		vec3 yyy = normalize(cross(xxx, v));
 		vec3 zzz = normalize(cross(xxx, yyy));
 
+		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X, LookAtMat(bbCenter, bbCenter+xxx, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, LookAtMat(bbCenter, bbCenter-xxx, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, LookAtMat(bbCenter, bbCenter+yyy, zzz),  PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, LookAtMat(bbCenter, bbCenter-yyy, -zzz), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, LookAtMat(bbCenter, bbCenter+zzz, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
 		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, LookAtMat(bbCenter, bbCenter-zzz, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
-		AddReflectionTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X, LookAtMat(bbCenter, bbCenter+xxx, -yyy), PerspectiveMat(72.3,1, 0.01, 2* ac->ZFar()), models[i]);
+		
 		
 		glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 		if (aaWasEnabled) {

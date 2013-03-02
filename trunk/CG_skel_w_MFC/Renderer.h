@@ -55,6 +55,7 @@ public:
 	ShadingType		Shading();
 
 	void			BindModel(MeshModel* model);
+	void			RebindTextureCoords(MeshModel* m);
 	void			UnbindModel(MeshModel* mb);
 	void			DrawModel(MeshModel* m);
 	void			BindTexture(MeshModel* m, Texture& t);

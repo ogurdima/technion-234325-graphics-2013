@@ -271,6 +271,13 @@ void Renderer::BindModel(MeshModel* model)
 	model->_oglBind = b;
 }
 
+void Renderer::RebindTextureCoords(MeshModel* m)
+{
+	vector<vec2> textures = m->TextureCoords();
+	glBindBuffer(GL_ARRAY_BUFFER, m->_oglBind.buffers[3]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * textures.size(), &textures[0], GL_STATIC_DRAW);
+}
+
 void Renderer::BindTexture(MeshModel* m , Texture& t)
 {
 	glActiveTexture(GL_TEXTURE0);
