@@ -485,6 +485,11 @@ mat4 MeshModel::Transformation()
 	return _world_transform * _inner_transform;
 }
 
+mat4 MeshModel::WorldTransformation()
+{
+	return _world_transform;
+}
+
 mat4 MeshModel::NormalTransformation()
 {
 	return _normal_transform * _inner_transform;

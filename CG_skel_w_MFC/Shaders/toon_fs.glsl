@@ -64,6 +64,7 @@ vec3 calcToonColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc)
 	vec3 af = vec3(0,0,0);
 	vec3 sf = vec3(0,0,0);
 	vec3 ef = mc.emissive;
+	N = normalize(N);
 	for (int i = 0; i < parallelLightNum; i++)
 	{
 		vec3 L = normalize(lightDir[i]);

@@ -95,7 +95,27 @@ void Scene::DrawWorldAxes()
 	lineEp.push_back(vec4(0,0,0,1));
 	clrs.push_back(vec3(0,0,1));
 	lineEp.push_back(vec4(0,0,10,1));
-	clrs.push_back(vec3(1,0,1));
+	clrs.push_back(vec3(0,0,1));
+
+	for( int i = 0; i < models.size(); ++i)
+	{
+		if( NULL == models[i] || !models[i]->_drawMF)
+			continue;
+		mat4 trn = models[i]->WorldTransformation();
+
+		lineEp.push_back(trn * vec4(0,0,0,1));
+		clrs.push_back(vec3(1,0,0));
+		lineEp.push_back(trn * vec4(5,0,0,1));
+		clrs.push_back(vec3(1,0,0));
+		lineEp.push_back(trn * vec4(0,0,0,1));
+		clrs.push_back(vec3(0,1,0));
+		lineEp.push_back(trn * vec4(0,5,0,1));
+		clrs.push_back(vec3(0,1,0));
+		lineEp.push_back(trn * vec4(0,0,0,1));
+		clrs.push_back(vec3(0,0,1));
+		lineEp.push_back(trn * vec4(0,0,5,1));
+		clrs.push_back(vec3(0,0,1));
+	}
 
 	renderer->SetShading(LINE);
 	renderer->SetCamera(ac->View(), ac->Projection());
