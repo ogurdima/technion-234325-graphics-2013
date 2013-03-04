@@ -65,6 +65,7 @@ public:
 	ModelBind				_oglBind;
 
 	mat4					Transformation();
+	mat4					WorldTransformation();
 	mat4					NormalTransformation();
 
 	void					SetVertexAnimation(bool val);
@@ -79,6 +80,8 @@ public:
 	void					VertexAnimation();
 	void					ColorAnimation();
 	
+	bool					_drawMF;
+
 protected :
 	vector<Face>			_faces;
 	vector<Vertex>			_vertices;
@@ -98,7 +101,7 @@ protected :
 	bool					_drawVN;
 	bool					_drawFN;
 	bool					_drawBB;
-	bool					_drawMF;
+	
 
 	bool					_vertexAnimation;
 	float					_vertexAnimationCoeff;

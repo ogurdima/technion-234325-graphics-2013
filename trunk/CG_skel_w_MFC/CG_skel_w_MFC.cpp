@@ -23,7 +23,7 @@
 #endif
 
 typedef enum { MODEL_MODE = 0, CAMERA_MODE, LIGHT_MODE} ActiveMode;
-typedef enum { M_WORLD_FRAME = 0, M_MODEL_FRAME } ModelActiveFrame;
+typedef enum { M_WORLD_FRAME = 0, M_MODEL_FRAME, M_CAMERA_FRAME } ModelActiveFrame;
 typedef enum { C_WORLD_FRAME = 0, C_VIEW_FRAME } CameraActiveFrame;
 typedef enum { T_ROTATION = 0, T_TRANSLATION } ActiveTransformation;
 
@@ -344,7 +344,7 @@ bool tryGeneralKeyboardCommands(unsigned char key)
 	}
 	return false;
 }
-void modelWFTranslation(unsigned char key)
+void modelCFTranslation(unsigned char key)
 {
 	MeshModel* mm = scene->ActiveModel();
 	Camera* c = scene->ActiveCam();
@@ -375,7 +375,7 @@ void modelWFTranslation(unsigned char key)
 		return;
 	}
 }
-void modelWFRotation(unsigned char key)
+void modelCFRotation(unsigned char key)
 {
 	MeshModel* mm = scene->ActiveModel();
 	Camera* c = scene->ActiveCam();
@@ -409,6 +409,67 @@ void modelWFRotation(unsigned char key)
 		return;
 	}
 	customWFRotateModel(mm, custRotation);
+}
+void modelWFTranslation(unsigned char key)
+{
+	MeshModel* mm = scene->ActiveModel();
+	Camera* c = scene->ActiveCam();
+	if( NULL == mm || NULL == c)	return;
+
+	switch (key)
+	{
+	case 'w':
+		mm->WFTranslate( Translate( vec3(0,0,1) * (-smoothFactor)));
+		return;
+	case 's':
+		mm->WFTranslate( Translate( vec3(0,0,1) * (smoothFactor)));
+		return;
+	case 'a':
+		mm->WFTranslate( Translate( vec3(1,0,0) * (-smoothFactor)));
+		return;
+	case 'd':
+		mm->WFTranslate( Translate( vec3(1,0,0) * (smoothFactor)));
+		return;
+	case 'e':
+		mm->WFTranslate( Translate( vec3(0,1,0) * (smoothFactor)));
+		return;
+	case 'q':
+		mm->WFTranslate( Translate( vec3(0,1,0) * (-smoothFactor)));
+		return;
+	}
+}
+void modelWFRotation(unsigned char key)
+{
+	MeshModel* mm = scene->ActiveModel();
+	Camera* c = scene->ActiveCam();
+	if( NULL == mm || NULL == c)	return;
+
+	float angle = 5 * smoothFactor * M_PI / 180.0;
+
+	mat4 custRotation;
+	switch (key)
+	{
+	case 'w':
+		mm->WFRotate( RotateX( -angle));
+		break;
+	case 's':
+		mm->WFRotate( RotateX( angle));
+		break;
+	case 'a':
+		mm->WFRotate( RotateY( angle));
+		break;
+	case 'd':
+		mm->WFRotate( RotateY( -angle));
+		break;
+	case 'e':
+		mm->WFRotate( RotateZ( -angle));
+		break;
+	case 'q':
+		mm->WFRotate( RotateZ( angle));
+		break;
+	default:
+		return;
+	}
 }
 void modelMFTranslation(unsigned char key)
 {
@@ -467,21 +528,24 @@ void modelKeyboard(unsigned char key)
 {
 	switch ( key ) {
 	case '[':
-		modelActiveFrame = M_WORLD_FRAME;
+		modelActiveFrame = M_CAMERA_FRAME;
 		return;
 	case ']':
 		modelActiveFrame = M_MODEL_FRAME;
+		return;
+	case '\\':
+		modelActiveFrame = M_WORLD_FRAME;
 		return;
 	case '\t':
 		scene->ToggleActiveModel();
 		return;
 	}
-	if( M_WORLD_FRAME == modelActiveFrame)
+	if( M_CAMERA_FRAME == modelActiveFrame)
 	{
 		if(T_ROTATION == activeTransformation)
-			modelWFRotation(key);
+			modelCFRotation(key);
 		else if ( T_TRANSLATION == activeTransformation)
-			modelWFTranslation(key);
+			modelCFTranslation(key);
 	}
 	else if( M_MODEL_FRAME == modelActiveFrame)
 	{
@@ -489,6 +553,13 @@ void modelKeyboard(unsigned char key)
 			modelMFRotation(key);
 		else if ( T_TRANSLATION == activeTransformation)
 			modelMFTranslation(key);
+	}
+	else if( M_WORLD_FRAME == modelActiveFrame)
+	{
+		if(T_ROTATION == activeTransformation)
+			modelWFRotation(key);
+		else if ( T_TRANSLATION == activeTransformation)
+			modelWFTranslation(key);
 	}
 }
 
@@ -1306,7 +1377,7 @@ void initMenu()
 	glutAddMenuEntry("Set Monotone Color",			MODEL_SET_MONOTON_COLOR);
 	glutAddMenuEntry("Set Texture",					MODEL_SET_TEXTURE);
 	glutAddMenuEntry("Set marble texture",			MODEL_SET_MARBLE);
-	//glutAddMenuEntry("Show Model Frame",			MODEL_SHOW_FRAME);
+	glutAddMenuEntry("Show Model Frame",			MODEL_SHOW_FRAME);
 	//glutAddMenuEntry("Show Normals per Vertex",		MODEL_SHOW_VERTEX_NORMALS);
 	//glutAddMenuEntry("Show Normals per Face",		MODEL_SHOW_FACE_NORMALS);
 	glutAddMenuEntry("Nonuniform Scale",			MODEL_NON_UNIFORM_SCALE);
@@ -1449,8 +1520,10 @@ int my_main( int argc, char **argv )
 	//----------------------------------------------------------------------------
 	scene = new Scene(renderer);
 	scene->AddCamera(c1);
-	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), Rgb(0.5,0.5,0.5), vec4(0,0,-1, 0)));
-	scene->AddLight(Light(REGULAR_L, POINT_S, vec4(0,5,-5,1), Rgb(0.5,0.5,0.5), vec4(0,0,0, 0)));
+	//scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,0,0,0), Rgb(0.5,0.5,0.5), vec4(0,0,-1, 0)));
+	//scene->AddLight(Light(REGULAR_L, POINT_S, vec4(0,5,-5,1), Rgb(0.5,0.5,0.5), vec4(0,0,0, 0)));
+	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,5,-5,1), Rgb(1,1,1), vec4(1,0,0, 0)));
+	scene->AddLight(Light(REGULAR_L, PARALLEL_S, vec4(0,5,-5,1), Rgb(1,1,1), vec4(-1,0,0, 0)));
 
 
 

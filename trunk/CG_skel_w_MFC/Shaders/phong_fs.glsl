@@ -73,15 +73,16 @@ vec3 calcColor(in vec3 V, in vec3 N, in vec3 viewDir, in MaterialColor mc)
 	vec3 af = vec3(0,0,0);
 	vec3 sf = vec3(0,0,0);
 	vec3 ef = mc.emissive;
+	N = normalize(N);
 	for (int i = 0; i < parallelLightNum; i++)
 	{
 		vec3 L = normalize(lightDir[i]);
 		float NdotL =  max(0.0, dot(N, -L ) );
 		df += mc.diffuse * NdotL * parlightColor[i];
-		if (NdotL > 0)
-		{
-			sf += mc.specular * parlightColor[i] * pow( max(   dot(reflect(L, N), viewDir),    0) , mc.shininess);
-		}
+		//if (NdotL > 0)
+		//{
+			sf += mc.specular * parlightColor[i] * pow( max(   dot(reflect(L, N), viewDir),    0) , 20);
+		//}
 	}
 	for (int i = 0; i < pointLightNum; i++)
 	{
